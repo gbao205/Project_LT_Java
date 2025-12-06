@@ -1,0 +1,30 @@
+package com.cosre.backend.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "team_members")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TeamMember {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // Thành viên của nhóm nào
+    @ManyToOne
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
+
+    // Là sinh viên nào
+    @ManyToOne
+    @JoinColumn(name = "student_id", nullable = false)
+    private User student;
+
+    // Vai trò: LEADER, MEMBER
+    @Enumerated(EnumType.STRING)
+    private TeamRole role;
+}
