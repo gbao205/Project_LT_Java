@@ -10,17 +10,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor // Lombok sẽ tự tạo Constructor cho các biến final bên dưới
-@CrossOrigin(origins = "*") // Cho phép FE gọi API thoải mái
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class AuthController {
 
-    // 1. Khai báo các Dependency
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
@@ -29,11 +30,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
-            // Ném lỗi để GlobalExceptionHandler xử lý trả về 400
             throw new AppException("Email đã được sử dụng!", HttpStatus.BAD_REQUEST);
         }
 
-        // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
@@ -46,24 +45,43 @@ public class AuthController {
         String email = loginRequest.get("email");
         String password = loginRequest.get("password");
 
-        // Tìm user trong DB
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy người dùng với email này."));
 
-        // Kiểm tra mật khẩu (Raw pass vs Encoded pass)
         if (passwordEncoder.matches(password, user.getPassword())) {
-            // Nếu đúng -> Sinh Token
             String token = jwtUtils.generateJwtToken(email);
 
-            // Trả về Token kèm thông tin user
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
             response.put("email", email);
-            response.put("username", user.getFullName()); // Trả thêm username cho FE hiển thị
+            response.put("fullName", user.getFullName());
 
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Lỗi: Mật khẩu sai!"));
         }
+    }
+
+    // 4. API Lấy thông tin người dùng (/me)
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Bạn chưa đăng nhập!"));
+        }
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("id", user.getId());
+        profile.put("email", user.getEmail());
+        profile.put("fullName", user.getFullName());
+        profile.put("role", "USER");
+
+        return ResponseEntity.ok(profile);
     }
 }
