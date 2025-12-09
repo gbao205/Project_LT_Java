@@ -27,39 +27,43 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
 
+    // 1. Cấu hình bộ lọc bảo mật
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                .cors(Customizer.withDefaults()) // Bật CORS
+                .cors(Customizer.withDefaults()) // Kích hoạt CORS từ Bean bên dưới
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không lưu session
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()      // Cho phép Login/Register
-                        .requestMatchers("/api/subjects/**").permitAll()
-                        .requestMatchers("/api/test/all").permitAll()// Cho phép xem môn học (Test)
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/subjects/**").permitAll()  // Public API
+                        .requestMatchers("/api/test/all").permitAll()     // Test API
+                        .anyRequest().authenticated()                     // Còn lại phải đăng nhập
                 );
 
-        // Kích hoạt JWT trước khi xác thực user/pass
+        // Thêm filter kiểm tra Token trước
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    // 2. Bean mã hóa mật khẩu
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // 3. Bean quản lý xác thực
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
+    // 4. Cấu hình CORS (Cho phép Frontend gọi API)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); //Local có thể thay nếu deploy
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
