@@ -1,4 +1,4 @@
-package com.cosre.backend.exception; // 👈 Sửa lại package cho đúng với project của bạn
+package com.cosre.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
