@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import com.cosre.backend.exception.AppException;
+import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,9 +26,9 @@ public class AuthController {
 
     // API Đăng ký nhanh (để tạo user test)
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
-            return ResponseEntity.badRequest().body("Lỗi: Email đã được sử dụng!");
+            throw new AppException("Email đã được sử dụng!", HttpStatus.BAD_REQUEST);
         }
         // Mã hóa mật khẩu trước khi lưu
         user.setPassword(passwordEncoder.encode(user.getPassword()));

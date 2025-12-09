@@ -2,6 +2,9 @@ package com.cosre.backend.security.services;
 
 import com.cosre.backend.entity.User;
 import com.cosre.backend.repository.UserRepository;
+import com.cosre.backend.exception.AppException;
+import org.springframework.http.HttpStatus;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,7 +21,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng có email: " + email));
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng có email: " + email, HttpStatus.NOT_FOUND));
 
         return UserDetailsImpl.build(user);
     }
