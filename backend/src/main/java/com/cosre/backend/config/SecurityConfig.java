@@ -35,10 +35,15 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults()) // Kích hoạt CORS từ Bean bên dưới
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không lưu session
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()      // Cho phép Login/Register
-                        .requestMatchers("/api/subjects/**").permitAll()  // Public API
-                        .requestMatchers("/api/test/all").permitAll()     // Test API
-                        .anyRequest().authenticated()                     // Còn lại phải đăng nhập
+                        //CHỈ cho phép Login và Register thoải mái
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+
+                        //API đổi mật khẩu (và /me) BẮT BUỘC phải đăng nhập
+                        .requestMatchers("/api/auth/change-password", "/api/auth/me").authenticated()
+
+                        .requestMatchers("/api/subjects/**").permitAll() // Tạm thời public môn học
+                        .requestMatchers("/api/test/all").permitAll()
+                        .anyRequest().authenticated()
                 );
 
         // Thêm filter kiểm tra Token trước

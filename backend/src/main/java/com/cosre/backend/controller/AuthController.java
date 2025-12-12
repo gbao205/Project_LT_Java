@@ -28,7 +28,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
 
-    // 2. API Đăng ký
+    // 1. API Đăng ký
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -45,7 +45,7 @@ public class AuthController {
         return ResponseEntity.ok(new HashMap<>(Map.of("message", "Người dùng đã đăng ký thành công!")));
     }
 
-    // 3. API Đăng nhập
+    // 2. API Đăng nhập
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginRequest) {
         String email = loginRequest.get("email");
@@ -70,7 +70,7 @@ public class AuthController {
         }
     }
 
-    // 4. API Lấy thông tin người dùng (/me)
+    // 3. API Lấy thông tin người dùng (/me)
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -91,5 +91,29 @@ public class AuthController {
         profile.put("role", "USER");
 
         return ResponseEntity.ok(profile);
+    }
+    // 4. API Đổi mật khẩu
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request) {
+        // 1. Lấy user hiện tại đang đăng nhập
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+
+        // 2. Lấy dữ liệu từ Client gửi lên
+        String currentPassword = request.get("currentPassword");
+        String newPassword = request.get("newPassword");
+
+        // 3. Kiểm tra mật khẩu cũ có đúng không
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Mật khẩu hiện tại không đúng!"));
+        }
+
+        // 4. Mã hóa mật khẩu mới và lưu vào DB
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
     }
 }

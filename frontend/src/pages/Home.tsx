@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../services/authService';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
@@ -55,7 +56,7 @@ const Home = () => {
 
     const roleInfo = getRoleLabel(user.role);
 
-    // Component Stat Card (Responsive Text)
+    // Component Stat Card
     const StatCard = ({ title, value, icon, color }: any) => (
         <Paper elevation={0} sx={{
             p: 2, display: 'flex', alignItems: 'center', gap: 2,
@@ -107,11 +108,10 @@ const Home = () => {
             <Box sx={{
                 background: 'linear-gradient(120deg, #1565c0 0%, #0d47a1 100%)',
                 color: 'white',
-                pt: 4, pb: 12, px: { xs: 2, md: 6 }, // Padding linh hoạt
-                mb: -8, // Để các card đè lên
+                pt: 4, pb: 12, px: { xs: 2, md: 6 },
+                mb: -8,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
             }}>
-                {/* Dùng maxWidth={false} để bung lụa */}
                 <Container maxWidth={false}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
                         <Box display="flex" alignItems="center" gap={3}>
@@ -153,7 +153,7 @@ const Home = () => {
                 </Container>
             </Box>
 
-            {/* 2. BODY CONTENT (Full Width) */}
+            {/* 2. BODY CONTENT */}
             <Container maxWidth={false} sx={{ px: { xs: 2, md: 6 } }}>
 
                 {/* Stats Section */}
@@ -262,7 +262,15 @@ const Home = () => {
                             onClick={() => alert("Chức năng đang phát triển")}
                         />
                     </Grid>
-
+                    <Grid item xs={12} sm={6} md={4} lg={3}>
+                        <ActionCard
+                            title="Đổi Mật Khẩu"
+                            desc="Bảo mật tài khoản của bạn."
+                            icon={<VpnKeyIcon fontSize="large" />}
+                            color="#757575"
+                            onClick={() => navigate('/change-password')}
+                        />
+                    </Grid>
                 </Grid>
             </Container>
         </Box>
