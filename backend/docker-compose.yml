@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 1. Dịch vụ Database (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: collab_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Giữ dữ liệu không bị mất khi tắt Docker
+
+  # 2. Dịch vụ Backend (Spring Boot)
+  backend:
+    build: .                # Build từ Dockerfile ở thư mục hiện tại
+    container_name: backend_container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db                  # Chờ Database chạy trước rồi mới chạy Backend
+    environment:
+      # Cấu hình để Backend kết nối vào Database 'db'
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/collab_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=password123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+volumes:
+  postgres_data:
