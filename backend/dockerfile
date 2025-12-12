@@ -1,0 +1,15 @@
+# Giai đoạn 1: Dùng Maven để build code thành file .jar
+# (Dùng image có sẵn Maven để bạn không cần cài Maven trên máy)
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY . .
+# Lệnh build (bỏ qua test để chạy cho nhanh)
+RUN mvn clean package -DskipTests
+
+# Giai đoạn 2: Tạo môi trường chạy Java nhẹ (Alpine)
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+# Copy file .jar từ giai đoạn 1 sang
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
