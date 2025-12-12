@@ -3,6 +3,7 @@ import Login from "./pages/auth/Login";
 import SubjectManager from "./pages/admin/SubjectManager";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
+import UserManager from "./pages/admin/UserManager";
 
 function App() {
     return (
@@ -22,6 +23,9 @@ function App() {
 
                 {/* Đổi mật khẩu*/}
                 <Route path="/change-password" element={<ChangePassword />} />
+
+                {/* Quản lý user*/}
+                <Route path="/admin/users" element={<UserManager />} />
             </Routes>
         </Router>
     );

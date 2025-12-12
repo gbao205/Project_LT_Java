@@ -36,7 +36,7 @@ public class AuthController {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        //Gán quyền mặc định là STUDENT nếu người dùng không gửi role lên
+        // Gán quyền mặc định là STUDENT nếu người dùng không gửi role lên
         if (user.getRole() == null) {
             user.setRole(Role.STUDENT);
         }
@@ -54,14 +54,22 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy người dùng với email này."));
 
+        // Kiểm tra xem tài khoản có bị khóa không (active = false)
+        if (Boolean.FALSE.equals(user.getActive())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin."));
+        }
+
+        // Kiểm tra mật khẩu
         if (passwordEncoder.matches(password, user.getPassword())) {
             String token = jwtUtils.generateJwtToken(email);
 
+            // Tạo response trả về
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
             response.put("email", email);
             response.put("fullName", user.getFullName());
-            //Trả về role
+            // Trả về role
             response.put("role", user.getRole() != null ? user.getRole().name() : "STUDENT");
 
             return ResponseEntity.ok(response);
@@ -88,10 +96,11 @@ public class AuthController {
         profile.put("id", user.getId());
         profile.put("email", user.getEmail());
         profile.put("fullName", user.getFullName());
-        profile.put("role", "USER");
+        profile.put("role", user.getRole() != null ? user.getRole().name() : "STUDENT");
 
         return ResponseEntity.ok(profile);
     }
+
     // 4. API Đổi mật khẩu
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request) {

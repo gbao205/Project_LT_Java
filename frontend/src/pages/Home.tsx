@@ -198,7 +198,7 @@ const Home = () => {
                                     desc="Phân quyền & Tài khoản."
                                     icon={<SupervisorAccountIcon fontSize="large" />}
                                     color="#d32f2f"
-                                    onClick={() => alert("Chức năng đang phát triển")}
+                                    onClick={() => navigate('/admin/users')}
                                 />
                             </Grid>
                         </>

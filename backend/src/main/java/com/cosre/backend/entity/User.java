@@ -1,16 +1,14 @@
 package com.cosre.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-@Entity // Đánh dấu đây là một bảng trong DB
-@Table(name = "users") // Tên bảng trong SQL
-@Data // Lombok tự sinh Getter/Setter
+@Entity
+@Table(name = "users")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,9 +19,19 @@ public class User {
 
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không đúng định dạng")
+    @Column(unique = true)
     private String email;
+
+    // Ẩn password khi trả về
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+
     private String fullName;
+
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    // Thêm trường Active
+    @Builder.Default
+    private Boolean active = true;
 }

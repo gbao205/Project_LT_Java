@@ -31,7 +31,8 @@ public class GlobalExceptionHandler {
     // 2. Xử lý lỗi format JSON (thiếu dấu ngoặc, sai phẩy...)
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleJsonErrors(HttpMessageNotReadableException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Lỗi định dạng JSON (kiểm tra lại dấu ngoặc hoặc cú pháp).");
+        ex.printStackTrace();
+        return buildResponse(HttpStatus.BAD_REQUEST, "Lỗi JSON chi tiết: " + ex.getMessage());
     }
 
     // 3. Xử lý các lỗi Runtime khác (ví dụ: Logic lỗi, NullPointer...)
