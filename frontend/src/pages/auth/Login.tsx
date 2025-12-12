@@ -21,7 +21,7 @@ const Login = () => {
         setLoginError('');
         try {
             await loginUser(data);
-            navigate('/admin/subjects');
+            navigate('/home');
         } catch (error: any) {
             setLoginError("Đăng nhập thất bại! Vui lòng kiểm tra lại thông tin.");
         }
@@ -162,9 +162,9 @@ const Login = () => {
                             py: 1.8,
                             fontSize: '1.1rem',
                             fontWeight: 'bold',
-                            borderRadius: '50px', // Bo tròn nút kiểu hiện đại
+                            borderRadius: '50px',
                             textTransform: 'none',
-                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)', // Màu Gradient xanh công nghệ
+                            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
                             boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
                             '&:hover': {
                                 background: 'linear-gradient(45deg, #1976D2 30%, #00BCD4 90%)',

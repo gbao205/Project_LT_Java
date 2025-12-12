@@ -13,6 +13,7 @@ export interface LoginResponse {
     token: string;
     email: string;
     fullName: string;
+    role: string;
 }
 
 export const loginUser = async (data: LoginRequest): Promise<LoginResponse | null> => {

@@ -1,18 +1,22 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from "./pages/auth/Login";
 import SubjectManager from "./pages/admin/SubjectManager";
+import Home from "./pages/Home";
 
 function App() {
     return (
         <Router>
             <Routes>
-                {/* Mặc định vào trang Login */}
+                {/* Chuyển hướng mặc định */}
                 <Route path="/" element={<Navigate to="/login" replace />} />
 
-                {/* Trang Login */}
+                {/* Login */}
                 <Route path="/login" element={<Login />} />
 
-                {/* Trang Quản lý  */}
+                {/* Trang chủ Dashboard */}
+                <Route path="/home" element={<Home />} />
+
+                {/* Các trang chức năng */}
                 <Route path="/admin/subjects" element={<SubjectManager />} />
             </Routes>
         </Router>
