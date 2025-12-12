@@ -16,6 +16,8 @@ import org.springframework.security.core.Authentication;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.cosre.backend.entity.Role;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -34,6 +36,10 @@ public class AuthController {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        //Gán quyền mặc định là STUDENT nếu người dùng không gửi role lên
+        if (user.getRole() == null) {
+            user.setRole(Role.STUDENT);
+        }
         userRepository.save(user);
 
         return ResponseEntity.ok(new HashMap<>(Map.of("message", "Người dùng đã đăng ký thành công!")));
@@ -55,6 +61,8 @@ public class AuthController {
             response.put("token", token);
             response.put("email", email);
             response.put("fullName", user.getFullName());
+            //Trả về role
+            response.put("role", user.getRole() != null ? user.getRole().name() : "STUDENT");
 
             return ResponseEntity.ok(response);
         } else {

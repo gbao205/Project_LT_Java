@@ -6,11 +6,15 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import com.cosre.backend.entity.Role;
+
 public class UserDetailsImpl implements UserDetails {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private Long id;
@@ -28,8 +32,12 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(User user) {
-        // Mặc định gán quyền USER
-        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        // Lấy role từ user, nếu null thì mặc định là STUDENT
+        String roleName = (user.getRole() != null) ? user.getRole().name() : Role.STUDENT.name();
+        // Spring Security yêu cầu format "ROLE_TENQUYEN"
+        List<GrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_" + roleName)
+        );
 
         return new UserDetailsImpl(
                 user.getId(),

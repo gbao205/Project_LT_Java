@@ -1,7 +1,10 @@
 package com.cosre.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -21,4 +24,6 @@ public class User {
     private String email;
     private String password;
     private String fullName;
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }
