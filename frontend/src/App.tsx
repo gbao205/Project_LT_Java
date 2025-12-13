@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
 import UserManager from "./pages/admin/UserManager";
 import ClassManager from "./pages/admin/ClassManager";
+import SystemConfig from "./pages/admin/SystemConfig";
 
 function App() {
     return (
@@ -30,6 +31,9 @@ function App() {
 
                 {/* Quản lý lớp học */}
                 <Route path="/admin/classes" element={<ClassManager />} />
+
+                {/* Cấu hình hệ thống */}
+                <Route path="/admin/config" element={<SystemConfig />} />
             </Routes>
         </Router>
     );
