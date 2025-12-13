@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Tự động nhận diện môi trường
-const API_URL = 'https://collabsphere-alpha.vercel.app/login';
+const API_URL = 'https://collabsphere-backend-mk5g.onrender.com/api';
 
 const api = axios.create({
     baseURL: API_URL,
