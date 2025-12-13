@@ -231,17 +231,6 @@ const UserManager = () => {
                     <DialogContent>
                         <Box display="flex" flexDirection="column" gap={2} mt={1}>
 
-                            {/* Form cho Create & Reset Pass */}
-                            {(dialogType === 'CREATE' || dialogType === 'RESET') && (
-                                <TextField
-                                    label={dialogType === 'RESET' ? "Mật khẩu mới" : "Mật khẩu"}
-                                    fullWidth type="password"
-                                    {...register("password", { required: "Nhập mật khẩu", minLength: 6 })}
-                                    error={!!errors.password}
-                                    helperText="Tối thiểu 6 ký tự"
-                                />
-                            )}
-
                             {/* Form cho Create & Edit */}
                             {(dialogType === 'CREATE' || dialogType === 'EDIT') && (
                                 <>
@@ -256,6 +245,18 @@ const UserManager = () => {
                                         {...register("email", { required: "Vui lòng nhập email" })}
                                         error={!!errors.email}
                                     />
+
+                                    {/* Form cho Create & Reset Pass */}
+                                    {(dialogType === 'CREATE' || dialogType === 'RESET') && (
+                                        <TextField
+                                            label={dialogType === 'RESET' ? "Mật khẩu mới" : "Mật khẩu"}
+                                            fullWidth type="password"
+                                            {...register("password", { required: "Nhập mật khẩu", minLength: 6 })}
+                                            error={!!errors.password}
+                                            helperText="Tối thiểu 6 ký tự"
+                                        />
+                                    )}
+
                                     <TextField
                                         select label="Vai trò" fullWidth
                                         defaultValue="STUDENT"
