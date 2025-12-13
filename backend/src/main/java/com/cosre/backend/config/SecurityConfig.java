@@ -32,17 +32,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                .cors(Customizer.withDefaults()) // Kích hoạt CORS từ Bean bên dưới
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS từ Bean bên dưới
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không lưu session
                 .authorizeHttpRequests(auth -> auth
-                        //CHỈ cho phép Login và Register thoải mái
+                        // --- CÁC API KHÔNG CẦN ĐĂNG NHẬP (PUBLIC) ---
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/configs/**").permitAll() // <--- QUAN TRỌNG: Để trang Login lấy config hệ thống
+                        .requestMatchers("/api/subjects/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll() // Cho phép test
 
-                        //API đổi mật khẩu (và /me) BẮT BUỘC phải đăng nhập
+                        // --- CÁC API CẦN ĐĂNG NHẬP ---
                         .requestMatchers("/api/auth/change-password", "/api/auth/me").authenticated()
-
-                        .requestMatchers("/api/subjects/**").permitAll() // Tạm thời public môn học
-                        .requestMatchers("/api/test/all").permitAll()
                         .anyRequest().authenticated()
                 );
 
@@ -68,10 +68,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        // Ta cho phép TẤT CẢ (*) để Vercel truy cập được
+        configuration.setAllowedOrigins(List.of("*"));
+
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+
+        // Khi dùng allowOrigins("*") thì KHÔNG ĐƯỢC setAllowCredentials(true)
+        // configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
