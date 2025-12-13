@@ -21,7 +21,7 @@ const SystemConfig = () => {
         const fetchConfigs = async () => {
             try {
                 const res = await getSystemConfigs();
-                // Merge dữ liệu từ server vào state mặc định (tránh mất key nếu server chưa có)
+                // Merge dữ liệu từ server vào state mặc định
                 setConfigs(prev => ({ ...prev, ...res.data }));
             } catch (error) {
                 console.error("Lỗi tải cấu hình", error);
@@ -73,7 +73,7 @@ const SystemConfig = () => {
                                 }
                                 label={
                                     <Box>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>Chế độ bảo trì</Typography>
+                                        <Typography fontWeight="bold">Chế độ bảo trì</Typography>
                                         <Typography variant="caption" color="text.secondary">
                                             Chỉ cho phép Admin đăng nhập. Sinh viên và GV sẽ bị chặn.
                                         </Typography>
