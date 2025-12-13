@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Tự động nhận diện môi trường
 // Nếu có biến môi trường VITE_API_URL thì dùng nó, không thì dùng localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = 'https://collabsphere-be.onrender.com/api';
 
 const api = axios.create({
     baseURL: API_URL,
