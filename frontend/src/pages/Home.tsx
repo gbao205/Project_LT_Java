@@ -1,27 +1,197 @@
 import { useEffect, useState } from 'react';
 import {
-    Container, Typography, Box, Grid, Card, CardActionArea, Button, Chip, Avatar, IconButton, Paper
+    Container, Typography, Box, Grid, Card, CardContent,
+    Avatar, IconButton, Chip, Stack, Divider, Paper, Button
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../services/authService';
-import VpnKeyIcon from '@mui/icons-material/VpnKey';
 
-// Icons
-import SchoolIcon from '@mui/icons-material/School';
-import PersonIcon from '@mui/icons-material/Person';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+// Icons Import
 import LogoutIcon from '@mui/icons-material/Logout';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+import SchoolIcon from '@mui/icons-material/School';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import GroupsIcon from '@mui/icons-material/Groups';
-import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import PersonIcon from '@mui/icons-material/Person';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import ClassIcon from '@mui/icons-material/Class';
+import RateReviewIcon from '@mui/icons-material/RateReview';
+
+// ==========================================
+// 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
+// ==========================================
+
+const StatCard = ({ title, value, icon, color }: any) => (
+    <Card elevation={0} sx={{
+        height: '100%', borderRadius: 3, border: '1px solid #e0e0e0',
+        background: `linear-gradient(135deg, #ffffff 0%, ${color}08 100%)`
+    }}>
+        <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+            <Box sx={{ p: 2, borderRadius: '16px', bgcolor: `${color}15`, color: color, mr: 2 }}>
+                {icon}
+            </Box>
+            <Box>
+                <Typography variant="h4" fontWeight="bold" color="text.primary">{value}</Typography>
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
+            </Box>
+        </CardContent>
+    </Card>
+);
+
+const MenuCard = ({ title, desc, icon, color, onClick }: any) => (
+    <Card onClick={onClick} elevation={0} sx={{
+        height: '100%', cursor: 'pointer', borderRadius: 3, border: '1px solid #f0f0f0',
+        transition: 'all 0.3s ease',
+        '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', borderColor: color, '& .icon-box': { bgcolor: color, color: 'white' } }
+    }}>
+        <CardContent sx={{ p: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <Stack spacing={2}>
+                <Box className="icon-box" sx={{
+                    width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: '12px', bgcolor: `${color}15`, color: color, transition: 'all 0.3s ease'
+                }}>
+                    {icon}
+                </Box>
+                <Box>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>{title}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ minHeight: 40 }}>{desc}</Typography>
+                </Box>
+            </Stack>
+            <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#e0e0e0', mt: 1 }} />
+        </CardContent>
+    </Card>
+);
+
+const Header = ({ user, roleConfig, onLogout }: any) => (
+    <Paper elevation={0} sx={{
+        bgcolor: 'white', px: { xs: 2, md: 4 }, py: 2,
+        borderBottom: '1px solid #eaeaea', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        position: 'sticky', top: 0, zIndex: 100
+    }}>
+        <Box display="flex" alignItems="center" gap={2}>
+            {/* Logo thay đổi màu theo Role */}
+            <Box sx={{ width: 40, height: 40, bgcolor: roleConfig.color, borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>CS</Box>
+            <Box>
+                <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>CollabSphere</Typography>
+                <Typography variant="caption" color="text.secondary">{roleConfig.label} Workspace</Typography>
+            </Box>
+        </Box>
+        <Box display="flex" alignItems="center" gap={2}>
+            <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="subtitle2" fontWeight="bold">{user.fullName}</Typography>
+                <Chip label={roleConfig.label} size="small" sx={{ bgcolor: roleConfig.bg, color: roleConfig.color, fontWeight: 'bold', height: 20, fontSize: 10 }} />
+            </Box>
+            <Avatar sx={{ bgcolor: roleConfig.color }}>{user.fullName?.charAt(0)}</Avatar>
+            <IconButton size="small" onClick={onLogout} sx={{ bgcolor: '#ffebee', color: '#d32f2f' }}><LogoutIcon fontSize="small" /></IconButton>
+        </Box>
+    </Paper>
+);
+
+// ==========================================
+// 2. CÁC DASHBOARD RIÊNG BIỆT
+// ==========================================
+
+// --- ADMIN DASHBOARD ---
+const AdminDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+            <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
+            <Container maxWidth="xl" sx={{ py: 4 }}>
+                <Box mb={5}>
+                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
+                        Quản Trị Hệ Thống
+                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Lớp Học" value="12" icon={<SchoolIcon fontSize="large"/>} color="#1976d2" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Người Dùng" value="158" icon={<SupervisorAccountIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Đề Tài" value="45" icon={<AssignmentIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Hệ Thống" value="Good" icon={<DashboardIcon fontSize="large"/>} color="#9c27b0" /></Grid>
+                    </Grid>
+                </Box>
+                <Divider sx={{ mb: 5 }} />
+                <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Quản Lý Môn Học" desc="Cấu hình môn học & Syllabus." icon={<AssignmentIcon />} color="#1976d2" onClick={() => navigate('/admin/subjects')} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Quản Lý Lớp Học" desc="Mở lớp & Phân công." icon={<SchoolIcon />} color="#00838f" onClick={() => navigate('/admin/classes')} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Quản Lý Người Dùng" desc="Tài khoản & Phân quyền." icon={<AdminPanelSettingsIcon />} color="#d32f2f" onClick={() => navigate('/admin/users')} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
+                </Grid>
+            </Container>
+        </Box>
+    );
+};
+
+// --- STUDENT DASHBOARD ---
+const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f1f8e9' }}>
+            <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
+            <Container maxWidth="xl" sx={{ py: 4 }}>
+                <Box mb={5}>
+                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
+                        Góc Học Tập
+                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Học" value="4" icon={<ClassIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                        <Grid item xs={12} sm={6} md={4}><StatCard title="Deadline Tuần Này" value="2" icon={<AccessTimeIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                        <Grid item xs={12} sm={6} md={4}><StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large"/>} color="#1976d2" /></Grid>
+                    </Grid>
+                </Box>
+                <Divider sx={{ mb: 5 }} />
+                <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Lớp Học Của Tôi" desc="Truy cập tài liệu & Bài giảng." icon={<SchoolIcon />} color="#2e7d32" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Đăng Ký Đề Tài" desc="Chọn đề tài đồ án/tiểu luận." icon={<AssignmentIcon />} color="#ef6c00" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Nhóm Của Tôi" desc="Trao đổi với thành viên nhóm." icon={<GroupsIcon />} color="#0288d1" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Hồ Sơ Cá Nhân" desc="Xem điểm & Thông tin." icon={<PersonIcon />} color="#455a64" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
+                </Grid>
+            </Container>
+        </Box>
+    );
+};
+
+// --- LECTURER DASHBOARD ---
+const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: '#e3f2fd' }}>
+            <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
+            <Container maxWidth="xl" sx={{ py: 4 }}>
+                <Box mb={5}>
+                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
+                        Khu Vực Giảng Viên
+                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Dạy" value="3" icon={<SchoolIcon fontSize="large"/>} color="#0288d1" /></Grid>
+                        <Grid item xs={12} sm={6} md={4}><StatCard title="Yêu Cầu Duyệt Đề Tài" value="5" icon={<AssignmentIcon fontSize="large"/>} color="#d32f2f" /></Grid>
+                        <Grid item xs={12} sm={6} md={4}><StatCard title="Sinh Viên Phụ Trách" value="120" icon={<GroupsIcon fontSize="large"/>} color="#7b1fa2" /></Grid>
+                    </Grid>
+                </Box>
+                <Divider sx={{ mb: 5 }} />
+                <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Lớp Học Phụ Trách" desc="Quản lý sinh viên & Nhóm." icon={<ClassIcon />} color="#0277bd" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    {user.role === 'HEAD_DEPARTMENT' && (
+                        <Grid item xs={12} sm={6} md={4}><MenuCard title="Phê Duyệt Đề Tài" desc="Duyệt đề tài cấp bộ môn." icon={<AdminPanelSettingsIcon />} color="#ed6c02" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    )}
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Duyệt Đề Tài (GV)" desc="Xem và phê duyệt đề tài SV." icon={<RateReviewIcon />} color="#c2185b" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Chấm Điểm Hội Đồng" desc="Nhập điểm bảo vệ đồ án." icon={<AssignmentIcon />} color="#fbc02d" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
+                </Grid>
+            </Container>
+        </Box>
+    );
+};
+
+// ==========================================
+// 3. HOME CONTROLLER (MAIN)
+// ==========================================
 
 const Home = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
-    const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -30,9 +200,6 @@ const Home = () => {
         } else {
             navigate('/login');
         }
-
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-        return () => clearInterval(timer);
     }, [navigate]);
 
     const handleLogout = () => {
@@ -42,246 +209,48 @@ const Home = () => {
 
     if (!user) return null;
 
-    // Cấu hình màu sắc theo Role
-    const getRoleLabel = (role: string) => {
+    // --- CẤU HÌNH ROLE (Cập nhật mới: Tách riêng từng role) ---
+    const getRoleConfig = (role: string) => {
         switch (role) {
-            case 'ADMIN': return { label: 'Quản Trị Viên', color: '#d32f2f' };
-            case 'HEAD_DEPARTMENT': return { label: 'Trưởng Bộ Môn', color: '#ed6c02' };
-            case 'LECTURER': return { label: 'Giảng Viên', color: '#0288d1' };
-            case 'STUDENT': return { label: 'Sinh Viên', color: '#2e7d32' };
-            case 'STAFF': return { label: 'Giáo Vụ', color: '#9c27b0' };
-            default: return { label: 'Người dùng', color: '#757575' };
+            case 'ADMIN':
+                return { label: 'Quản Trị Viên', color: '#d32f2f', bg: '#fdecea' }; // Đỏ
+            case 'STAFF':
+                return { label: 'Nhân Viên Đào Tạo', color: '#9c27b0', bg: '#f3e5f5' };      // Tím
+            case 'HEAD_DEPARTMENT':
+                return { label: 'Trưởng Khoa', color: '#ed6c02', bg: '#fff3e0' }; // Cam
+            case 'LECTURER':
+                return { label: 'Giảng Viên', color: '#0288d1', bg: '#e1f5fe' };    // Xanh dương
+            case 'STUDENT':
+                return { label: 'Sinh Viên', color: '#2e7d32', bg: '#e8f5e9' };     // Xanh lá
+            default: return { label: 'Người dùng', color: '#757575', bg: '#f5f5f5' };
         }
     };
 
-    const roleInfo = getRoleLabel(user.role);
+    const roleConfig = getRoleConfig(user.role);
+    const props = { user, roleConfig, navigate, onLogout: handleLogout };
 
-    // Component Stat Card
-    const StatCard = ({ title, value, icon, color }: any) => (
-        <Paper elevation={0} sx={{
-            p: 2, display: 'flex', alignItems: 'center', gap: 2,
-            borderRadius: 3, border: '1px solid #e0e0e0', height: '100%'
-        }}>
-            <Box sx={{ p: 1.5, borderRadius: '50%', bgcolor: `${color}15`, color: color }}>
-                {icon}
-            </Box>
-            <Box>
-                <Typography variant="h5" fontWeight="bold" color="text.primary">{value}</Typography>
-                <Typography variant="body2" color="text.secondary" noWrap>{title}</Typography>
-            </Box>
-        </Paper>
-    );
+    // --- LOGIC PHÂN LUỒNG ---
 
-    // Component Action Card
-    const ActionCard = ({ title, desc, icon, onClick, color }: any) => (
-        <Card elevation={0} sx={{
-            height: '100%',
-            borderRadius: 3,
-            border: '1px solid #e0e0e0',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:hover': {
-                transform: 'translateY(-8px)',
-                boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
-                borderColor: color
-            }
-        }}>
-            <CardActionArea onClick={onClick} sx={{ height: '100%', p: 3 }}>
-                <Box display="flex" flexDirection="column" alignItems="center" textAlign="center">
-                    <Avatar sx={{ bgcolor: `${color}15`, color: color, width: 72, height: 72, mb: 2 }}>
-                        {icon}
-                    </Avatar>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>
-                        {title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        {desc}
-                    </Typography>
-                </Box>
-            </CardActionArea>
-        </Card>
-    );
+    // 1. Nhóm Quản trị (Admin + Staff)
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
+        return <AdminDashboard {...props} />;
+    }
 
+    // 2. Nhóm Giảng viên (Lecturer + Head Dept)
+    if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') {
+        return <LecturerDashboard {...props} />;
+    }
+
+    // 3. Nhóm Sinh viên
+    if (user.role === 'STUDENT') {
+        return <StudentDashboard {...props} />;
+    }
+
+    // Default fallback
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#f4f6f8', pb: 8 }}>
-
-            {/* 1. HERO SECTION */}
-            <Box sx={{
-                background: 'linear-gradient(120deg, #1565c0 0%, #0d47a1 100%)',
-                color: 'white',
-                pt: 4, pb: 12, px: { xs: 2, md: 6 },
-                mb: -8,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-            }}>
-                <Container maxWidth={false}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-                        <Box display="flex" alignItems="center" gap={3}>
-                            <Avatar sx={{ width: 80, height: 80, bgcolor: 'white', color: '#1565c0', fontWeight: 'bold', fontSize: 32, boxShadow: 3 }}>
-                                {user.fullName ? user.fullName.charAt(0) : 'U'}
-                            </Avatar>
-                            <Box>
-                                <Typography variant="h3" fontWeight="800" sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' } }}>
-                                    Xin chào, {user.fullName}!
-                                </Typography>
-                                <Box display="flex" alignItems="center" gap={1.5} mt={1} flexWrap="wrap">
-                                    <Chip
-                                        label={roleInfo.label}
-                                        sx={{ bgcolor: 'rgba(255,255,255,0.25)', color: 'white', fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.5)' }}
-                                    />
-                                    <Typography variant="body1" sx={{ opacity: 0.9, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <AccessTimeIcon fontSize="small" />
-                                        {currentTime.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </Box>
-
-                        <Box display="flex" gap={2}>
-                            <IconButton sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } }}>
-                                <NotificationsIcon />
-                            </IconButton>
-                            <Button
-                                variant="contained"
-                                color="error"
-                                startIcon={<LogoutIcon />}
-                                onClick={handleLogout}
-                                sx={{ bgcolor: '#ff5252', fontWeight: 'bold', boxShadow: 2 }}
-                            >
-                                Đăng xuất
-                            </Button>
-                        </Box>
-                    </Box>
-                </Container>
-            </Box>
-
-            {/* 2. BODY CONTENT */}
-            <Container maxWidth={false} sx={{ px: { xs: 2, md: 6 } }}>
-
-                {/* Stats Section */}
-                <Grid container spacing={3} sx={{ mb: 6 }}>
-                    {/* Chia cột: Điện thoại (12), Tablet (6), Laptop (3), Màn hình rộng (3) */}
-                    <Grid item xs={12} sm={6} md={3} lg={3}>
-                        <StatCard title="Dự án tham gia" value="3" icon={<AssignmentIcon fontSize="large" />} color="#1976d2" />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3} lg={3}>
-                        <StatCard title="Deadline tuần này" value="2" icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3} lg={3}>
-                        <StatCard title="Thành viên nhóm" value="12" icon={<GroupsIcon fontSize="large" />} color="#2e7d32" />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3} lg={3}>
-                        <StatCard title="Tiến độ tổng thể" value="85%" icon={<TrendingUpIcon fontSize="large" />} color="#9c27b0" />
-                    </Grid>
-                </Grid>
-
-                {/* Main Menu Section */}
-                <Typography variant="h5" fontWeight="bold" mb={3} color="text.primary" sx={{ borderLeft: '5px solid #1976d2', pl: 2 }}>
-                    Chức năng hệ thống
-                </Typography>
-
-                <Grid container spacing={4}>
-
-                    {/* --- NHÓM ADMIN/STAFF/TRƯỞNG BỘ MÔN --- */}
-                    {['ADMIN', 'STAFF', 'HEAD_DEPARTMENT'].includes(user.role) && (
-                        <>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Quản Lý Môn Học"
-                                    desc="Cấu hình môn học & Syllabus."
-                                    icon={<AdminPanelSettingsIcon fontSize="large" />}
-                                    color="#d32f2f"
-                                    onClick={() => navigate('/admin/subjects')}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Quản Lý Lớp Học"
-                                    desc="Xếp lớp & Phân công."
-                                    icon={<SchoolIcon fontSize="large" />} // Nhớ import icon
-                                    color="#d32f2f"
-                                    onClick={() => navigate('/admin/classes')}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Quản Lý Người Dùng"
-                                    desc="Phân quyền & Tài khoản."
-                                    icon={<SupervisorAccountIcon fontSize="large" />}
-                                    color="#d32f2f"
-                                    onClick={() => navigate('/admin/users')}
-                                />
-                            </Grid>
-                        </>
-                    )}
-
-                    {/* --- NHÓM GIẢNG VIÊN --- */}
-                    {user.role === 'LECTURER' && (
-                        <>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Lớp Học Phụ Trách"
-                                    desc="Quản lý sinh viên & Nhóm."
-                                    icon={<SchoolIcon fontSize="large" />}
-                                    color="#0288d1"
-                                    onClick={() => alert("Chức năng đang phát triển")}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Quản Lý Đề Tài"
-                                    desc="Tạo & Duyệt đề tài."
-                                    icon={<AssignmentIcon fontSize="large" />}
-                                    color="#0288d1"
-                                    onClick={() => alert("Chức năng đang phát triển")}
-                                />
-                            </Grid>
-                        </>
-                    )}
-
-                    {/* --- NHÓM SINH VIÊN --- */}
-                    {user.role === 'STUDENT' && (
-                        <>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Lớp Học Của Tôi"
-                                    desc="Môn học & Tài liệu."
-                                    icon={<SchoolIcon fontSize="large" />}
-                                    color="#2e7d32"
-                                    onClick={() => alert("Chức năng đang phát triển")}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4} lg={3}>
-                                <ActionCard
-                                    title="Workspace Nhóm"
-                                    desc="Làm việc & Nộp bài."
-                                    icon={<GroupsIcon fontSize="large" />}
-                                    color="#2e7d32"
-                                    onClick={() => alert("Chức năng đang phát triển")}
-                                />
-                            </Grid>
-                        </>
-                    )}
-
-                    {/* --- CHỨC NĂNG CHUNG --- */}
-                    <Grid item xs={12} sm={6} md={4} lg={3}>
-                        <ActionCard
-                            title="Hồ Sơ Cá Nhân"
-                            desc="Thông tin & Bảo mật."
-                            icon={<PersonIcon fontSize="large" />}
-                            color="#757575"
-                            onClick={() => alert("Chức năng đang phát triển")}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4} lg={3}>
-                        <ActionCard
-                            title="Đổi Mật Khẩu"
-                            desc="Bảo mật tài khoản của bạn."
-                            icon={<VpnKeyIcon fontSize="large" />}
-                            color="#757575"
-                            onClick={() => navigate('/change-password')}
-                        />
-                    </Grid>
-                </Grid>
-            </Container>
+        <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100vh">
+            <Typography variant="h5" color="error" gutterBottom>Vai trò không hợp lệ!</Typography>
+            <Button variant="outlined" onClick={handleLogout}>Đăng xuất</Button>
         </Box>
     );
 };

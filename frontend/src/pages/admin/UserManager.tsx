@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
-    Container, Typography, Box, Paper, Table, TableBody, TableCell,
+    Box, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Chip, Switch, TextField,
     InputAdornment, IconButton, Tooltip, Avatar
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { getAllUsers, toggleUserStatus } from '../../services/userService';
+import AdminLayout from '../../components/layout/AdminLayout';
 
 const UserManager = () => {
     const [users, setUsers] = useState<any[]>([]);
@@ -22,7 +23,7 @@ const UserManager = () => {
         }
     };
 
-    // Gọi lần đầu và khi search thay đổi (sau 500ms để tránh spam)
+    // Gọi lần đầu và khi search thay đổi (debounce 500ms)
     useEffect(() => {
         const timeout = setTimeout(() => {
             fetchUsers();
@@ -34,7 +35,7 @@ const UserManager = () => {
     const handleToggleStatus = async (id: number) => {
         try {
             await toggleUserStatus(id);
-            // Cập nhật lại giao diện ngay lập tức
+            // Cập nhật lại giao diện ngay lập tức (Optimistic UI)
             setUsers(prev => prev.map(u =>
                 u.id === id ? { ...u, active: !u.active } : u
             ));
@@ -55,14 +56,11 @@ const UserManager = () => {
     };
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            {/* HEADER & SEARCH */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h5" fontWeight="bold" color="primary">
-                    Quản Lý Người Dùng
-                </Typography>
+        <AdminLayout title="Quản Lý Người Dùng">
 
-                <Box display="flex" gap={2}>
+            {/* THANH CÔNG CỤ (Tìm kiếm + Refresh) */}
+            <Box display="flex" justifyContent="flex-end" mb={2}>
+                <Box display="flex" gap={1} bgcolor="white" p={0.5} borderRadius={1} boxShadow={1}>
                     <TextField
                         size="small"
                         placeholder="Tìm theo tên, email..."
@@ -75,15 +73,17 @@ const UserManager = () => {
                                 </InputAdornment>
                             ),
                         }}
-                        sx={{ bgcolor: 'white', borderRadius: 1 }}
+                        sx={{ minWidth: '250px' }}
                     />
-                    <IconButton onClick={fetchUsers} sx={{ bgcolor: 'white' }}>
-                        <RefreshIcon />
-                    </IconButton>
+                    <Tooltip title="Tải lại danh sách">
+                        <IconButton onClick={fetchUsers} size="small">
+                            <RefreshIcon />
+                        </IconButton>
+                    </Tooltip>
                 </Box>
             </Box>
 
-            {/* TABLE */}
+            {/* BẢNG DỮ LIỆU */}
             <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
                 <Table>
                     <TableHead sx={{ bgcolor: '#f5f5f5' }}>
@@ -101,7 +101,10 @@ const UserManager = () => {
                                 <TableCell>{user.id}</TableCell>
                                 <TableCell>
                                     <Box display="flex" alignItems="center" gap={2}>
-                                        <Avatar sx={{ width: 32, height: 32, bgcolor: '#1976d2', fontSize: 14 }}>
+                                        <Avatar
+                                            sx={{ width: 32, height: 32, bgcolor: '#1976d2', fontSize: 14 }}
+                                            src={user.avatar} // Nếu có avatar ảnh thì hiện, ko thì hiện chữ cái
+                                        >
                                             {user.fullName?.charAt(0)}
                                         </Avatar>
                                         {user.fullName}
@@ -131,15 +134,15 @@ const UserManager = () => {
                         ))}
                         {users.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                                    Không tìm thấy dữ liệu
+                                <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                                    Không tìm thấy dữ liệu phù hợp
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
             </TableContainer>
-        </Container>
+        </AdminLayout>
     );
 };
 

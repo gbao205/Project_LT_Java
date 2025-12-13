@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
-    Container, Typography, Box, Paper, Table, TableBody, TableCell,
+    Box, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Button,
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { getAllClasses, createClass, type ClassRoom } from '../../services/classService';
 import { getSubjects } from '../../services/subjectService';
-import { getAllUsers } from '../../services/userService'; // Tận dụng hàm này để lấy list user rồi lọc GV
-import AddIcon from '@mui/icons-material/Add';
+import { getAllUsers } from '../../services/userService';
+import AdminLayout from '../../components/layout/AdminLayout';
 
 const ClassManager = () => {
     const [classes, setClasses] = useState<ClassRoom[]>([]);
@@ -18,18 +19,18 @@ const ClassManager = () => {
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
-    // Load tất cả dữ liệu cần thiết
+    // Load dữ liệu (Lớp, Môn, Giảng viên)
     const fetchData = async () => {
         try {
             const [classRes, subRes, userRes] = await Promise.all([
                 getAllClasses(),
                 getSubjects(),
-                getAllUsers() // Lấy all user rồi lọc ở dưới
+                getAllUsers()
             ]);
 
             setClasses(classRes);
             setSubjects(subRes);
-            // Lọc ra danh sách chỉ có Role là LECTURER
+            // Lọc user để lấy danh sách Giảng viên (LECTURER)
             const lecturerList = userRes.data.filter((u: any) => u.role === 'LECTURER');
             setLecturers(lecturerList);
 
@@ -46,7 +47,7 @@ const ClassManager = () => {
         try {
             await createClass({
                 ...data,
-                subjectId: Number(data.subjectId), // Ép kiểu về number
+                subjectId: Number(data.subjectId),
                 lecturerId: Number(data.lecturerId)
             });
             alert("Tạo lớp thành công!");
@@ -59,17 +60,17 @@ const ClassManager = () => {
     };
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h5" fontWeight="bold" color="primary">
-                    Quản Lý Lớp Học
-                </Typography>
+        <AdminLayout title="Quản Lý Lớp Học">
+
+            {/* THANH CÔNG CỤ (Nút Tạo mới) */}
+            <Box display="flex" justifyContent="flex-end" mb={2}>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
                     Tạo Lớp Mới
                 </Button>
             </Box>
 
-            <TableContainer component={Paper} elevation={2}>
+            {/* BẢNG DỮ LIỆU */}
+            <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
                 <Table>
                     <TableHead sx={{ bgcolor: '#f5f5f5' }}>
                         <TableRow>
@@ -86,15 +87,26 @@ const ClassManager = () => {
                                 <TableCell>{cls.id}</TableCell>
                                 <TableCell sx={{ color: 'red', fontWeight: 'bold' }}>{cls.name}</TableCell>
                                 <TableCell>{cls.semester}</TableCell>
-                                <TableCell>{cls.subject?.name} ({cls.subject?.subjectCode})</TableCell>
-                                <TableCell>{cls.lecturer?.fullName}</TableCell>
+                                <TableCell>
+                                    {cls.subject ? `${cls.subject.name} (${cls.subject.subjectCode})` : '---'}
+                                </TableCell>
+                                <TableCell>
+                                    {cls.lecturer ? cls.lecturer.fullName : <span style={{ color: 'gray' }}>Chưa phân công</span>}
+                                </TableCell>
                             </TableRow>
                         ))}
+                        {classes.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                                    Chưa có lớp học nào được tạo
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </TableContainer>
 
-            {/* Dialog Form */}
+            {/* DIALOG FORM TẠO LỚP */}
             <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <DialogTitle>Mở Lớp Học Mới</DialogTitle>
@@ -147,7 +159,7 @@ const ClassManager = () => {
                     </DialogActions>
                 </form>
             </Dialog>
-        </Container>
+        </AdminLayout>
     );
 };
 
