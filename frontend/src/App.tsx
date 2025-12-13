@@ -4,6 +4,7 @@ import SubjectManager from "./pages/admin/SubjectManager";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
 import UserManager from "./pages/admin/UserManager";
+import ClassManager from "./pages/admin/ClassManager";
 
 function App() {
     return (
@@ -21,11 +22,14 @@ function App() {
                 {/* Các trang chức năng */}
                 <Route path="/admin/subjects" element={<SubjectManager />} />
 
-                {/* Đổi mật khẩu*/}
+                {/* Đổi mật khẩu */}
                 <Route path="/change-password" element={<ChangePassword />} />
 
-                {/* Quản lý user*/}
+                {/* Quản lý user */}
                 <Route path="/admin/users" element={<UserManager />} />
+
+                {/* Quản lý lớp học */}
+                <Route path="/admin/classes" element={<ClassManager />} />
             </Routes>
         </Router>
     );

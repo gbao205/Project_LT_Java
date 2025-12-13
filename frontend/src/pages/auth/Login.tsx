@@ -23,7 +23,9 @@ const Login = () => {
             await loginUser(data);
             navigate('/home');
         } catch (error: any) {
-            setLoginError("Đăng nhập thất bại! Vui lòng kiểm tra lại thông tin.");
+            // Ưu tiên lấy tin nhắn từ Backend trả về
+            const message = error.response?.data?.message || "Đăng nhập thất bại! Vui lòng kiểm tra lại thông tin.";
+            setLoginError(message);
         }
     };
 

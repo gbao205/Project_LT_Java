@@ -194,6 +194,15 @@ const Home = () => {
                             </Grid>
                             <Grid item xs={12} sm={6} md={4} lg={3}>
                                 <ActionCard
+                                    title="Quản Lý Lớp Học"
+                                    desc="Xếp lớp & Phân công."
+                                    icon={<SchoolIcon fontSize="large" />} // Nhớ import icon
+                                    color="#d32f2f"
+                                    onClick={() => navigate('/admin/classes')}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={4} lg={3}>
+                                <ActionCard
                                     title="Quản Lý Người Dùng"
                                     desc="Phân quyền & Tài khoản."
                                     icon={<SupervisorAccountIcon fontSize="large" />}

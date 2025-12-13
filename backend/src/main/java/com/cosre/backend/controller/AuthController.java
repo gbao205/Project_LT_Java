@@ -40,6 +40,7 @@ public class AuthController {
         if (user.getRole() == null) {
             user.setRole(Role.STUDENT);
         }
+        user.setActive(true);
         userRepository.save(user);
 
         return ResponseEntity.ok(new HashMap<>(Map.of("message", "Người dùng đã đăng ký thành công!")));
