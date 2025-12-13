@@ -23,14 +23,33 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ClassIcon from '@mui/icons-material/Class';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 
+// Icons IT/System (Cho Admin)
+import SecurityIcon from '@mui/icons-material/Security';
+import DnsIcon from '@mui/icons-material/Dns';
+import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
+
+// Icons Education (Cho Staff)
+import SourceIcon from '@mui/icons-material/Source';
+import CastForEducationIcon from '@mui/icons-material/CastForEducation';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+
 // ==========================================
-// 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
+// 1. CÁC COMPONENT DÙNG CHUNG (UI KITS HIỆN ĐẠI)
 // ==========================================
 
 const StatCard = ({ title, value, icon, color }: any) => (
     <Card elevation={0} sx={{
         height: '100%', borderRadius: 3, border: '1px solid #e0e0e0',
-        background: `linear-gradient(135deg, #ffffff 0%, ${color}08 100%)`
+        background: `linear-gradient(135deg, #ffffff 0%, ${color}08 100%)`,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: `0 10px 20px ${color}30`,
+            borderColor: color
+        }
     }}>
         <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
             <Box sx={{ p: 2, borderRadius: '16px', bgcolor: `${color}15`, color: color, mr: 2 }}>
@@ -94,32 +113,11 @@ const Header = ({ user, roleConfig, onLogout }: any) => (
 );
 
 // ==========================================
-// 2. CÁC DASHBOARD RIÊNG BIỆT
+// 2. CÁC DASHBOARD RIÊNG BIỆT (PHÂN QUYỀN)
 // ==========================================
 
-// --- ADMIN DASHBOARD ---
-const AdminDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
-    // 1. Tạo state để lưu dữ liệu thống kê
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        totalClasses: 0,
-        totalSubjects: 0,
-        totalProjects: 0
-    });
-
-    // 2. Gọi API khi component được load
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const res = await api.get('/dashboard/stats');
-                setStats(res.data);
-            } catch (error) {
-                console.error("Lỗi tải thống kê:", error);
-            }
-        };
-        fetchStats();
-    }, []);
-
+// --- ADMIN DASHBOARD (Chỉ quản lý User & System) ---
+const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) => {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
             <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -128,49 +126,98 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                     <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
                         Quản Trị Hệ Thống
                     </Typography>
-
-                    {/* 3. Hiển thị dữ liệu thật từ biến stats */}
+                    {/* Stats tập trung vào User & System */}
                     <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatCard
-                                title="Lớp Học"
-                                value={stats.totalClasses}
-                                icon={<SchoolIcon fontSize="large"/>}
-                                color="#1976d2"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatCard
-                                title="Người Dùng"
-                                value={stats.totalUsers}
-                                icon={<SupervisorAccountIcon fontSize="large"/>}
-                                color="#2e7d32"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatCard
-                                title="Môn Học"
-                                value={stats.totalSubjects}
-                                icon={<AssignmentIcon fontSize="large"/>}
-                                color="#ed6c02"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatCard
-                                title="Dự Án"
-                                value={stats.totalProjects}
-                                icon={<DashboardIcon fontSize="large"/>}
-                                color="#9c27b0"
-                            />
-                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Tổng Người Dùng" value={stats.totalUsers} icon={<SecurityIcon fontSize="large"/>} color="#d32f2f" /></Grid>
+                        {/* Hiển thị Active Users thật */}
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Đang Hoạt Động" value={stats.activeUsers} icon={<TrendingUpIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Server Status" value="Online" icon={<DnsIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Admin" value="1" icon={<VpnKeyIcon fontSize="large"/>} color="#1976d2" /></Grid>
                     </Grid>
                 </Box>
                 <Divider sx={{ mb: 5 }} />
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Quản Lý Môn Học" desc="Cấu hình môn học & Syllabus." icon={<AssignmentIcon />} color="#1976d2" onClick={() => navigate('/admin/subjects')} /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Quản Lý Lớp Học" desc="Mở lớp & Phân công." icon={<SchoolIcon />} color="#00838f" onClick={() => navigate('/admin/classes')} /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Quản Lý Người Dùng" desc="Tài khoản & Phân quyền." icon={<AdminPanelSettingsIcon />} color="#d32f2f" onClick={() => navigate('/admin/users')} /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
+                    {/* ADMIN MENU */}
+                    <Grid item xs={12} sm={6} md={4}>
+                        <MenuCard
+                            title="Quản Lý Người Dùng"
+                            desc="Tạo mới, cấp quyền và khóa tài khoản hệ thống."
+                            icon={<AdminPanelSettingsIcon />}
+                            color="#d32f2f"
+                            onClick={() => navigate('/admin/users')}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <MenuCard
+                            title="Cấu Hình Hệ Thống"
+                            desc="Tham số server & Backup data (Coming Soon)."
+                            icon={<SettingsSuggestIcon />}
+                            color="#455a64"
+                            onClick={() => alert("Tính năng IT đang phát triển")}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <MenuCard
+                            title="Bảo Mật & Profile"
+                            desc="Thông tin cá nhân và mật khẩu."
+                            icon={<VpnKeyIcon />}
+                            color="#ed6c02"
+                            onClick={() => navigate('/change-password')}
+                        />
+                    </Grid>
+                </Grid>
+            </Container>
+        </Box>
+    );
+};
+
+// --- STAFF DASHBOARD ---
+const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) => {
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f3e5f5' }}> {/* Nền tím nhạt */}
+            <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
+            <Container maxWidth="xl" sx={{ py: 4 }}>
+                <Box mb={5}>
+                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
+                        Nghiệp Vụ Đào Tạo
+                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Môn Học" value={stats.totalSubjects} icon={<SourceIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Lớp Đang Mở" value={stats.totalClasses} icon={<SchoolIcon fontSize="large"/>} color="#0288d1" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Sinh Viên" value={stats.totalUsers} icon={<GroupsIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}><StatCard title="Đề Tài" value={stats.totalProjects} icon={<DashboardIcon fontSize="large"/>} color="#9c27b0" /></Grid>
+                    </Grid>
+                </Box>
+                <Divider sx={{ mb: 5 }} />
+                <Grid container spacing={3}>
+                    {/* STAFF MENU: Quản lý Môn & Lớp */}
+                    <Grid item xs={12} sm={6} md={4}>
+                        <MenuCard
+                            title="Quản Lý Môn Học"
+                            desc="Thiết lập danh mục môn và đề cương."
+                            icon={<SourceIcon />}
+                            color="#ed6c02"
+                            onClick={() => navigate('/admin/subjects')}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <MenuCard
+                            title="Quản Lý Lớp Học"
+                            desc="Mở lớp, xếp giảng viên và import sinh viên."
+                            icon={<CastForEducationIcon />}
+                            color="#0288d1"
+                            onClick={() => navigate('/admin/classes')}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <MenuCard
+                            title="Đổi Mật Khẩu"
+                            desc="Bảo mật tài khoản."
+                            icon={<VpnKeyIcon />}
+                            color="#455a64"
+                            onClick={() => navigate('/change-password')}
+                        />
+                    </Grid>
                 </Grid>
             </Container>
         </Box>
@@ -244,11 +291,24 @@ const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
 const Home = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
+    // State có thêm activeUsers
+    const [stats, setStats] = useState({
+        totalUsers: 0,
+        activeUsers: 0,
+        totalClasses: 0,
+        totalSubjects: 0,
+        totalProjects: 0
+    });
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
             setUser(JSON.parse(userStr));
+            const role = JSON.parse(userStr).role;
+            // Chỉ Admin hoặc Staff mới load thống kê
+            if (['ADMIN', 'STAFF'].includes(role)) {
+                api.get('/dashboard/stats').then(res => setStats(res.data)).catch(console.error);
+            }
         } else {
             navigate('/login');
         }
@@ -261,44 +321,32 @@ const Home = () => {
 
     if (!user) return null;
 
-    // --- CẤU HÌNH ROLE (Cập nhật mới: Tách riêng từng role) ---
+    // --- CẤU HÌNH ROLE ---
     const getRoleConfig = (role: string) => {
         switch (role) {
             case 'ADMIN':
                 return { label: 'Quản Trị Viên', color: '#d32f2f', bg: '#fdecea' }; // Đỏ
             case 'STAFF':
-                return { label: 'Nhân Viên Đào Tạo', color: '#9c27b0', bg: '#f3e5f5' };      // Tím
+                return { label: 'Nhân Viên Đào Tạo', color: '#9c27b0', bg: '#f3e5f5' }; // Tím
             case 'HEAD_DEPARTMENT':
                 return { label: 'Trưởng Khoa', color: '#ed6c02', bg: '#fff3e0' }; // Cam
             case 'LECTURER':
-                return { label: 'Giảng Viên', color: '#0288d1', bg: '#e1f5fe' };    // Xanh dương
+                return { label: 'Giảng Viên', color: '#0288d1', bg: '#e1f5fe' }; // Xanh dương
             case 'STUDENT':
-                return { label: 'Sinh Viên', color: '#2e7d32', bg: '#e8f5e9' };     // Xanh lá
+                return { label: 'Sinh Viên', color: '#2e7d32', bg: '#e8f5e9' }; // Xanh lá
             default: return { label: 'Người dùng', color: '#757575', bg: '#f5f5f5' };
         }
     };
 
     const roleConfig = getRoleConfig(user.role);
-    const props = { user, roleConfig, navigate, onLogout: handleLogout };
+    const props = { user, roleConfig, navigate, onLogout: handleLogout, stats };
 
     // --- LOGIC PHÂN LUỒNG ---
+    if (user.role === 'ADMIN') return <AdminDashboard {...props} />;
+    if (user.role === 'STAFF') return <StaffDashboard {...props} />;
+    if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') return <LecturerDashboard {...props} />;
+    if (user.role === 'STUDENT') return <StudentDashboard {...props} />;
 
-    // 1. Nhóm Quản trị (Admin + Staff)
-    if (user.role === 'ADMIN' || user.role === 'STAFF') {
-        return <AdminDashboard {...props} />;
-    }
-
-    // 2. Nhóm Giảng viên (Lecturer + Head Dept)
-    if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') {
-        return <LecturerDashboard {...props} />;
-    }
-
-    // 3. Nhóm Sinh viên
-    if (user.role === 'STUDENT') {
-        return <StudentDashboard {...props} />;
-    }
-
-    // Default fallback
     return (
         <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100vh">
             <Typography variant="h5" color="error" gutterBottom>Vai trò không hợp lệ!</Typography>
