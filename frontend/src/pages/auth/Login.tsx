@@ -32,7 +32,7 @@ const Login = () => {
     const [supportEmail, setSupportEmail] = useState("admin@collabsphere.edu.vn");
     const [openForgot, setOpenForgot] = useState(false);
 
-    // 👇 STATE HIỂN THỊ MẬT KHẨU 👇
+    // State hiển thị mật khẩu
     const [showPassword, setShowPassword] = useState(false);
 
     // Load Config
@@ -58,7 +58,7 @@ const Login = () => {
             localStorage.setItem('token', response.token);
             navigate('/home');
         } catch (error: any) {
-            const message = error.response?.data?.message || "Đăng nhập thất bại! Vui lòng kiểm tra lại.";
+            const message = (error as any).response?.data?.message || "Đăng nhập thất bại!";
             setLoginError(message);
         }
     };

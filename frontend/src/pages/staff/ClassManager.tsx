@@ -74,8 +74,8 @@ const ClassManager = () => {
                 <Table>
                     <TableHead sx={{ bgcolor: '#f5f5f5' }}>
                         <TableRow>
-                            <TableCell fontWeight="bold">ID</TableCell>
-                            <TableCell fontWeight="bold">Tên Lớp</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Tên Lớp</TableCell>
                             <TableCell>Học Kỳ</TableCell>
                             <TableCell>Môn Học</TableCell>
                             <TableCell>Giảng Viên</TableCell>

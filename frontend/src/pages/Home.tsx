@@ -118,16 +118,16 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                     Quản Trị Hệ Thống
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Tổng Người Dùng" value={stats.totalUsers} icon={<SupervisorAccountIcon fontSize="large"/>} color="#d32f2f" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Tổng Người Dùng" value={stats.totalUsers} icon={<SupervisorAccountIcon fontSize="large"/>} color="#d32f2f" /></Grid>
                     {/* Active Users đã sửa */}
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Đang Hoạt Động" value={stats.activeUsers} icon={<TrendingUpIcon fontSize="large"/>} color="#2e7d32" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Server Status" value="Online" icon={<DnsIcon fontSize="large"/>} color="#ed6c02" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Admin" value="1" icon={<VpnKeyIcon fontSize="large"/>} color="#1976d2" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Đang Hoạt Động" value={stats.activeUsers} icon={<TrendingUpIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Server Status" value="Online" icon={<DnsIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Admin" value="1" icon={<VpnKeyIcon fontSize="large"/>} color="#1976d2" /></Grid>
                 </Grid>
             </Box>
             <Divider sx={{ mb: 5 }} />
             <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid xs={12} sm={6} md={4}>
                     <MenuCard
                         title="Quản Lý Người Dùng"
                         desc="Tạo mới, cấp quyền và khóa tài khoản hệ thống."
@@ -136,7 +136,7 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                         onClick={() => navigate('/admin/users')}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid xs={12} sm={6} md={4}>
                     <MenuCard
                         title="Cấu Hình Hệ Thống"
                         desc="Tham số server & Backup data."
@@ -145,7 +145,7 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                         onClick={() => navigate('/admin/config')}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid xs={12} sm={6} md={4}>
                     <MenuCard
                         title="Bảo Mật & Profile"
                         desc="Thông tin cá nhân và mật khẩu."
@@ -169,15 +169,15 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                     Nghiệp Vụ Đào Tạo
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Môn Học" value={stats.totalSubjects} icon={<SourceIcon fontSize="large"/>} color="#ed6c02" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Lớp Đang Mở" value={stats.totalClasses} icon={<CastForEducationIcon fontSize="large"/>} color="#0288d1" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Sinh Viên" value={stats.totalUsers} icon={<GroupAddIcon fontSize="large"/>} color="#2e7d32" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Đề Tài" value={stats.totalProjects} icon={<DashboardIcon fontSize="large"/>} color="#9c27b0" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Môn Học" value={stats.totalSubjects} icon={<SourceIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Lớp Đang Mở" value={stats.totalClasses} icon={<CastForEducationIcon fontSize="large"/>} color="#0288d1" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Sinh Viên" value={stats.totalUsers} icon={<GroupAddIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                    <Grid xs={12} sm={6} md={3}><StatCard title="Đề Tài" value={stats.totalProjects} icon={<DashboardIcon fontSize="large"/>} color="#9c27b0" /></Grid>
                 </Grid>
             </Box>
             <Divider sx={{ mb: 5 }} />
             <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid xs={12} sm={6} md={4}>
                     <MenuCard
                         title="Quản Lý Môn Học"
                         desc="Thiết lập danh mục môn và đề cương."
@@ -186,7 +186,7 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                         onClick={() => navigate('/admin/subjects')}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid xs={12} sm={6} md={4}>
                     <MenuCard
                         title="Quản Lý Lớp Học"
                         desc="Mở lớp, xếp giảng viên và import sinh viên."
@@ -195,7 +195,7 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                         onClick={() => navigate('/admin/classes')}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid xs={12} sm={6} md={4}>
                     <MenuCard
                         title="Đổi Mật Khẩu"
                         desc="Bảo mật tài khoản."
@@ -219,18 +219,18 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
                     Góc Học Tập
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Học" value="4" icon={<ClassIcon fontSize="large"/>} color="#2e7d32" /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Deadline Tuần Này" value="2" icon={<AccessTimeIcon fontSize="large"/>} color="#ed6c02" /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large"/>} color="#1976d2" /></Grid>
+                    <Grid xs={12} sm={6} md={4}><StatCard title="Lớp Đang Học" value="4" icon={<ClassIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                    <Grid xs={12} sm={6} md={4}><StatCard title="Deadline Tuần Này" value="2" icon={<AccessTimeIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                    <Grid xs={12} sm={6} md={4}><StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large"/>} color="#1976d2" /></Grid>
                 </Grid>
             </Box>
             <Divider sx={{ mb: 5 }} />
             <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Lớp Học Của Tôi" desc="Truy cập tài liệu & Bài giảng." icon={<SchoolIcon />} color="#2e7d32" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Đăng Ký Đề Tài" desc="Chọn đề tài đồ án/tiểu luận." icon={<AssignmentIcon />} color="#ef6c00" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Nhóm Của Tôi" desc="Trao đổi với thành viên nhóm." icon={<GroupsIcon />} color="#0288d1" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Hồ Sơ Cá Nhân" desc="Xem điểm & Thông tin." icon={<PersonIcon />} color="#455a64" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Lớp Học Của Tôi" desc="Truy cập tài liệu & Bài giảng." icon={<SchoolIcon />} color="#2e7d32" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Đăng Ký Đề Tài" desc="Chọn đề tài đồ án/tiểu luận." icon={<AssignmentIcon />} color="#ef6c00" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Nhóm Của Tôi" desc="Trao đổi với thành viên nhóm." icon={<GroupsIcon />} color="#0288d1" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Hồ Sơ Cá Nhân" desc="Xem điểm & Thông tin." icon={<PersonIcon />} color="#455a64" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
             </Grid>
         </Container>
     </Box>
@@ -246,20 +246,20 @@ const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
                     Khu Vực Giảng Viên
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Dạy" value="3" icon={<SchoolIcon fontSize="large"/>} color="#0288d1" /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Yêu Cầu Duyệt Đề Tài" value="5" icon={<AssignmentIcon fontSize="large"/>} color="#d32f2f" /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Sinh Viên Phụ Trách" value="120" icon={<GroupsIcon fontSize="large"/>} color="#7b1fa2" /></Grid>
+                    <Grid xs={12} sm={6} md={4}><StatCard title="Lớp Đang Dạy" value="3" icon={<SchoolIcon fontSize="large"/>} color="#0288d1" /></Grid>
+                    <Grid xs={12} sm={6} md={4}><StatCard title="Yêu Cầu Duyệt Đề Tài" value="5" icon={<AssignmentIcon fontSize="large"/>} color="#d32f2f" /></Grid>
+                    <Grid xs={12} sm={6} md={4}><StatCard title="Sinh Viên Phụ Trách" value="120" icon={<GroupsIcon fontSize="large"/>} color="#7b1fa2" /></Grid>
                 </Grid>
             </Box>
             <Divider sx={{ mb: 5 }} />
             <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Lớp Học Phụ Trách" desc="Quản lý sinh viên & Nhóm." icon={<ClassIcon />} color="#0277bd" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Lớp Học Phụ Trách" desc="Quản lý sinh viên & Nhóm." icon={<ClassIcon />} color="#0277bd" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
                 {user.role === 'HEAD_DEPARTMENT' && (
-                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Phê Duyệt Đề Tài" desc="Duyệt đề tài cấp bộ môn." icon={<AdminPanelSettingsIcon />} color="#ed6c02" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                    <Grid xs={12} sm={6} md={4}><MenuCard title="Phê Duyệt Đề Tài" desc="Duyệt đề tài cấp bộ môn." icon={<AdminPanelSettingsIcon />} color="#ed6c02" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
                 )}
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Duyệt Đề Tài (GV)" desc="Xem và phê duyệt đề tài SV." icon={<RateReviewIcon />} color="#c2185b" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Chấm Điểm Hội Đồng" desc="Nhập điểm bảo vệ đồ án." icon={<AssignmentIcon />} color="#fbc02d" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Duyệt Đề Tài (GV)" desc="Xem và phê duyệt đề tài SV." icon={<RateReviewIcon />} color="#c2185b" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Chấm Điểm Hội Đồng" desc="Nhập điểm bảo vệ đồ án." icon={<AssignmentIcon />} color="#fbc02d" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
             </Grid>
         </Container>
     </Box>

@@ -61,7 +61,7 @@ const SystemConfig = () => {
 
                 <Grid container spacing={4}>
                     {/* Cột 1: Các nút gạt (Switch) */}
-                    <Grid item xs={12} md={6}>
+                    <Grid xs={12} md={6}>
                         <Box display="flex" flexDirection="column" gap={3}>
                             <FormControlLabel
                                 control={
@@ -73,7 +73,7 @@ const SystemConfig = () => {
                                 }
                                 label={
                                     <Box>
-                                        <Typography fontWeight="bold">Chế độ bảo trì</Typography>
+                                        <TableCell sx={{ fontWeight: 'bold' }}>Chế độ bảo trì</Typography>
                                         <Typography variant="caption" color="text.secondary">
                                             Chỉ cho phép Admin đăng nhập. Sinh viên và GV sẽ bị chặn.
                                         </Typography>
@@ -104,7 +104,7 @@ const SystemConfig = () => {
                     </Grid>
 
                     {/* Cột 2: Các ô nhập liệu (Input) */}
-                    <Grid item xs={12} md={6}>
+                    <Grid xs={12} md={6}>
                         <Box display="flex" flexDirection="column" gap={3}>
                             <TextField
                                 label="Niên khóa / Học kỳ hiện tại"
