@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 // Tự động nhận diện môi trường
-// Nếu có biến môi trường VITE_API_URL thì dùng nó, không thì dùng localhost
-const API_URL = 'https://collabsphere-be.onrender.com/api';
+const API_URL = 'https://collabsphere-alpha.vercel.app/login';
 
 const api = axios.create({
     baseURL: API_URL,
