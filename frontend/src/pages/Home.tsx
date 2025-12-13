@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../services/authService';
+import api from '../services/api';
 
 // Icons Import
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -98,6 +99,27 @@ const Header = ({ user, roleConfig, onLogout }: any) => (
 
 // --- ADMIN DASHBOARD ---
 const AdminDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
+    // 1. Tạo state để lưu dữ liệu thống kê
+    const [stats, setStats] = useState({
+        totalUsers: 0,
+        totalClasses: 0,
+        totalSubjects: 0,
+        totalProjects: 0
+    });
+
+    // 2. Gọi API khi component được load
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await api.get('/dashboard/stats');
+                setStats(res.data);
+            } catch (error) {
+                console.error("Lỗi tải thống kê:", error);
+            }
+        };
+        fetchStats();
+    }, []);
+
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
             <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -106,11 +128,41 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                     <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
                         Quản Trị Hệ Thống
                     </Typography>
+
+                    {/* 3. Hiển thị dữ liệu thật từ biến stats */}
                     <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6} md={3}><StatCard title="Lớp Học" value="12" icon={<SchoolIcon fontSize="large"/>} color="#1976d2" /></Grid>
-                        <Grid item xs={12} sm={6} md={3}><StatCard title="Người Dùng" value="158" icon={<SupervisorAccountIcon fontSize="large"/>} color="#2e7d32" /></Grid>
-                        <Grid item xs={12} sm={6} md={3}><StatCard title="Đề Tài" value="45" icon={<AssignmentIcon fontSize="large"/>} color="#ed6c02" /></Grid>
-                        <Grid item xs={12} sm={6} md={3}><StatCard title="Hệ Thống" value="Good" icon={<DashboardIcon fontSize="large"/>} color="#9c27b0" /></Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatCard
+                                title="Lớp Học"
+                                value={stats.totalClasses}
+                                icon={<SchoolIcon fontSize="large"/>}
+                                color="#1976d2"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatCard
+                                title="Người Dùng"
+                                value={stats.totalUsers}
+                                icon={<SupervisorAccountIcon fontSize="large"/>}
+                                color="#2e7d32"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatCard
+                                title="Môn Học"
+                                value={stats.totalSubjects}
+                                icon={<AssignmentIcon fontSize="large"/>}
+                                color="#ed6c02"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatCard
+                                title="Dự Án"
+                                value={stats.totalProjects}
+                                icon={<DashboardIcon fontSize="large"/>}
+                                color="#9c27b0"
+                            />
+                        </Grid>
                     </Grid>
                 </Box>
                 <Divider sx={{ mb: 5 }} />
