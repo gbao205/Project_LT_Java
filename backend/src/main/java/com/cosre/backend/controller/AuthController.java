@@ -1,8 +1,11 @@
 package com.cosre.backend.controller;
 
 import com.cosre.backend.entity.User;
+import com.cosre.backend.entity.Role;
+import com.cosre.backend.entity.SystemConfig;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.UserRepository;
+import com.cosre.backend.repository.SystemConfigRepository;
 import com.cosre.backend.security.jwt.JwtUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +19,6 @@ import org.springframework.security.core.Authentication;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.cosre.backend.entity.Role;
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -25,6 +26,7 @@ import com.cosre.backend.entity.Role;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final SystemConfigRepository configRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
 
@@ -36,7 +38,7 @@ public class AuthController {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        // Gán quyền mặc định là STUDENT nếu người dùng không gửi role lên
+
         if (user.getRole() == null) {
             user.setRole(Role.STUDENT);
         }
@@ -46,31 +48,40 @@ public class AuthController {
         return ResponseEntity.ok(new HashMap<>(Map.of("message", "Người dùng đã đăng ký thành công!")));
     }
 
-    // 2. API Đăng nhập
+    // 2. API Đăng nhập (Đã tích hợp Logic Bảo trì)
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginRequest) {
         String email = loginRequest.get("email");
         String password = loginRequest.get("password");
 
+        // B1: Tìm user trong DB trước
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy người dùng với email này."));
+                .orElseThrow(() -> new AppException("Lỗi: Không tìm thấy người dùng với email này.", HttpStatus.NOT_FOUND));
 
-        // Kiểm tra xem tài khoản có bị khóa không (active = false)
+        // B2: Check bảo trì
+        SystemConfig maintenance = configRepository.findById("MAINTENANCE_MODE").orElse(null);
+
+        if (maintenance != null && "true".equals(maintenance.getConfigValue())) {
+            // Nếu User KHÔNG phải ADMIN thì chặn
+            if (user.getRole() != Role.ADMIN) {
+                throw new AppException("Hệ thống đang bảo trì. Vui lòng quay lại sau!", HttpStatus.SERVICE_UNAVAILABLE);
+            }
+        }
+
+        // B3: Kiểm tra xem tài khoản có bị khóa không (active = false)
         if (Boolean.FALSE.equals(user.getActive())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin."));
         }
 
-        // Kiểm tra mật khẩu
+        // B4: Kiểm tra mật khẩu
         if (passwordEncoder.matches(password, user.getPassword())) {
             String token = jwtUtils.generateJwtToken(email);
 
-            // Tạo response trả về
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
             response.put("email", email);
             response.put("fullName", user.getFullName());
-            // Trả về role
             response.put("role", user.getRole() != null ? user.getRole().name() : "STUDENT");
 
             return ResponseEntity.ok(response);
@@ -105,22 +116,18 @@ public class AuthController {
     // 4. API Đổi mật khẩu
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> request) {
-        // 1. Lấy user hiện tại đang đăng nhập
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
 
-        // 2. Lấy dữ liệu từ Client gửi lên
         String currentPassword = request.get("currentPassword");
         String newPassword = request.get("newPassword");
 
-        // 3. Kiểm tra mật khẩu cũ có đúng không
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Mật khẩu hiện tại không đúng!"));
         }
 
-        // 4. Mã hóa mật khẩu mới và lưu vào DB
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
