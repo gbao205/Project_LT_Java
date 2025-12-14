@@ -1,26 +1,11 @@
-import axios from 'axios';
+import api from './api';
 import type { Subject } from '../types/Subject';
-
-const API_URL = 'http://localhost:8080/api/subjects';
-
-// Tạo instance axios có kèm token
-const axiosInstance = axios.create();
-
-axiosInstance.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
 
 // --- HÀM 1: Lấy danh sách ---
 export const getSubjects = async (): Promise<Subject[]> => {
     try {
-        const response = await axiosInstance.get(API_URL);
+        // Gọi thẳng api.get, nó sẽ tự nối với link Render
+        const response = await api.get('/subjects');
         return response.data;
     } catch (error) {
         console.error("Lỗi gọi API:", error);
@@ -28,10 +13,10 @@ export const getSubjects = async (): Promise<Subject[]> => {
     }
 };
 
-// --- HÀM 2: Tạo mới (Phải nằm ngoài hàm 1) ---
+// --- HÀM 2: Tạo mới ---
 export const createSubject = async (subject: Omit<Subject, 'id'>): Promise<Subject | null> => {
     try {
-        const response = await axiosInstance.post(API_URL, subject);
+        const response = await api.post('/subjects', subject);
         return response.data;
     } catch (error) {
         console.error("Lỗi khi tạo môn học:", error);

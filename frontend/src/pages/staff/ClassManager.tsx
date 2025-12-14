@@ -6,10 +6,10 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { getAllClasses, createClass, type ClassRoom } from '../../services/classService';
-import { getSubjects } from '../../services/subjectService';
-import { getAllUsers } from '../../services/userService';
-import AdminLayout from '../../components/layout/AdminLayout';
+import { getAllClasses, createClass, type ClassRoom } from '../../services/classService.ts';
+import { getSubjects } from '../../services/subjectService.ts';
+import { getAllUsers } from '../../services/userService.tsx';
+import AdminLayout from '../../components/layout/AdminLayout.tsx';
 
 const ClassManager = () => {
     const [classes, setClasses] = useState<ClassRoom[]>([]);
@@ -74,8 +74,8 @@ const ClassManager = () => {
                 <Table>
                     <TableHead sx={{ bgcolor: '#f5f5f5' }}>
                         <TableRow>
-                            <TableCell fontWeight="bold">ID</TableCell>
-                            <TableCell fontWeight="bold">Tên Lớp</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Tên Lớp</TableCell>
                             <TableCell>Học Kỳ</TableCell>
                             <TableCell>Môn Học</TableCell>
                             <TableCell>Giảng Viên</TableCell>

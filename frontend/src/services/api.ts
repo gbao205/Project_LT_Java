@@ -1,8 +1,12 @@
 import axios from 'axios';
 
-// Tạo instance axios chung
+const API_URL = 'https://collabsphere-backend-mk5g.onrender.com/api';
+
 const api = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL: API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
 // Tự động thêm Token vào mỗi request nếu có

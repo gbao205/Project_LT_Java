@@ -1,10 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from "./pages/auth/Login";
-import SubjectManager from "./pages/admin/SubjectManager";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
+import SystemConfig from "./pages/admin/SystemConfig";
 import UserManager from "./pages/admin/UserManager";
-import ClassManager from "./pages/admin/ClassManager";
+import SubjectManager from './pages/staff/SubjectManager';
+import ClassManager from "./pages/staff/ClassManager.tsx";
+
 
 function App() {
     return (
@@ -30,6 +32,9 @@ function App() {
 
                 {/* Quản lý lớp học */}
                 <Route path="/admin/classes" element={<ClassManager />} />
+
+                {/* Cấu hình hệ thống */}
+                <Route path="/admin/config" element={<SystemConfig />} />
             </Routes>
         </Router>
     );

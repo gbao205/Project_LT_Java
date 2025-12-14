@@ -4,8 +4,8 @@ import com.cosre.backend.security.jwt.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,18 +31,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                .cors(Customizer.withDefaults()) // Kích hoạt CORS từ Bean bên dưới
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không lưu session
+                .csrf(csrf -> csrf.disable()) // Tắt CSRF vì dùng JWT
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
-                        //CHỈ cho phép Login và Register thoải mái
+                        // QUAN TRỌNG: Cho phép mọi request OPTIONS (Preflight) đi qua
+                        // Giúp trình duyệt không báo lỗi 403 khi "hỏi đường"
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // CÁC API PUBLIC (Không cần token)
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/configs/**").permitAll() // Config hệ thống
+                        .requestMatchers("/api/subjects/**").permitAll() // Môn học
+                        .requestMatchers("/api/test/**").permitAll() // Test
 
-                        //API đổi mật khẩu (và /me) BẮT BUỘC phải đăng nhập
-                        .requestMatchers("/api/auth/change-password", "/api/auth/me").authenticated()
-
-                        .requestMatchers("/api/subjects/**").permitAll() // Tạm thời public môn học
-                        .requestMatchers("/api/test/all").permitAll()
+                        // CÁC API CẦN ĐĂNG NHẬP
                         .anyRequest().authenticated()
                 );
 
@@ -68,10 +71,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Cho phép TẤT CẢ các nguồn (Vercel, Localhost,...)
+        configuration.setAllowedOrigins(List.of("*"));
+
+        // Cho phép đầy đủ các method (Thêm HEAD cho chuẩn)
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
+
+        // Cho phép mọi header
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+
+        // (Mới) Cho phép Frontend đọc được header trả về (VD: Authorization)
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
+
+        // Khi AllowedOrigins là "*" thì AllowCredentials PHẢI là false (hoặc không set)
+        // configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

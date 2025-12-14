@@ -6,9 +6,9 @@ import {
     Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { getSubjects, createSubject } from '../../services/subjectService';
-import type { Subject } from '../../types/Subject';
-import AdminLayout from '../../components/layout/AdminLayout';
+import { getSubjects, createSubject } from '../../services/subjectService.ts';
+import type { Subject } from '../../types/Subject.ts';
+import AdminLayout from '../../components/layout/AdminLayout.tsx';
 
 const SubjectManager = () => {
     const [subjects, setSubjects] = useState<Subject[]>([]);

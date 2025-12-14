@@ -1,6 +1,4 @@
-import axios from 'axios';
 import api from './api';
-const API_URL = 'http://localhost:8080/api/auth';
 
 // Kiểu dữ liệu gửi lên
 export interface LoginRequest {
@@ -17,10 +15,10 @@ export interface LoginResponse {
 }
 
 // Hàm Đăng nhập
-export const loginUser = async (data: LoginRequest): Promise<LoginResponse | null> => {
+export const loginUser = async (data: LoginRequest): Promise<LoginResponse> => {
     try {
-        // Login không cần Token nên dùng axios thường
-        const response = await axios.post(`${API_URL}/login`, data);
+        // Sử dụng 'api' đã cấu hình sẵn link Render bên api.ts
+        const response = await api.post('/auth/login', data);
 
         if (response.data.token) {
             // Lưu token và thông tin user vào LocalStorage
@@ -41,7 +39,6 @@ export const logout = () => {
 };
 
 // Hàm Đổi mật khẩu
-// Sử dụng 'api' từ file api.ts để tự động đính kèm Token vào Header
 export const changePassword = async (data: any) => {
     return api.post('/auth/change-password', data);
 };
