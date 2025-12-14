@@ -21,7 +21,8 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ClassIcon from '@mui/icons-material/Class';
 import RateReviewIcon from '@mui/icons-material/RateReview';
-
+import api from '../services/api';
+import ChatWidget from '../components/ChatWidget';
 // ==========================================
 // 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
 // ==========================================
@@ -121,6 +122,7 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                     <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
                 </Grid>
             </Container>
+            <ChatWidget teamId={1} themeColor={roleConfig.color} />
         </Box>
     );
 };
@@ -150,6 +152,7 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                     <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
                 </Grid>
             </Container>
+            <ChatWidget teamId={1} themeColor={roleConfig.color} />
         </Box>
     );
 };
@@ -181,6 +184,7 @@ const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                     <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
                 </Grid>
             </Container>
+            <ChatWidget teamId={1} themeColor={roleConfig.color} />
         </Box>
     );
 };
