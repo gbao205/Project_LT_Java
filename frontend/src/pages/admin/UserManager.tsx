@@ -232,10 +232,11 @@ const UserManager = () => {
                         {dialogType === 'EDIT' && "Cập Nhật Thông Tin"}
                         {dialogType === 'RESET' && "Cấp Lại Mật Khẩu"}
                     </DialogTitle>
+
                     <DialogContent>
                         <Box display="flex" flexDirection="column" gap={2} mt={1}>
 
-                            {/* Form cho Create & Edit */}
+                            {/* 1. Nhóm: Họ tên & Email (Chỉ hiện khi Tạo hoặc Sửa) */}
                             {(dialogType === 'CREATE' || dialogType === 'EDIT') && (
                                 <>
                                     <TextField
@@ -245,38 +246,45 @@ const UserManager = () => {
                                     />
                                     <TextField
                                         label="Email" fullWidth type="email"
-                                        disabled={(dialogType as string) === 'EDIT'} // Không cho sửa Email
+                                        disabled={dialogType === 'EDIT'}
                                         {...register("email", { required: "Vui lòng nhập email" })}
                                         error={!!errors.email}
                                     />
-
-                                    {/* Form cho Create & Reset Pass */}
-                                    {(dialogType === 'CREATE' || dialogType === 'RESET') && (
-                                        <TextField
-                                            label={dialogType === 'RESET' ? "Mật khẩu mới" : "Mật khẩu"}
-                                            fullWidth type="password"
-                                            {...register("password", { required: "Nhập mật khẩu", minLength: 6 })}
-                                            error={!!errors.password}
-                                            helperText="Tối thiểu 6 ký tự"
-                                        />
-                                    )}
-
-                                    <TextField
-                                        select label="Vai trò" fullWidth
-                                        defaultValue="STUDENT"
-                                        {...register("role")}
-                                    >
-                                        <MenuItem value="STUDENT">Sinh Viên</MenuItem>
-                                        <MenuItem value="LECTURER">Giảng Viên</MenuItem>
-                                        <MenuItem value="HEAD_DEPARTMENT">Trưởng Bộ Môn</MenuItem>
-                                        <MenuItem value="STAFF">Nhân Viên Đào Tạo</MenuItem>
-                                        <MenuItem value="ADMIN">Quản Trị Viên</MenuItem>
-                                    </TextField>
                                 </>
+                            )}
+
+                            {/* 2. Nhóm: Mật khẩu (Hiện khi Tạo mới HOẶC Reset) */}
+                            {(dialogType === 'CREATE' || dialogType === 'RESET') && (
+                                <TextField
+                                    label={dialogType === 'RESET' ? "Mật khẩu mới" : "Mật khẩu"}
+                                    fullWidth type="password"
+                                    {...register("password", {
+                                        required: "Nhập mật khẩu",
+                                        minLength: { value: 6, message: "Tối thiểu 6 ký tự" }
+                                    })}
+                                    error={!!errors.password}
+                                    helperText={errors.password?.message as string}
+                                />
+                            )}
+
+                            {/* 3. Nhóm: Vai trò (Chỉ hiện khi Tạo hoặc Sửa) */}
+                            {(dialogType === 'CREATE' || dialogType === 'EDIT') && (
+                                <TextField
+                                    select label="Vai trò" fullWidth
+                                    defaultValue="STUDENT"
+                                    {...register("role")}
+                                >
+                                    <MenuItem value="STUDENT">Sinh Viên</MenuItem>
+                                    <MenuItem value="LECTURER">Giảng Viên</MenuItem>
+                                    <MenuItem value="HEAD_DEPARTMENT">Trưởng Bộ Môn</MenuItem>
+                                    <MenuItem value="STAFF">Nhân Viên Đào Tạo</MenuItem>
+                                    <MenuItem value="ADMIN">Quản Trị Viên</MenuItem>
+                                </TextField>
                             )}
 
                         </Box>
                     </DialogContent>
+
                     <DialogActions sx={{ p: 3 }}>
                         <Button onClick={handleClose} color="inherit">Hủy</Button>
                         <Button type="submit" variant="contained">Lưu Thay Đổi</Button>
