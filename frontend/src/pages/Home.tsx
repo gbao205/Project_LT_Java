@@ -120,7 +120,6 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                 </Typography>
                 <Grid container spacing={3}>
                     <Grid xs={12} sm={6} md={3}><StatCard title="Tổng Người Dùng" value={stats.totalUsers} icon={<SupervisorAccountIcon fontSize="large"/>} color="#d32f2f" /></Grid>
-                    {/* Active Users đã sửa */}
                     <Grid xs={12} sm={6} md={3}><StatCard title="Đang Hoạt Động" value={stats.activeUsers} icon={<TrendingUpIcon fontSize="large"/>} color="#2e7d32" /></Grid>
                     <Grid xs={12} sm={6} md={3}><StatCard title="Server Status" value="Online" icon={<DnsIcon fontSize="large"/>} color="#ed6c02" /></Grid>
                     <Grid xs={12} sm={6} md={3}><StatCard title="Admin" value="1" icon={<VpnKeyIcon fontSize="large"/>} color="#1976d2" /></Grid>
@@ -144,15 +143,6 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                         icon={<SettingsSuggestIcon />}
                         color="#455a64"
                         onClick={() => navigate('/admin/config')}
-                    />
-                </Grid>
-                <Grid xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Bảo Mật & Profile"
-                        desc="Thông tin cá nhân và mật khẩu."
-                        icon={<FingerprintIcon />}
-                        color="#ed6c02"
-                        onClick={() => navigate('/change-password')}
                     />
                 </Grid>
             </Grid>
