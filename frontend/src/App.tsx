@@ -8,7 +8,8 @@ import SubjectManager from './pages/staff/SubjectManager';
 import ClassManager from "./pages/staff/ClassManager.tsx";
 import StudentWorkspace from "./pages/student/StudentWorkspace";
 import CourseRegistration from "./pages/student/CourseRegistration";
-
+import MyClasses from "./pages/student/MyClasses";
+import ClassDetail from "./pages/class/ClassDetail";
 
 function App() {
     return (
@@ -43,6 +44,11 @@ function App() {
 
                 {/* Route cho sinh viên đăng ký môn */}
                 <Route path="/student/registration" element={<CourseRegistration />} />
+
+                {/* Route cho chức năng Lớp học của tôi */}
+                <Route path="/student/classes" element={<MyClasses />} />
+
+                <Route path="/class/:id" element={<ClassDetail />} />
             </Routes>
         </Router>
     );
