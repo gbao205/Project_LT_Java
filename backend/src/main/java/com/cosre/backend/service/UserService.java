@@ -45,11 +45,23 @@ public class UserService {
     // 2. Hàm Cập nhật thông tin
     public User updateUser(Long id, User request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
 
+        // 1. Cập nhật tên và quyền
         user.setFullName(request.getFullName());
         user.setRole(request.getRole());
-        // Không cho phép sửa Email vì liên quan đến định danh
+
+        // 2. LOGIC MỚI: Kiểm tra và cập nhật Email
+        if (request.getEmail() != null && !request.getEmail().isEmpty()
+                && !request.getEmail().equals(user.getEmail())) {
+
+            // Kiểm tra xem email mới đã có ai dùng chưa
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new AppException("Email mới đã được sử dụng!", HttpStatus.BAD_REQUEST);
+            }
+            // Lưu email mới
+            user.setEmail(request.getEmail());
+        }
 
         return userRepository.save(user);
     }

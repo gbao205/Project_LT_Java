@@ -262,7 +262,6 @@ const UserManager = () => {
                                     />
                                     <TextField
                                         label="Email" fullWidth type="email"
-                                        disabled={dialogType === 'EDIT'}
                                         {...register("email", { required: "Vui lòng nhập email" })}
                                         error={!!errors.email}
                                     />
