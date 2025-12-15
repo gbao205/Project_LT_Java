@@ -27,3 +27,8 @@ export const updateUser = async (id: number, data: any) => {
 export const resetUserPassword = async (id: number, password: string) => {
     return api.put(`/users/${id}/reset-password`, { password });
 };
+
+// Hàm xóa user
+export const deleteUser = async (id: number) => {
+    return api.delete(`/users/${id}`);
+};

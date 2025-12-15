@@ -19,8 +19,9 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import BlockIcon from '@mui/icons-material/Block';
 import EditIcon from '@mui/icons-material/Edit';
 import LockResetIcon from '@mui/icons-material/LockReset';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-import { getAllUsers, toggleUserStatus, createUser, updateUser, resetUserPassword } from '../../services/userService';
+import { getAllUsers, toggleUserStatus, createUser, updateUser, resetUserPassword, deleteUser } from '../../services/userService';
 import AdminLayout from '../../components/layout/AdminLayout';
 import StatCard from '../../components/common/StatCard';
 
@@ -87,6 +88,20 @@ const UserManager = () => {
         setOpenDialog(true);
     };
 
+    // Hàm xử lý xóa
+    const handleDelete = async (user: any) => {
+        if (window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA vĩnh viễn tài khoản "${user.fullName}"?\n\nHành động này không thể hoàn tác!`)) {
+            try {
+                await deleteUser(user.id);
+                alert("Đã xóa thành công!");
+                fetchUsers(); // Tải lại danh sách
+            } catch (error: any) {
+                console.error(error);
+                alert("Không thể xóa! Có thể tài khoản này đang phụ trách lớp học hoặc có dữ liệu liên quan.");
+            }
+        }
+    };
+
     const handleClose = () => {
         setOpenDialog(false);
         reset();
@@ -143,10 +158,6 @@ const UserManager = () => {
         }
     };
 
-    // @ts-ignore
-    // @ts-ignore
-    // @ts-ignore
-    // @ts-ignore
     return (
         <AdminLayout title="Quản Lý Người Dùng">
 
@@ -215,6 +226,11 @@ const UserManager = () => {
                                     <Tooltip title="Đặt lại mật khẩu">
                                         <IconButton color="warning" size="small" onClick={() => handleOpenReset(user)}>
                                             <LockResetIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Xóa tài khoản">
+                                        <IconButton color="error" size="small" onClick={() => handleDelete(user)}>
+                                            <DeleteIcon fontSize="small" />
                                         </IconButton>
                                     </Tooltip>
                                 </TableCell>
