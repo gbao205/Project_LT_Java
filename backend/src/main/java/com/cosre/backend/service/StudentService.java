@@ -1,0 +1,123 @@
+package com.cosre.backend.service;
+
+import com.cosre.backend.dto.student.CreateTeamRequest;
+import com.cosre.backend.dto.student.ProjectRegistrationRequest;
+import com.cosre.backend.entity.*;
+import com.cosre.backend.exception.AppException;
+import com.cosre.backend.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class StudentService {
+
+    private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final ClassRoomRepository classRoomRepository;
+    private final MilestoneRepository milestoneRepository;
+
+    // Helper: Lấy User hiện tại đang đăng nhập
+    private User getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.UNAUTHORIZED));
+    }
+
+    // 1. Chức năng: Tạo nhóm mới (Sinh viên tạo sẽ là LEADER)
+    @Transactional
+    public Team createTeam(CreateTeamRequest request) {
+        User student = getCurrentUser();
+
+        // Kiểm tra sinh viên đã có nhóm trong lớp này chưa
+        boolean alreadyInTeam = teamMemberRepository.existsByTeam_ClassRoom_IdAndStudent_Id(request.getClassId(), student.getId());
+        if (alreadyInTeam) {
+            throw new AppException("Bạn đã tham gia một nhóm trong lớp này rồi!", HttpStatus.BAD_REQUEST);
+        }
+
+        ClassRoom classRoom = classRoomRepository.findById(request.getClassId())
+                .orElseThrow(() -> new AppException("Lớp học không tồn tại", HttpStatus.NOT_FOUND));
+
+        // Tạo Team
+        Team team = Team.builder()
+                .teamName(request.getTeamName())
+                .classRoom(classRoom)
+                .build();
+        team = teamRepository.save(team);
+
+        // Thêm thành viên là Leader
+        TeamMember member = TeamMember.builder()
+                .team(team)
+                .student(student)
+                .role(TeamRole.LEADER) // Role trong nhóm
+                .build();
+        teamMemberRepository.save(member);
+
+        return team;
+    }
+
+    // 2. Chức năng: Tham gia nhóm (Cần logic mời hoặc mã join, ở đây làm đơn giản là Join thẳng)
+    @Transactional
+    public void joinTeam(Long teamId) {
+        User student = getCurrentUser();
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new AppException("Nhóm không tồn tại", HttpStatus.NOT_FOUND));
+
+        // Kiểm tra đã vào nhóm chưa
+        if (teamMemberRepository.existsByTeam_IdAndStudent_Id(teamId, student.getId())) {
+            throw new AppException("Bạn đã là thành viên nhóm này", HttpStatus.BAD_REQUEST);
+        }
+
+        // Tạo member mới
+        TeamMember member = TeamMember.builder()
+                .team(team)
+                .student(student)
+                .role(TeamRole.MEMBER) // Thành viên thường
+                .build();
+        teamMemberRepository.save(member);
+    }
+
+    // 3. Chức năng: Đăng ký/Đề xuất đề tài (Chỉ Leader được làm)
+    @Transactional
+    public Team registerProject(ProjectRegistrationRequest request) {
+        User student = getCurrentUser();
+
+        // Tìm nhóm mà sinh viên này làm Leader
+        TeamMember leadership = teamMemberRepository.findByStudent_IdAndRole(student.getId(), TeamRole.LEADER)
+                .orElseThrow(() -> new AppException("Bạn không phải là nhóm trưởng hoặc chưa có nhóm!", HttpStatus.FORBIDDEN));
+
+        Team team = leadership.getTeam();
+
+        Project project;
+        if (request.getExistingProjectId() != null) {
+            // Case A: Chọn đề tài có sẵn (Do giảng viên tạo)
+            project = projectRepository.findById(request.getExistingProjectId())
+                    .orElseThrow(() -> new AppException("Đề tài không tồn tại", HttpStatus.NOT_FOUND));
+            // Có thể check thêm status Project có là APPROVED không
+        } else {
+            // Case B: Đề xuất đề tài mới
+            project = Project.builder()
+                    .name(request.getProjectName())
+                    .description(request.getDescription())
+                    .status(ProjectStatus.PENDING) // Chờ duyệt
+                    .build();
+            project = projectRepository.save(project);
+        }
+
+        // Gán đề tài cho nhóm
+        team.setProject(project);
+        return teamRepository.save(team);
+    }
+
+    // 4. Chức năng: Xem danh sách Milestone (Hạn nộp) của lớp
+    public List<Milestone> getClassMilestones(Long classId) {
+        return milestoneRepository.findByClassRoom_Id(classId); // Cần tạo method này trong Repo
+    }
+}
