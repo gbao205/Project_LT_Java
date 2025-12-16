@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.Normalizer;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -103,5 +104,19 @@ public class StaffService {
             return ten;
         }
         return ten+hodem;
+    }
+    public List<User> getAllUser (String keyword){
+        List<Role> allowrole= Arrays.asList(Role.LECTURER,Role.STUDENT);
+        List<User> allUsers = userRepository.findAll();
+        List<User> fillterUser= allUsers.stream()
+                .filter(user -> allowrole.contains(user.getRole()))
+                .filter(user -> {
+                    if(keyword==null || keyword.isEmpty()) {return true;}
+                    String lower = keyword.toLowerCase();
+                    return user.getFullName().toLowerCase().contains(lower)||
+                            user.getEmail().toLowerCase().contains(lower);
+                })
+                .collect(Collectors.toList());
+        return fillterUser;
     }
 }

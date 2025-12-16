@@ -45,4 +45,8 @@ public class StaffController {
             throw new AppException("Vai trò không hợp lệ: " + role + ". Vui lòng nhập LECTURER hoặc STUDENT.", HttpStatus.BAD_REQUEST);
         }
     }
+    @GetMapping("/users")
+    public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
+        return ResponseEntity.ok()
+                .body(staffService.getAllUser(search));    }
 }
