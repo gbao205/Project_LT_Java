@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from "./pages/auth/Login";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
-import SystemConfig from "./pages/admin/SystemConfig";
 import UserManager from "./pages/admin/UserManager";
 import SubjectManager from './pages/staff/SubjectManager';
 import ClassManager from "./pages/staff/ClassManager.tsx";
@@ -35,9 +34,6 @@ function App() {
 
                 {/* Quản lý lớp học */}
                 <Route path="/admin/classes" element={<ClassManager />} />
-
-                {/* Cấu hình hệ thống */}
-                <Route path="/admin/config" element={<SystemConfig />} />
 
                 {/* Route cho Sinh viên */}
                 <Route path="/student/workspace" element={<StudentWorkspace />} />
