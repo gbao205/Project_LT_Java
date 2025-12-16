@@ -6,6 +6,8 @@ import SystemConfig from "./pages/admin/SystemConfig";
 import UserManager from "./pages/admin/UserManager";
 import SubjectManager from './pages/staff/SubjectManager';
 import ClassManager from "./pages/staff/ClassManager.tsx";
+import StudentWorkspace from "./pages/student/StudentWorkspace";
+import CourseRegistration from "./pages/student/CourseRegistration";
 
 
 function App() {
@@ -35,6 +37,12 @@ function App() {
 
                 {/* Cấu hình hệ thống */}
                 <Route path="/admin/config" element={<SystemConfig />} />
+
+                {/* Route cho Sinh viên */}
+                <Route path="/student/workspace" element={<StudentWorkspace />} />
+
+                {/* Route cho sinh viên đăng ký môn */}
+                <Route path="/student/registration" element={<CourseRegistration />} />
             </Routes>
         </Router>
     );

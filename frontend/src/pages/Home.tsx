@@ -28,6 +28,7 @@ import SourceIcon from '@mui/icons-material/Source';
 import CastForEducationIcon from '@mui/icons-material/CastForEducation';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 
 // ==========================================
 // 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
@@ -119,7 +120,6 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                 </Typography>
                 <Grid container spacing={3}>
                     <Grid xs={12} sm={6} md={3}><StatCard title="Tổng Người Dùng" value={stats.totalUsers} icon={<SupervisorAccountIcon fontSize="large"/>} color="#d32f2f" /></Grid>
-                    {/* Active Users đã sửa */}
                     <Grid xs={12} sm={6} md={3}><StatCard title="Đang Hoạt Động" value={stats.activeUsers} icon={<TrendingUpIcon fontSize="large"/>} color="#2e7d32" /></Grid>
                     <Grid xs={12} sm={6} md={3}><StatCard title="Server Status" value="Online" icon={<DnsIcon fontSize="large"/>} color="#ed6c02" /></Grid>
                     <Grid xs={12} sm={6} md={3}><StatCard title="Admin" value="1" icon={<VpnKeyIcon fontSize="large"/>} color="#1976d2" /></Grid>
@@ -143,15 +143,6 @@ const AdminDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
                         icon={<SettingsSuggestIcon />}
                         color="#455a64"
                         onClick={() => navigate('/admin/config')}
-                    />
-                </Grid>
-                <Grid xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Bảo Mật & Profile"
-                        desc="Thông tin cá nhân và mật khẩu."
-                        icon={<FingerprintIcon />}
-                        color="#ed6c02"
-                        onClick={() => navigate('/change-password')}
                     />
                 </Grid>
             </Grid>
@@ -226,9 +217,18 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
             </Box>
             <Divider sx={{ mb: 5 }} />
             <Grid container spacing={3}>
+                <Grid xs={12} sm={6} md={4}>
+                    <MenuCard
+                        title="Đăng Ký Môn Học"
+                        desc="Đăng ký các lớp tín chỉ."
+                        icon={<AppRegistrationIcon />}
+                        color="#7b1fa2" // Màu tím nổi bật
+                        onClick={() => navigate('/student/registration')}
+                    />
+                </Grid>
                 <Grid xs={12} sm={6} md={4}><MenuCard title="Lớp Học Của Tôi" desc="Truy cập tài liệu & Bài giảng." icon={<SchoolIcon />} color="#2e7d32" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
                 <Grid xs={12} sm={6} md={4}><MenuCard title="Đăng Ký Đề Tài" desc="Chọn đề tài đồ án/tiểu luận." icon={<AssignmentIcon />} color="#ef6c00" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid xs={12} sm={6} md={4}><MenuCard title="Nhóm Của Tôi" desc="Trao đổi với thành viên nhóm." icon={<GroupsIcon />} color="#0288d1" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid xs={12} sm={6} md={4}><MenuCard title="Nhóm Của Tôi" desc="Trao đổi với thành viên nhóm." icon={<GroupsIcon />} color="#0288d1" onClick={() => navigate('/student/workspace')} /></Grid>
                 <Grid xs={12} sm={6} md={4}><MenuCard title="Hồ Sơ Cá Nhân" desc="Xem điểm & Thông tin." icon={<PersonIcon />} color="#455a64" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
                 <Grid xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
             </Grid>

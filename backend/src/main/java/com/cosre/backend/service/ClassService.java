@@ -12,8 +12,11 @@ import com.cosre.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -56,5 +59,63 @@ public class ClassService {
                 .build();
 
         return classRoomRepository.save(newClass);
+    }
+
+    // 1. Lấy danh sách lớp kèm trạng thái đăng ký của sinh viên đang login
+    public List<Map<String, Object>> getClassesForRegistration(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
+
+        List<ClassRoom> allClass = classRoomRepository.findAll();
+
+        return allClass.stream().map(clazz -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", clazz.getId());
+            map.put("name", clazz.getName());
+            map.put("semester", clazz.getSemester());
+            map.put("subject", clazz.getSubject());
+            map.put("lecturer", clazz.getLecturer());
+            map.put("maxCapacity", clazz.getMaxCapacity());
+            map.put("currentEnrollment", clazz.getStudents().size());
+            // Kiểm tra sinh viên này đã có trong danh sách chưa
+            map.put("isRegistered", clazz.getStudents().contains(student));
+            return map;
+        }).collect(Collectors.toList());
+    }
+
+    // 2. Xử lý Đăng ký lớp
+    public void registerClass(Long classId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new AppException("Sinh viên không tồn tại", HttpStatus.NOT_FOUND));
+
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new AppException("Lớp học không tồn tại", HttpStatus.NOT_FOUND));
+
+        if (classRoom.getStudents().contains(student)) {
+            throw new AppException("Bạn đã đăng ký lớp này rồi!", HttpStatus.BAD_REQUEST);
+        }
+
+        if (classRoom.getStudents().size() >= classRoom.getMaxCapacity()) {
+            throw new AppException("Lớp đã đầy!", HttpStatus.BAD_REQUEST);
+        }
+
+        classRoom.getStudents().add(student);
+        classRoomRepository.save(classRoom);
+    }
+
+    // 3. Xử lý Hủy đăng ký
+    public void cancelRegistration(Long classId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new AppException("Sinh viên không tồn tại", HttpStatus.NOT_FOUND));
+
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new AppException("Lớp học không tồn tại", HttpStatus.NOT_FOUND));
+
+        if (!classRoom.getStudents().contains(student)) {
+            throw new AppException("Bạn chưa đăng ký lớp này!", HttpStatus.BAD_REQUEST);
+        }
+
+        classRoom.getStudents().remove(student);
+        classRoomRepository.save(classRoom);
     }
 }
