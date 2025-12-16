@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
                         // QUAN TRỌNG: Cho phép mọi request OPTIONS (Preflight) đi qua
+                        .requestMatchers("/error").permitAll()
                         // Giúp trình duyệt không báo lỗi 403 khi "hỏi đường"
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
