@@ -1,11 +1,14 @@
 package com.cosre.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,6 +26,15 @@ public class ClassRoom {
     private String name; // VD: SE1701
 
     private String semester; // VD: Spring 2025
+
+    @Column(unique=true)
+    private String classCode;
+
+    @JsonFormat(pattern="yyyy-MM-dd")
+    private LocalDate startDate;
+
+    @JsonFormat(pattern="yyyy-MM-dd")
+    private LocalDate endDate;
 
     // Lớp này học môn gì
     @ManyToOne
