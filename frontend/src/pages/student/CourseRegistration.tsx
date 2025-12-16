@@ -12,6 +12,7 @@ import ClassIcon from '@mui/icons-material/Class';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import { useNavigate } from 'react-router-dom';
 import { getRegistrationClasses, enrollClass, cancelClass } from '../../services/classService';
+import AdminLayout from '../../components/layout/AdminLayout';
 
 const CourseRegistration = () => {
     const [classes, setClasses] = useState<any[]>([]);
@@ -100,17 +101,8 @@ const CourseRegistration = () => {
     );
 
     return (
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-            {/* Header */}
-            <Box display="flex" alignItems="center" mb={3} gap={2}>
-                <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/home')} variant="outlined">
-                    Trở về Dashboard
-                </Button>
-                <Typography variant="h4" fontWeight="800" color="#1a237e">
-                    Đăng Ký môn học
-                </Typography>
-            </Box>
-
+        <AdminLayout title="Đăng Ký Môn Học">
+            
             {msg && <Alert severity={msg.type} sx={{ mb: 3 }}>{msg.content}</Alert>}
 
             {loading ? (
@@ -190,7 +182,7 @@ const CourseRegistration = () => {
 
                 </Box>
             )}
-        </Container>
+        </AdminLayout>
     );
 };
 
