@@ -2,10 +2,8 @@ package com.cosre.backend.controller;
 
 import com.cosre.backend.entity.User;
 import com.cosre.backend.entity.Role;
-import com.cosre.backend.entity.SystemConfig;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.UserRepository;
-import com.cosre.backend.repository.SystemConfigRepository;
 import com.cosre.backend.security.jwt.JwtUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,6 @@ import java.util.Map;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final SystemConfigRepository configRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
 
@@ -58,23 +55,14 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException("Lỗi: Không tìm thấy người dùng với email này.", HttpStatus.NOT_FOUND));
 
-        // B2: Check bảo trì
-        SystemConfig maintenance = configRepository.findById("MAINTENANCE_MODE").orElse(null);
 
-        if (maintenance != null && "true".equals(maintenance.getConfigValue())) {
-            // Nếu User KHÔNG phải ADMIN thì chặn
-            if (user.getRole() != Role.ADMIN) {
-                throw new AppException("Hệ thống đang bảo trì. Vui lòng quay lại sau!", HttpStatus.SERVICE_UNAVAILABLE);
-            }
-        }
-
-        // B3: Kiểm tra xem tài khoản có bị khóa không (active = false)
+        // B2: Kiểm tra xem tài khoản có bị khóa không (active = false)
         if (Boolean.FALSE.equals(user.getActive())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin."));
         }
 
-        // B4: Kiểm tra mật khẩu
+        // B3: Kiểm tra mật khẩu
         if (passwordEncoder.matches(password, user.getPassword())) {
             String token = jwtUtils.generateJwtToken(email);
 
