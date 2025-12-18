@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/configs/**").permitAll() // Config hệ thống
                         .requestMatchers("/api/subjects/**").permitAll() // Môn học
                         .requestMatchers("/api/test/**").permitAll() // Test
-
+                        .requestMatchers("/api/staff/**").hasRole("STAFF")
                         // CÁC API CẦN ĐĂNG NHẬP
                         .anyRequest().authenticated()
                 );

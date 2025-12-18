@@ -52,10 +52,13 @@ public class ClassService {
 
         // Tạo Entity lớp học
         ClassRoom newClass = ClassRoom.builder()
+                .classCode(request.getClassCode())
                 .name(request.getName())
                 .semester(request.getSemester())
                 .subject(subject)
                 .lecturer(lecturer)
+                .startDate(request.getStartDate()) // Sẽ nhận null nếu Staff không nhập
+                .endDate(request.getEndDate())     // Sẽ nhận null nếu Staff không nhập
                 .build();
 
         return classRoomRepository.save(newClass);
@@ -102,7 +105,6 @@ public class ClassService {
         classRoom.getStudents().add(student);
         classRoomRepository.save(classRoom);
     }
-
     // 3. Xử lý Hủy đăng ký
     public void cancelRegistration(Long classId, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)

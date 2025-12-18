@@ -1,8 +1,11 @@
 package com.cosre.backend.controller;
 
+import com.cosre.backend.dto.ClassRequest;
+import com.cosre.backend.entity.ClassRoom;
 import com.cosre.backend.entity.Role;
 import com.cosre.backend.entity.User;
 import com.cosre.backend.exception.AppException;
+import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.StaffService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,8 +23,9 @@ import java.util.Map;
 public class StaffController {
 
     private final StaffService staffService;
+    private final ClassService classService;
 
-    @PostMapping("/import")
+    @PostMapping("/import-user")
     public ResponseEntity<?> importUsers(
             @RequestParam("file") MultipartFile file,
             @RequestParam("role") String role) {
@@ -45,8 +49,20 @@ public class StaffController {
             throw new AppException("Vai trò không hợp lệ: " + role + ". Vui lòng nhập LECTURER hoặc STUDENT.", HttpStatus.BAD_REQUEST);
         }
     }
-    @GetMapping("/users")
+    @GetMapping("/search-user")
     public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
         return ResponseEntity.ok()
-                .body(staffService.getAllUser(search));    }
+                .body(staffService.getAllUser(search));
+    }
+
+    @PostMapping("/import-classes")
+    public ResponseEntity<?> importClasses(@RequestParam("file") MultipartFile  file) {
+        List<ClassRoom> result = staffService.importClassesFromFile(file);
+        return ResponseEntity.ok(result);
+    }
+    @PostMapping("/createclass")
+    public ResponseEntity<?> createClass(@RequestBody ClassRequest request) {
+        return ResponseEntity.ok(classService.createClass(request));
+    }
+
 }

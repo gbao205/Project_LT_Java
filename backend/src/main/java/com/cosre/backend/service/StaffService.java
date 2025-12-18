@@ -1,8 +1,10 @@
 package com.cosre.backend.service;
 
+import com.cosre.backend.entity.ClassRoom;
 import com.cosre.backend.entity.Role;
 import com.cosre.backend.entity.User;
 import com.cosre.backend.exception.AppException;
+import com.cosre.backend.repository.ClassRoomRepository;
 import com.cosre.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,7 +28,7 @@ import java.util.stream.Collectors;
 public class StaffService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final ClassRoomRepository classRoomRepository;
     private static final String DEFAULT_DOMAIN = "collabsphere.edu.vn";
     private static final String DEFAULT_PASSWORD = "123";
     /**
@@ -118,5 +122,60 @@ public class StaffService {
                 })
                 .collect(Collectors.toList());
         return fillterUser;
+    }
+
+    // =========================================================================
+    //                            CLASS MANAGEMENT
+    // =========================================================================
+    @Transactional
+    public List<ClassRoom> importClassesFromFile(MultipartFile file) {
+        String fname = file.getOriginalFilename();
+        if (fname == null || (!fname.endsWith(".csv") && !fname.endsWith(".txt"))) {
+            throw new AppException("File không đúng định dạng. Chỉ chấp nhận CSV/TXT", HttpStatus.BAD_REQUEST);
+        }
+
+        List<ClassRoom> importclass = new ArrayList<>();
+
+        try (BufferedReader fread = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"))) {
+            String line;
+            fread.readLine();
+
+            while ((line = fread.readLine()) != null) {
+                String[] data = line.split(",");
+                if (data.length < 4 || data[0].trim().isEmpty()) {
+                    continue;
+                }
+                String classCode = data[0].trim();
+                String name = data[1].trim();
+                String semester = data[2].trim();
+                String maxCapacityStr = data[3].trim();
+                if (classRoomRepository.existsByClassCode(classCode)) {
+                    throw new AppException(
+                            "ClassCode bị trùng: " + classCode,
+                            HttpStatus.BAD_REQUEST
+                    );
+                }
+                LocalDate startDate = null;
+                LocalDate endDate = null;
+
+                try {
+                    if (data.length > 4) startDate = LocalDate.parse(data[4].trim());
+                    if (data.length > 5) endDate = LocalDate.parse(data[5].trim());
+                } catch (Exception e) {
+                }
+                ClassRoom newClass = ClassRoom.builder()
+                        .classCode(classCode)
+                        .name(name)
+                        .semester(semester)
+                        .endDate(endDate)
+                        .startDate(startDate)
+                        .build();
+                importclass.add(newClass);
+            }
+            classRoomRepository.saveAll(importclass);
+            return importclass;
+        } catch (Exception e) {
+            throw new AppException("Lỗi đọc file:" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

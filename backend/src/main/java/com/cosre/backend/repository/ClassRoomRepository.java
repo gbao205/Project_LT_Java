@@ -8,4 +8,5 @@ import org.springframework.stereotype.Repository;
 public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
     // Có thể thêm hàm tìm kiếm theo tên lớp nếu cần
     boolean existsByName(String name);
+    boolean existsByClassCode(String classcode);
 }
