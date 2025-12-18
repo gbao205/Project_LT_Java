@@ -6,6 +6,7 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, MenuItem
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -20,14 +21,18 @@ import BlockIcon from '@mui/icons-material/Block';
 import EditIcon from '@mui/icons-material/Edit';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 
 import { getAllUsers, toggleUserStatus, createUser, updateUser, resetUserPassword, deleteUser } from '../../services/userService';
-import AdminLayout from '../../components/layout/AdminLayout';
+import api from '../../services/api';
 import StatCard from '../../components/common/StatCard';
 
 const UserManager = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [search, setSearch] = useState("");
+    const [pendingReports, setPendingReports] = useState(0);
+
+    const navigate = useNavigate();
 
     // State quản lý Dialog
     const [openDialog, setOpenDialog] = useState(false);
@@ -39,14 +44,30 @@ const UserManager = () => {
     const fetchUsers = async () => {
         try {
             const res = await getAllUsers(search);
-            setUsers(res.data);
+            if (Array.isArray(res)) setUsers(res);
+            else if (res.data && Array.isArray(res.data)) setUsers(res.data);
+            else setUsers([]);
         } catch (error) {
             console.error("Lỗi tải danh sách user:", error);
+            setUsers([]);
+        }
+    };
+
+    // Hàm lấy số lượng báo cáo chờ xử lý
+    const fetchReportCount = async () => {
+        try {
+            const res = await api.get('/reports/count-pending');
+            setPendingReports(res.data);
+        } catch (error) {
+            console.error("Lỗi lấy số liệu báo cáo:", error);
         }
     };
 
     useEffect(() => {
-        const timeout = setTimeout(() => fetchUsers(), 500);
+        const timeout = setTimeout(() => {
+            fetchUsers();
+            fetchReportCount(); // Gọi hàm đếm mỗi khi load trang
+        }, 500);
         return () => clearTimeout(timeout);
     }, [search]);
 
@@ -61,7 +82,7 @@ const UserManager = () => {
         };
     }, [users]);
 
-    // Mở Dialog Tạo mới
+    // --- CÁC HÀM XỬ LÝ (Create, Edit, Delete...) ---
     const handleOpenCreate = () => {
         setDialogType('CREATE');
         setSelectedUser(null);
@@ -69,32 +90,28 @@ const UserManager = () => {
         setOpenDialog(true);
     };
 
-    // Mở Dialog Sửa
     const handleOpenEdit = (user: any) => {
         setDialogType('EDIT');
         setSelectedUser(user);
-        // Điền dữ liệu cũ vào form
         setValue('fullName', user.fullName);
         setValue('email', user.email);
         setValue('role', user.role);
         setOpenDialog(true);
     };
 
-    // Mở Dialog Reset Pass
     const handleOpenReset = (user: any) => {
         setDialogType('RESET');
         setSelectedUser(user);
-        reset({ password: '' }); // Reset ô nhập pass
+        reset({ password: '' });
         setOpenDialog(true);
     };
 
-    // Hàm xử lý xóa
     const handleDelete = async (user: any) => {
         if (window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA vĩnh viễn tài khoản "${user.fullName}"?\n\nHành động này không thể hoàn tác!`)) {
             try {
                 await deleteUser(user.id);
                 alert("Đã xóa thành công!");
-                fetchUsers(); // Tải lại danh sách
+                fetchUsers();
             } catch (error: any) {
                 console.error(error);
                 alert("Không thể xóa! Có thể tài khoản này đang phụ trách lớp học hoặc có dữ liệu liên quan.");
@@ -107,21 +124,18 @@ const UserManager = () => {
         reset();
     };
 
-    // Xử lý Submit chung cho cả 3 trường hợp
     const onSubmit = async (data: any) => {
         try {
             if (dialogType === 'CREATE') {
                 await createUser(data);
                 alert("Tạo tài khoản thành công!");
             } else if (dialogType === 'EDIT') {
-                // Gọi API update
                 await updateUser(selectedUser.id, data);
                 alert("Cập nhật thành công!");
             } else if (dialogType === 'RESET') {
                 await resetUserPassword(selectedUser.id, data.password);
                 alert(`Đã đổi mật khẩu cho ${selectedUser.fullName}`);
             }
-
             handleClose();
             fetchUsers();
         } catch (error: any) {
@@ -150,7 +164,7 @@ const UserManager = () => {
     const getRoleName = (role: string) => {
         switch (role) {
             case 'ADMIN': return 'Quản Trị Viên';
-            case 'STAFF': return 'Nhân Viên Đào Tạo';
+            case 'STAFF': return 'Phòng Đào Tạo';
             case 'HEAD_DEPARTMENT': return 'Trưởng Bộ Môn';
             case 'LECTURER': return 'Giảng Viên';
             case 'STUDENT': return 'Sinh Viên';
@@ -159,21 +173,36 @@ const UserManager = () => {
     };
 
     return (
-        <AdminLayout title="Quản Lý Người Dùng">
+        <Box sx={{ p: 3, height: '100%', bgcolor: '#f5f5f5' }}>
 
             {/* 1. THỐNG KÊ */}
             <Grid container spacing={2} mb={4}>
-                <Grid xs={6} md={4} lg={2}><StatCard title="Tổng User" value={stats.total} icon={<SupervisorAccountIcon fontSize="large"/>} color="#1976d2" /></Grid>
-                <Grid xs={6} md={4} lg={2}><StatCard title="Sinh Viên" value={stats.students} icon={<SchoolIcon fontSize="large"/>} color="#2e7d32" /></Grid>
-                <Grid xs={6} md={4} lg={2}><StatCard title="Giảng Viên" value={stats.lecturers} icon={<CastForEducationIcon fontSize="large"/>} color="#0288d1" /></Grid>
-                <Grid xs={6} md={4} lg={2}><StatCard title="Trưởng BM" value={stats.head_departments} icon={<AccountBalanceIcon fontSize="large"/>} color="#ed6c02" /></Grid>
-                <Grid xs={6} md={4} lg={2}><StatCard title="NVDT" value={stats.staffs} icon={<SupportAgentIcon fontSize="large"/>} color="#9c27b0" /></Grid>
-                <Grid xs={6} md={4} lg={2}><StatCard title="Đã Khóa" value={stats.blocked} icon={<BlockIcon fontSize="large"/>} color="#d32f2f" /></Grid>
+                <Grid item xs={6} md={3} lg={2}><StatCard title="Tổng User" value={stats.total} icon={<SupervisorAccountIcon fontSize="large"/>} color="#1976d2" /></Grid>
+                <Grid item xs={6} md={3} lg={2}><StatCard title="Sinh Viên" value={stats.students} icon={<SchoolIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                <Grid item xs={6} md={3} lg={2}><StatCard title="Giảng Viên" value={stats.lecturers} icon={<CastForEducationIcon fontSize="large"/>} color="#0288d1" /></Grid>
+                <Grid item xs={6} md={3} lg={2}><StatCard title="Trưởng Khoa" value={stats.head_departments} icon={<AccountBalanceIcon fontSize="large"/>} color="#ed6c02" /></Grid>
+                <Grid item xs={6} md={3} lg={2}><StatCard title="Phòng Đào Tạo" value={stats.staffs} icon={<SupportAgentIcon fontSize="large"/>} color="#9c27b0" /></Grid>
+                <Grid item xs={6} md={3} lg={1}><StatCard title="Đã Khóa" value={stats.blocked} icon={<BlockIcon fontSize="large"/>} color="#616161" /></Grid>
+                <Grid item xs={6} md={3} lg={1}
+                    onClick={() => navigate('/admin/reports')}
+                    sx={{
+                        cursor: 'pointer',
+                        transition: '0.3s',
+                        '&:hover': { transform: 'scale(1.05)' }
+                    }}
+                >
+                    <StatCard
+                        title="Báo Cáo"
+                        value={pendingReports}
+                        icon={<ReportProblemIcon fontSize="large"/>}
+                        color="#d32f2f"
+                    />
+                </Grid>
             </Grid>
 
             {/* 2. TOOLBAR */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
+                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate} sx={{ bgcolor: '#1976d2' }}>
                     Thêm Người Dùng
                 </Button>
                 <Box display="flex" gap={1} bgcolor="white" p={0.5} borderRadius={1} boxShadow={1}>
@@ -236,11 +265,16 @@ const UserManager = () => {
                                 </TableCell>
                             </TableRow>
                         ))}
+                        {users.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} align="center">Không có dữ liệu</TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </TableContainer>
 
-            {/* 4. DIALOG DYNAMIC (Create / Edit / Reset) */}
+            {/* 4. DIALOG */}
             <Dialog open={openDialog} onClose={handleClose} fullWidth maxWidth="sm">
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <DialogTitle sx={{ fontWeight: 'bold', color: '#1976d2' }}>
@@ -248,58 +282,28 @@ const UserManager = () => {
                         {dialogType === 'EDIT' && "Cập Nhật Thông Tin"}
                         {dialogType === 'RESET' && "Cấp Lại Mật Khẩu"}
                     </DialogTitle>
-
                     <DialogContent>
                         <Box display="flex" flexDirection="column" gap={2} mt={1}>
-
-                            {/* 1. Nhóm: Họ tên & Email (Chỉ hiện khi Tạo hoặc Sửa) */}
                             {(dialogType === 'CREATE' || dialogType === 'EDIT') && (
                                 <>
-                                    <TextField
-                                        label="Họ và Tên" fullWidth
-                                        {...register("fullName", { required: "Vui lòng nhập họ tên" })}
-                                        error={!!errors.fullName}
-                                    />
-                                    <TextField
-                                        label="Email" fullWidth type="email"
-                                        {...register("email", { required: "Vui lòng nhập email" })}
-                                        error={!!errors.email}
-                                    />
+                                    <TextField label="Họ và Tên" fullWidth {...register("fullName", { required: "Vui lòng nhập họ tên" })} error={!!errors.fullName} />
+                                    <TextField label="Email" fullWidth type="email" {...register("email", { required: "Vui lòng nhập email" })} error={!!errors.email} />
                                 </>
                             )}
-
-                            {/* 2. Nhóm: Mật khẩu (Hiện khi Tạo mới HOẶC Reset) */}
                             {(dialogType === 'CREATE' || dialogType === 'RESET') && (
-                                <TextField
-                                    label={dialogType === 'RESET' ? "Mật khẩu mới" : "Mật khẩu"}
-                                    fullWidth type="password"
-                                    {...register("password", {
-                                        required: "Nhập mật khẩu",
-                                        minLength: { value: 6, message: "Tối thiểu 6 ký tự" }
-                                    })}
-                                    error={!!errors.password}
-                                    helperText={errors.password?.message as string}
-                                />
+                                <TextField label={dialogType === 'RESET' ? "Mật khẩu mới" : "Mật khẩu"} fullWidth type="password" {...register("password", { required: "Nhập mật khẩu", minLength: { value: 6, message: "Tối thiểu 6 ký tự" } })} error={!!errors.password} helperText={errors.password?.message as string} />
                             )}
-
-                            {/* 3. Nhóm: Vai trò (Chỉ hiện khi Tạo hoặc Sửa) */}
                             {(dialogType === 'CREATE' || dialogType === 'EDIT') && (
-                                <TextField
-                                    select label="Vai trò" fullWidth
-                                    defaultValue="STUDENT"
-                                    {...register("role")}
-                                >
+                                <TextField select label="Vai trò" fullWidth defaultValue="STUDENT" {...register("role")}>
                                     <MenuItem value="STUDENT">Sinh Viên</MenuItem>
                                     <MenuItem value="LECTURER">Giảng Viên</MenuItem>
-                                    <MenuItem value="HEAD_DEPARTMENT">Trưởng Bộ Môn</MenuItem>
-                                    <MenuItem value="STAFF">Nhân Viên Đào Tạo</MenuItem>
+                                    <MenuItem value="HEAD_DEPARTMENT">Trưởng Khoa</MenuItem>
+                                    <MenuItem value="STAFF">Phòng Đào Tạo</MenuItem>
                                     <MenuItem value="ADMIN">Quản Trị Viên</MenuItem>
                                 </TextField>
                             )}
-
                         </Box>
                     </DialogContent>
-
                     <DialogActions sx={{ p: 3 }}>
                         <Button onClick={handleClose} color="inherit">Hủy</Button>
                         <Button type="submit" variant="contained">Lưu Thay Đổi</Button>
@@ -307,7 +311,7 @@ const UserManager = () => {
                 </form>
             </Dialog>
 
-        </AdminLayout>
+        </Box>
     );
 };
 

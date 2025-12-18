@@ -20,6 +20,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import static javax.swing.text.html.HTML.Tag.HEAD;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -35,18 +37,21 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
-                        // QUAN TRỌNG: Cho phép mọi request OPTIONS (Preflight) đi qua
+                        // 1. Cho phép request lỗi và preflight (OPTIONS)
                         .requestMatchers("/error").permitAll()
-                        // Giúp trình duyệt không báo lỗi 403 khi "hỏi đường"
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // CÁC API PUBLIC (Không cần token)
+                        // 2. CÁC API PUBLIC
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/api/configs/**").permitAll() // Config hệ thống
-                        .requestMatchers("/api/subjects/**").permitAll() // Môn học
-                        .requestMatchers("/api/test/**").permitAll() // Test
+                        .requestMatchers("/api/configs/**").permitAll()
+                        .requestMatchers("/api/subjects/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll()
+
+                        // 3. PHÂN QUYỀN
                         .requestMatchers("/api/staff/**").hasRole("STAFF")
-                        // CÁC API CẦN ĐĂNG NHẬP
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+
+                        // 4. CÁC API CÒN LẠI CẦN ĐĂNG NHẬP
                         .anyRequest().authenticated()
                 );
 
