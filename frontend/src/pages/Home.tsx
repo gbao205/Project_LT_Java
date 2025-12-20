@@ -8,6 +8,10 @@ import { logout } from '../services/authService';
 import api from '../services/api';
 import UserManager from './admin/UserManager';
 
+// --- Imports Component Phụ ---
+import ReportDialog from '../components/common/ReportDialog'; // Import nút Report
+import ChatWidget from '../components/common/ChatWidget';     // Import nút Chat
+
 // --- Icons Import ---
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -25,6 +29,7 @@ import SourceIcon from '@mui/icons-material/Source';
 import CastForEducationIcon from '@mui/icons-material/CastForEducation';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+
 
 // ==========================================
 // 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
@@ -105,7 +110,6 @@ const Header = ({ user, roleConfig, onLogout }: any) => (
 // 2. CÁC DASHBOARD RIÊNG BIỆT (PHÂN QUYỀN)
 // ==========================================
 
-// --- ADMIN DASHBOARD ---
 const AdminDashboard = ({ user, roleConfig, onLogout}: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -115,7 +119,6 @@ const AdminDashboard = ({ user, roleConfig, onLogout}: any) => (
     </Box>
 );
 
-// --- STAFF DASHBOARD ---
 const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f3e5f5' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -165,7 +168,6 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
     </Box>
 );
 
-// --- STUDENT DASHBOARD ---
 const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f1f8e9' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -201,7 +203,6 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     </Box>
 );
 
-// --- LECTURER DASHBOARD ---
 const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#e3f2fd' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -250,7 +251,6 @@ const Home = () => {
         if (userStr) {
             setUser(JSON.parse(userStr));
             const role = JSON.parse(userStr).role;
-            // Load stats nếu cần
             if (['ADMIN', 'STAFF'].includes(role)) {
                 api.get('/dashboard/stats').then(res => setStats(res.data)).catch(console.error);
             }
@@ -280,16 +280,32 @@ const Home = () => {
     const roleConfig = getRoleConfig(user.role);
     const props = { user, roleConfig, navigate, onLogout: handleLogout, stats };
 
-    // --- PHÂN LUỒNG ---
-    if (user.role === 'ADMIN') return <AdminDashboard {...props} />;
-    if (user.role === 'STAFF') return <StaffDashboard {...props} />;
-    if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') return <LecturerDashboard {...props} />;
-    if (user.role === 'STUDENT') return <StudentDashboard {...props} />;
+    // --- HÀM RENDER NỘI DUNG CHÍNH ---
+    const renderMainContent = () => {
+        if (user.role === 'ADMIN') return <AdminDashboard {...props} />;
+        if (user.role === 'STAFF') return <StaffDashboard {...props} />;
+        if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') return <LecturerDashboard {...props} />;
+        if (user.role === 'STUDENT') return <StudentDashboard {...props} />;
 
+        return (
+            <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100vh">
+                <Typography variant="h5" color="error" gutterBottom>Vai trò không hợp lệ!</Typography>
+                <Button variant="outlined" onClick={handleLogout}>Đăng xuất</Button>
+            </Box>
+        );
+    };
+
+    // --- RENDER CUỐI CÙNG (Gồm Dashboard + Nút Chat + Nút Report) ---
     return (
-        <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100vh">
-            <Typography variant="h5" color="error" gutterBottom>Vai trò không hợp lệ!</Typography>
-            <Button variant="outlined" onClick={handleLogout}>Đăng xuất</Button>
+        <Box sx={{ position: 'relative', minHeight: '100vh' }}>
+            {/* 1. Dashboard chính (Thay đổi theo role) */}
+            {renderMainContent()}
+
+            {/* 2. Nút Report Bug (Nằm ở góc phải dưới) */}
+            <ReportDialog />
+
+            {/* 3. Nút Chat Widget (Sẽ tự động nằm TRÊN nút Report do CSS trong ChatWidget) */}
+            <ChatWidget />
         </Box>
     );
 };
