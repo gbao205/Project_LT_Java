@@ -11,6 +11,7 @@ import MyClasses from "./pages/student/MyClasses";
 import ClassDetail from "./pages/class/ClassDetail";
 import ReportManager from './pages/admin/ReportManager';
 import ReportDialog from './components/common/ReportDialog';
+import TeamDetail from './pages/lecturer/TeamDetail';
 
 function App() {
     return (
@@ -52,6 +53,11 @@ function App() {
 
                 {/* Route cho trang Quản lý Báo cáo của Admin */}
                 <Route path="/admin/reports" element={<ReportManager />} />
+
+                {/* --- BỔ SUNG ROUTE CHO GIẢNG VIÊN Ở ĐÂY --- */}
+                {/* :teamId là tham số động, ví dụ /lecturer/teams/10 */}
+                <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
+
             </Routes>
         </Router>
     );
