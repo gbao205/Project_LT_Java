@@ -20,8 +20,61 @@ export interface Milestone {
     dueDate: string;
 }
 
+export interface StudentProfileData {
+    gender?: string;
+    nativePlace?: string;
+    ethnicity?: string;
+    religion?: string;
+    nationality?: string;
+    unionDate?: string;
+    partyDate?: string;
+    phoneNumber?: string;
+    idCardNumber?: string;
+    idCardIssueDate?: string;
+    idCardExpiryDate?: string;
+    idCardIssuePlace?: string;
+    insuranceCode?: string;
+    placeOfBirth?: string;
+    homeTown?: string;
+    permanentAddress?: string;
+    temporaryAddress?: string;
+}
+
+export interface Student {
+    id: number;
+    user: {
+        id: number;
+        email: string;
+        fullName: string;
+    };
+    studentId: string;
+    eduLevel: string;
+    batch: string;
+    dob: string;
+    trainingType: string;
+    admissionDate: string;
+    studentStatus: string;
+    faculty: string;
+    major: string;
+    specialization: string;
+    profile: StudentProfileData;
+}
+
 // --- Service ---
 const studentService = {
+
+    // Lấy thông tin hồ sơ hiện tại
+    getProfile: async (): Promise<Student> => {
+        const response = await api.get<Student>('/student/profile');
+        return response.data;
+    },
+
+    // Cập nhật hồ sơ sinh viên
+    updateProfile: async (data: Student) => {
+        const response = await api.put<Student>('/student/profile', data);
+        return response.data;
+    },
+
     // 1. Tạo nhóm mới
     createTeam: async (data: CreateTeamRequest) => {
         const response = await api.post('/student/teams', data);

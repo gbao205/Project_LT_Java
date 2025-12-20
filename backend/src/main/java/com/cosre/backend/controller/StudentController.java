@@ -1,6 +1,7 @@
 package com.cosre.backend.controller;
 
 import com.cosre.backend.dto.student.*;
+import com.cosre.backend.entity.Student;
 import com.cosre.backend.entity.Team;
 import com.cosre.backend.service.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,18 @@ import org.springframework.web.bind.annotation.*;
 public class StudentController {
 
     private final StudentService studentService;
+
+    // Lấy thông tin hồ sơ cá nhân
+    @GetMapping("/profile")
+    public ResponseEntity<Student> getProfile() {
+        return ResponseEntity.ok(studentService.getMyProfile());
+    }
+
+    // Cập nhật hồ sơ cá nhân
+    @PutMapping("/profile")
+    public ResponseEntity<Student> updateProfile(@RequestBody Student studentRequest) {
+        return ResponseEntity.ok(studentService.updateProfile(studentRequest));
+    }
 
     // Tạo nhóm
     @PostMapping("/teams")

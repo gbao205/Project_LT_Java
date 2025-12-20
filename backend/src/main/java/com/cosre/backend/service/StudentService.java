@@ -23,12 +23,55 @@ public class StudentService {
     private final UserRepository userRepository;
     private final ClassRoomRepository classRoomRepository;
     private final MilestoneRepository milestoneRepository;
+    private final StudentRepository studentRepository;
 
-    // Helper: Lấy User hiện tại đang đăng nhập
+    // Helper lấy User hiện tại từ Security Context
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException("User not found", HttpStatus.UNAUTHORIZED));
+    }
+
+    // Lấy thông tin hồ sơ của sinh viên hiện tại
+    public Student getMyProfile() {
+        User user = getCurrentUser();
+        // Trả về Student từ DB, nếu chưa có thì tạo đối tượng Student mới (chưa lưu vào DB)
+        // để Frontend có cấu trúc dữ liệu hiển thị (tên, email từ User)
+        return studentRepository.findByUser(user)
+                .orElseGet(() -> Student.builder()
+                        .user(user)
+                        .profile(new StudentProfile()) // Tránh lỗi null profile ở Frontend
+                        .build());
+    }
+
+    // Cập nhật hồ sơ sinh viên
+    @Transactional
+    public Student updateProfile(Student request) {
+        User currentUser = getCurrentUser();
+
+        // Tìm hồ sơ cũ, nếu không có thì tạo thực thể Student mới hoàn toàn
+        Student student = studentRepository.findByUser(currentUser)
+                .orElse(new Student());
+
+        // Nếu là tạo mới, cần thiết lập quan hệ với User
+        if (student.getId() == null) {
+            student.setUser(currentUser);
+        }
+
+        // --- Cập nhật THÔNG TIN CÁ NHÂN từ request ---
+        if (request.getProfile() != null) {
+            StudentProfile newProfile = request.getProfile();
+            // Map các trường: gender, ethnicity, religion, nationality, phone, v.v.
+            student.setProfile(newProfile);
+        }
+
+        // --- Cập nhật một số trường Học vấn nếu được phép ---
+        // Ví dụ: Ngày sinh (dob) thường nằm ở Student chứ không phải Profile
+        student.setDob(request.getDob());
+        student.setStudentId(request.getStudentId());
+
+        // Lưu xuống DB (Nếu là hồ sơ mới thì Hibernate sẽ thực hiện INSERT)
+        return studentRepository.save(student);
     }
 
     // 1. Chức năng: Tạo nhóm mới (Sinh viên tạo sẽ là LEADER)

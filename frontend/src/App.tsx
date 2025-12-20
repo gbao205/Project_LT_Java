@@ -11,6 +11,7 @@ import MyClasses from "./pages/student/MyClasses";
 import ClassDetail from "./pages/class/ClassDetail";
 import ReportManager from './pages/admin/ReportManager';
 import ReportDialog from './components/common/ReportDialog';
+import StudentProfile from './pages/student/StudentProfile';
 
 function App() {
     return (
@@ -50,8 +51,12 @@ function App() {
 
                 <Route path="/class/:id" element={<ClassDetail />} />
 
+                <Route path="/student/profile" element={<StudentProfile />} />
+
                 {/* Route cho trang Quản lý Báo cáo của Admin */}
                 <Route path="/admin/reports" element={<ReportManager />} />
+
+
             </Routes>
         </Router>
     );
