@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "users")
-@Data
+@Data // <--- Lombok tự sinh getter/setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -20,9 +20,9 @@ public class User {
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không đúng định dạng")
     @Column(unique = true)
-    private String email;
+    private String email; // Dùng Email làm tài khoản
 
-    // Ẩn password khi trả về
+    // Ẩn password khi trả về JSON
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
@@ -31,7 +31,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    // Thêm trường Active
     @Builder.Default
     private Boolean active = true;
 }

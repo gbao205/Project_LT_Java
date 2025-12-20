@@ -46,9 +46,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/configs/**").permitAll()
                         .requestMatchers("/api/subjects/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
 
                         // 3. PHÂN QUYỀN
-                        .requestMatchers("/api/staff/**").hasRole("STAFF")
+                        .requestMatchers("/api/users/contacts").authenticated()
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
 
                         // 4. CÁC API CÒN LẠI CẦN ĐĂNG NHẬP
@@ -73,25 +74,26 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // 4. Cấu hình CORS (Cho phép Frontend gọi API)
+    // 4. Cấu hình CORS (ĐÃ SỬA LỖI)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Cho phép TẤT CẢ các nguồn (Vercel, Localhost,...)
-        configuration.setAllowedOrigins(List.of("*"));
+        // Thay vì setAllowedOrigins("*"), ta dùng setAllowedOriginPatterns("*")
+        // Điều này cho phép mọi nguồn nhưng vẫn hợp lệ khi dùng AllowCredentials
+        configuration.setAllowedOriginPatterns(List.of("*"));
 
-        // Cho phép đầy đủ các method (Thêm HEAD cho chuẩn)
+        // Cho phép đầy đủ các method
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
 
         // Cho phép mọi header
         configuration.setAllowedHeaders(List.of("*"));
 
-        // (Mới) Cho phép Frontend đọc được header trả về (VD: Authorization)
+        // Cho phép Frontend đọc được header trả về
         configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
 
-        // Khi AllowedOrigins là "*" thì AllowCredentials PHẢI là false (hoặc không set)
-        // configuration.setAllowCredentials(true);
+        // QUAN TRỌNG: Cho phép gửi Cookies/Auth Header (Credentials)
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
