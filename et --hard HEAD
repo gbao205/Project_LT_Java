@@ -1,0 +1,257 @@
+[33mcommit 6fe9c51889446f65969951bcd6da922dfdbd9409[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfiximportprojectfromfile[m[33m, [m[1;31morigin/fiximportprojectfromfile[m[33m, [m[1;32mmain[m[33m)[m
+Merge: e9c0270 157eea8
+Author: MinhPhung1307 <nguyenminhphung1307@gmail.com>
+Date:   Sat Dec 20 17:02:06 2025 +0700
+
+    Merge pull request #7 from gbao205/develop-profile-feature-for-student
+    
+    Design a database to store student information
+
+[33mcommit 157eea8e254055f2b479af4fd3cf01b3eadb202d[m
+Author: Nguyen Minh Phung <nguyenminhphung1307@gmail.com>
+Date:   Sat Dec 20 17:04:12 2025 +0700
+
+    Design a database to store student information
+
+[33mcommit e9c0270a643f366f85046be7e2af0d2265e8e48a[m
+Merge: 8a1d8d8 c39e5d1
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Fri Dec 19 00:00:44 2025 +0700
+
+    resolve merge conflicts
+
+[33mcommit 8a1d8d8c061b6d4a803241b47020829b6073ab81[m
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Thu Dec 18 23:43:04 2025 +0700
+
+    phân quyền staff trong config và complete create class for staff
+
+[33mcommit c39e5d1ff6e35cf6d2b387fcd5e9a22986085b01[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Wed Dec 17 20:12:11 2025 +0700
+
+    Update chức năng Báo cáo
+
+[33mcommit 385c7b12ee611782f59f3d3e6bf726e133e79d61[m
+Merge: 7b4cc95 5810743
+Author: gbao205 <baolg3522@ut.edu.vn>
+Date:   Wed Dec 17 17:51:46 2025 +0700
+
+    Cập nhật bảo mật
+
+[33mcommit 7b4cc95e1bf18705b9fb4878b386ef654c4fac2a[m
+Author: gbao205 <baolg3522@ut.edu.vn>
+Date:   Wed Dec 17 17:49:55 2025 +0700
+
+    Nâng cấp bảo mật
+
+[33mcommit 581074333974f2ca249aebbbb95ef00dd53af137[m
+Author: Lê Gia Bảo <162875714+gbao205@users.noreply.github.com>
+Date:   Tue Dec 16 21:29:21 2025 +0700
+
+    Switch API URL to production endpoint
+
+[33mcommit c75e5bec0f2667a83c390b9fa54b382eeeea37f6[m
+Author: gbao205 <baolg3522@ut.edu.vn>
+Date:   Tue Dec 16 21:27:10 2025 +0700
+
+    Cập nhật quyền Admin
+
+[33mcommit b19b66fb629553cd17507f7e7ca4d1fbcf6b581f[m
+Merge: 140dfbc aa3f7f4
+Author: MinhPhung1307 <nguyenminhphung1307@gmail.com>
+Date:   Tue Dec 16 19:08:08 2025 +0700
+
+    Merge pull request #5 from gbao205/Develop-my-class-feature-for-student
+    
+    add page my class
+
+[33mcommit 0f9a542f915b090014160fde2f9581ac9e031e06[m
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Tue Dec 16 17:29:50 2025 +0700
+
+    add classCode startDate endDate for entityClassRoom
+
+[33mcommit 140dfbc3dab5148e6e593a296906b8ac42a9308f[m
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Tue Dec 16 16:31:15 2025 +0700
+
+    funct xem danh sách tài khoản của sinh viên và giảng viên
+
+[33mcommit c214155dda138991bf22811f016d99f71bb3c097[m
+Merge: f10747f 4887f10
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Tue Dec 16 13:04:29 2025 +0700
+
+    Merge pull request #6 from gbao205/importfilecsv
+    
+    Importfilecsv
+
+[33mcommit 4887f10e77f6803086e5a888dd5805301af974fb[m[33m ([m[1;31morigin/importfilecsv[m[33m, [m[1;32mimportfilecsv[m[33m)[m
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Tue Dec 16 12:57:52 2025 +0700
+
+    complex import account csv for staff
+
+[33mcommit cd8cf5262c22b4fc6bee84125bb0c94c03803708[m
+Merge: 5b824b9 f10747f
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Tue Dec 16 10:46:40 2025 +0700
+
+    Merge branch 'main' of https://github.com/gbao205/Project_LT_Java into importfilecsv
+
+[33mcommit f10747fa84af31544f090435788ba01c57071212[m
+Author: Lê Gia Bảo <162875714+gbao205@users.noreply.github.com>
+Date:   Mon Dec 15 23:21:56 2025 +0700
+
+    Switch API URL to production endpoint
+
+[33mcommit aa3f7f449bf09e82e10abbe940987493f38d4e18[m[33m ([m[1;31morigin/Develop-my-class-feature-for-student[m[33m)[m
+Author: Nguyen Minh Phung <nguyenminhphung1307@gmail.com>
+Date:   Mon Dec 15 23:21:03 2025 +0700
+
+    add page my class
+
+[33mcommit c84695d6b0acfacfdd0517d96ef0f229b125c3fa[m
+Author: gbaohcm <gbaoai.hcm@gmail.com>
+Date:   Mon Dec 15 23:12:17 2025 +0700
+
+    Cập nhật admin
+
+[33mcommit 8f7231722a7e7a927059662e41e7d8ea1cdde28d[m
+Author: Lê Gia Bảo <162875714+gbao205@users.noreply.github.com>
+Date:   Mon Dec 15 21:18:06 2025 +0700
+
+    Đổi API URL của vercel
+
+[33mcommit 1ff68a19cfa357aca2c101ff212c34e3e2b675bf[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Mon Dec 15 21:15:35 2025 +0700
+
+    Cấp quyền Admin được đổi mail
+
+[33mcommit aca1af2d65e1a53ad881a4b73325cb5e64440842[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Mon Dec 15 20:56:44 2025 +0700
+
+    Update chức năng xóa tài khoản
+
+[33mcommit 8c32f5be7796de3134a33bfb54ca6de1cdb124c2[m
+Merge: 889f284 db8f597
+Author: Lê Gia Bảo <162875714+gbao205@users.noreply.github.com>
+Date:   Mon Dec 15 20:36:49 2025 +0700
+
+    Merge pull request #4 from gbao205/Develop-a-course-registration-feature-for-students-
+    
+    add func registration course for student
+
+[33mcommit db8f597bc2a589e6e7cde19069c62c3dbe211533[m[33m ([m[1;31morigin/Develop-a-course-registration-feature-for-students-[m[33m)[m
+Author: Nguyen Minh Phung <nguyenminhphung1307@gmail.com>
+Date:   Mon Dec 15 20:19:51 2025 +0700
+
+    update func for student
+
+[33mcommit 771612dffd0207c51d1f191ad7b58dc299067eb7[m
+Author: Nguyen Minh Phung <nguyenminhphung1307@gmail.com>
+Date:   Mon Dec 15 19:29:04 2025 +0700
+
+    add func registration course for student
+
+[33mcommit 5b824b95ad0a4154a2d29aad8c3e716f3689e887[m
+Author: haole0810 <letanhao0810@gmail.com>
+Date:   Mon Dec 15 00:06:27 2025 +0700
+
+    build import task( api error)
+
+[33mcommit 889f2841aafb0632b518e0422cbd7cd5101d8418[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sun Dec 14 19:23:24 2025 +0700
+
+    Fix bug reset password.
+
+[33mcommit ca1d62b374f8a6cac559528b3746ea18d1ff0d1e[m[33m ([m[1;32mAPI-account[m[33m)[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sun Dec 14 01:41:00 2025 +0700
+
+    Fix local
+
+[33mcommit 02e36c49b519c98031ec3458721970557ab64c59[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sun Dec 14 01:31:17 2025 +0700
+
+    Cập nhật URL API để hiển thị Backend
+
+[33mcommit 5cce5ab7968681cb4704cbc4b6f9224e16bacb3e[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sun Dec 14 00:39:29 2025 +0700
+
+    Fix local
+
+[33mcommit 95dd9d38e7a27d2fe1657b9f157aa1e76e2ad784[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sun Dec 14 00:29:59 2025 +0700
+
+    Fix 404
+
+[33mcommit d5133a04faee8512d84997941af006fbf5cd002b[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sun Dec 14 00:09:02 2025 +0700
+
+    Gán thẳng api url
+
+[33mcommit 54268b34023d83796983957c59a46280e05b0f32[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:54:09 2025 +0700
+
+    Fix 403
+
+[33mcommit 7fcdeda78959db64bb2ac585dbc501a85f9c1210[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:44:52 2025 +0700
+
+    Fix 403
+
+[33mcommit cb1047c26ae2630ef8ca3aba08449de147377b2e[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:32:23 2025 +0700
+
+    Sửa bảo mật để Vercel nhận
+
+[33mcommit 5aafa32e325c7a2525214cb672c5d86cf899b2dd[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:16:32 2025 +0700
+
+    Fix Json
+
+[33mcommit ad9d6eb9d4234557ef3e7d3189d15318e9fe0530[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:13:08 2025 +0700
+
+    Fix SystemConfig
+
+[33mcommit 6b602fb4f8b82e394f55c04cb60490280cfe8abf[m
+Merge: 8eb82ea 8eb9a61
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:08:15 2025 +0700
+
+    Merge branch 'main' of https://github.com/gbao205/Project_LT_Java
+
+[33mcommit 8eb82eac66f31ba3984af08cd71092fda23b1b1e[m
+Author: Lê Gia Bảo <baolg3522@ut.edu.vn>
+Date:   Sat Dec 13 23:04:20 2025 +0700
+
+    Sửa lỗi biên dịch TypeScript
+
+[33mcommit 8eb9a615348e9d4266f8271ddd29a5a0b71d5325[m
+Author: Lê Gia Bảo <162875714+gbao205@users.noreply.github.com>
+Date:   Sat Dec 13 22:14:09 2025 +0700
+
+    Sửa tên up hosting
+
+[33mcommit ee1ed537265435d0a6034a4b2bc85d4bd51f6be6[m
+Author: Lê Gia Bảo <162875714+gbao205@users.noreply.github.com>
+Date:   Sat Dec 13 22:13:46 2025 +0700
+
+    Sửa tên
+
+[33mcommit c09

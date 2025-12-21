@@ -116,49 +116,163 @@ const AdminDashboard = ({ user, roleConfig, onLogout}: any) => (
 );
 
 // --- STAFF DASHBOARD ---
-const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) => (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f3e5f5' }}>
-        <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-            <Box mb={5}>
-                <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
-                    Nghiệp Vụ Đào Tạo
-                </Typography>
-                <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Môn Học" value={stats.totalSubjects} icon={<SourceIcon fontSize="large"/>} color="#ed6c02" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Lớp Đang Mở" value={stats.totalClasses} icon={<CastForEducationIcon fontSize="large"/>} color="#0288d1" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Sinh Viên" value={stats.totalUsers} icon={<GroupAddIcon fontSize="large"/>} color="#2e7d32" /></Grid>
-                    <Grid item xs={12} sm={6} md={3}><StatCard title="Đề Tài" value={stats.totalProjects} icon={<DashboardIcon fontSize="large"/>} color="#9c27b0" /></Grid>
-                </Grid>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></link>
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import StorageIcon from '@mui/icons-material/Storage';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+
+// 1. Định nghĩa Interface để diệt lỗi ESLint "Unexpected any"
+interface StaffStatCardProps {
+    title: string;
+    value: number | string;
+    icon: React.ReactNode;
+    color: string;
+}
+
+interface StaffDashboardProps {
+    user: {
+        fullName: string;
+    };
+    roleConfig: {
+        label: string;
+        color: string;
+    };
+    navigate: (path: string) => void;
+    onLogout: () => void;
+    stats: {
+        totalSubjects: number;
+        totalClasses: number;
+        totalUsers: number;
+        totalProjects: number;
+    };
+}
+
+// 2. Component StatCard thiết kế riêng cho Staff
+const StaffStatCard = ({ title, value, icon, color }: StaffStatCardProps) => (
+    <Card sx={{
+        borderRadius: 4,
+        background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`,
+        color: 'white', 
+        boxShadow: `0 8px 32px ${color}40`,
+        position: 'relative', 
+        overflow: 'hidden', 
+        height: '100%', 
+        border: 'none'
+    }}>
+        <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                <Box>
+                    <Typography variant="h3" fontWeight="800" sx={{ mb: 0.5 }}>{value}</Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 700, letterSpacing: 1 }}>
+                        {title.toUpperCase()}
+                    </Typography>
+                </Box>
+                <Box sx={{ p: 1.5, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(10px)' }}>
+                    {icon}
+                </Box>
             </Box>
-            <Divider sx={{ mb: 5 }} />
-            <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Quản Lý Môn Học"
-                        desc="Thiết lập danh mục môn và đề cương."
-                        icon={<AssignmentIcon />}
-                        color="#ed6c02"
-                        onClick={() => navigate('/admin/subjects')}
-                    />
+        </CardContent>
+        <Box sx={{ 
+            position: 'absolute', 
+            right: -15, 
+            bottom: -15, 
+            opacity: 0.15, 
+            transform: 'rotate(-15deg)', 
+            fontSize: '100px' 
+        }}>
+            {icon}
+        </Box>
+    </Card>
+);
+
+// 3. STAFF DASHBOARD MAIN
+const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: StaffDashboardProps) => (
+    <Box sx={{ 
+        minHeight: '100vh', 
+        bgcolor: '#f8fafc', 
+        pb: 10,
+        fontFamily: "'Inter', sans-serif",
+        "& *": { 
+            fontFamily: "'Inter', sans-serif !important" 
+        }
+    }}>
+        <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
+        
+        {/* Banner tím High-tech */}
+        <Box sx={{
+            minHeight: 240,
+            background: 'linear-gradient(135deg, #6a1b9a 0%, #9c27b0 100%)',
+            pt: 4,
+            pb: 2,
+            mb: 4 // Tăng margin một chút cho thoáng
+        }}>
+            <Container maxWidth="xl">
+                <Box mb={4}>
+                    <Typography variant="h4" fontWeight="900" color="white" sx={{ letterSpacing: -1 }}>
+                        Hệ Thống Quản Lý Đào Tạo
+                    </Typography>
+                    <Typography color="white" sx={{ opacity: 0.85 }}>
+                        Chào buổi làm việc, {user.fullName} | Quyền hạn: {roleConfig.label}
+                    </Typography>
+                </Box>
+
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        <StaffStatCard title="Môn Học" value={stats.totalSubjects} icon={<SourceIcon fontSize="large" />} color="#f59e0b" />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        <StaffStatCard title="Lớp Học" value={stats.totalClasses} icon={<CastForEducationIcon fontSize="large" />} color="#3b82f6" />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        <StaffStatCard title="Sinh Viên" value={stats.totalUsers} icon={<GroupAddIcon fontSize="large" />} color="#10b981" />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        <StaffStatCard title="Đề Tài" value={stats.totalProjects} icon={<RocketLaunchIcon fontSize="large" />} color="#8b5cf6" />
+                    </Grid>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Quản Lý Lớp Học"
-                        desc="Mở lớp, xếp giảng viên và import sinh viên."
-                        icon={<SchoolIcon />}
-                        color="#0288d1"
-                        onClick={() => navigate('/admin/classes')}
-                    />
+            </Container>
+        </Box>
+
+        <Container maxWidth="xl">
+            <Grid container spacing={4}>
+                {/* Menu chính nghiệp vụ */}
+                <Grid size={{ xs: 12, md: 8 }}>
+                    <Typography variant="h6" fontWeight="800" mb={3}>Nghiệp Vụ Chính</Typography>
+                    <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <MenuCard title="Quản Lý Môn Học" desc="Import và cấu hình Syllabus hệ thống" icon={<AssignmentIcon />} color="#9c27b0" onClick={() => navigate('/staff/subjects')} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <MenuCard title="Quản Lý Lớp Học" desc="Mở lớp, chia nhóm & nhập dữ liệu" icon={<SchoolIcon />} color="#9c27b0" onClick={() => navigate('/staff/classes')} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <MenuCard title="Quản Lý Tài Khoản" desc="Dữ liệu Giảng viên & Sinh viên" icon={<PersonAddAlt1Icon />} color="#9c27b0" onClick={() => navigate('/admin/users')} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <MenuCard title="Phân Công Đào Tạo" desc="Gán Giảng viên & Xếp lớp SV" icon={<StorageIcon />} color="#9c27b0" onClick={() => navigate('/staff/assignments')} />
+                        </Grid>
+                    </Grid>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Đổi Mật Khẩu"
-                        desc="Bảo mật tài khoản."
-                        icon={<VpnKeyIcon />}
-                        color="#455a64"
-                        onClick={() => navigate('/change-password')}
-                    />
+
+                {/* Cột Import nhanh */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Typography variant="h6" fontWeight="800" mb={3}>Trung Tâm Dữ Liệu</Typography>
+                    <Paper sx={{ p: 4, borderRadius: 5, border: '1px solid #e2e8f0', textAlign: 'center', bgcolor: 'white' }}>
+                        <Avatar sx={{ m: 'auto', bgcolor: '#f3e5f5', color: '#9c27b0', width: 60, height: 60, mb: 2 }}>
+                            <CloudUploadIcon fontSize="large" />
+                        </Avatar>
+                        <Typography variant="h6" fontWeight="700">Import CSV/Excel</Typography>
+                        <Typography variant="body2" color="text.secondary" mb={3}>Tự động hóa quy trình nạp dữ liệu hàng loạt.</Typography>
+                        <Button 
+                            fullWidth 
+                            variant="contained" 
+                            sx={{ borderRadius: 3, py: 1.5, bgcolor: '#ed6c02', fontWeight: 800, '&:hover': { bgcolor: '#e65100' } }}
+                            onClick={() => navigate('/staff/classes')}
+                        >
+                            Bắt đầu Import
+                        </Button>
+                    </Paper>
                 </Grid>
             </Grid>
         </Container>

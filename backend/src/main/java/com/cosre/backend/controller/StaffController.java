@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.cosre.backend.dto.staff.ClassResponseDTO;
 import java.util.List;
 import java.util.Map;
 
@@ -57,12 +57,23 @@ public class StaffController {
 
     @PostMapping("/import-classes")
     public ResponseEntity<?> importClasses(@RequestParam("file") MultipartFile  file) {
-        List<ClassRoom> result = staffService.importClassesFromFile(file);
+        List<ClassResponseDTO> result = staffService.importClassesFromFile(file);
         return ResponseEntity.ok(result);
     }
     @PostMapping("/createclass")
     public ResponseEntity<?> createClass(@RequestBody ClassRequest request) {
         return ResponseEntity.ok(classService.createClass(request));
     }
-
+    @GetMapping("/classes")
+    public ResponseEntity<List<ClassResponseDTO>> getAllClasses() {
+        return ResponseEntity.ok(staffService.getAllClassesForStaff());
+    }
+    @PatchMapping("/classes/{classId}/toggle-registration")
+    public ResponseEntity<?> toggleRegistration(@PathVariable Long classId) {
+        ClassResponseDTO updatedClass = staffService.toggleRegistrationStatus(classId);
+        return ResponseEntity.ok(Map.of(
+                "message", "Cập nhật thành công",
+                "status", updatedClass.isRegistrationOpen()
+        ));
+    }
 }
