@@ -29,6 +29,7 @@ import SourceIcon from '@mui/icons-material/Source';
 import CastForEducationIcon from '@mui/icons-material/CastForEducation';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+import { getMyClasses } from '../services/classService';
 
 
 // ==========================================
@@ -168,6 +169,8 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
     </Box>
 );
 
+// --- STUDENT DASHBOARD ---
+const StudentDashboard = ({ user, roleConfig, navigate, onLogout, myClassCount }: any) => (
 const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f1f8e9' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -177,7 +180,7 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
                     Góc Học Tập
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Học" value="4" icon={<ClassIcon fontSize="large"/>} color="#2e7d32" /></Grid>
+                    <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Học" value={myClassCount} icon={<ClassIcon fontSize="large"/>} color="#2e7d32" /></Grid>
                     <Grid item xs={12} sm={6} md={4}><StatCard title="Deadline Tuần Này" value="2" icon={<AccessTimeIcon fontSize="large"/>} color="#ed6c02" /></Grid>
                     <Grid item xs={12} sm={6} md={4}><StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large"/>} color="#1976d2" /></Grid>
                 </Grid>
@@ -196,7 +199,7 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
                 <Grid item xs={12} sm={6} md={4}><MenuCard title="Lớp Học Của Tôi" desc="Truy cập tài liệu & Bài giảng." icon={<SchoolIcon />} color="#2e7d32" onClick={() => navigate('/student/classes')} /></Grid>
                 <Grid item xs={12} sm={6} md={4}><MenuCard title="Đăng Ký Đề Tài" desc="Chọn đề tài đồ án/tiểu luận." icon={<AssignmentIcon />} color="#ef6c00" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
                 <Grid item xs={12} sm={6} md={4}><MenuCard title="Nhóm Của Tôi" desc="Trao đổi với thành viên nhóm." icon={<GroupsIcon />} color="#0288d1" onClick={() => navigate('/student/workspace')} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Hồ Sơ Cá Nhân" desc="Xem điểm & Thông tin." icon={<PersonIcon />} color="#455a64" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
+                <Grid item xs={12} sm={6} md={4}><MenuCard title="Hồ Sơ Cá Nhân" desc="Xem điểm & Thông tin." icon={<PersonIcon />} color="#455a64" onClick={() => navigate('/student/profile')} /></Grid>
                 <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
             </Grid>
         </Container>
@@ -238,6 +241,7 @@ const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
 const Home = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
+    const [myClassCount, setMyClassCount] = useState(0);
     const [stats, setStats] = useState({
         totalUsers: 0,
         activeUsers: 0,
@@ -253,6 +257,11 @@ const Home = () => {
             const role = JSON.parse(userStr).role;
             if (['ADMIN', 'STAFF'].includes(role)) {
                 api.get('/dashboard/stats').then(res => setStats(res.data)).catch(console.error);
+            }
+            if (role === 'STUDENT') {
+                getMyClasses()
+                    .then(data => setMyClassCount(data.length))
+                    .catch(error => console.error("Lỗi lấy số lượng lớp:", error));
             }
         } else {
             navigate('/login');
@@ -278,7 +287,7 @@ const Home = () => {
     };
 
     const roleConfig = getRoleConfig(user.role);
-    const props = { user, roleConfig, navigate, onLogout: handleLogout, stats };
+    const props = { user, roleConfig, navigate, onLogout: handleLogout, stats, myClassCount };
 
     // --- HÀM RENDER NỘI DUNG CHÍNH ---
     const renderMainContent = () => {

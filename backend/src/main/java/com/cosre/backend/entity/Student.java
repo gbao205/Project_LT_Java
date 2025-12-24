@@ -3,6 +3,7 @@ package com.cosre.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+//import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Entity
 @Table(name = "students")
@@ -11,6 +12,15 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class Student {
+//    @JsonFormat(pattern = "dd/MM/yyyy")
+//    private LocalDate dob;           // Sẽ hiển thị: 20/12/2025
+//
+//    @JsonFormat(pattern = "dd/MM/yyyy")
+//    private LocalDate admissionDate;
+//
+//    @JsonFormat(pattern = "dd/MM/yyyy")
+//    private LocalDate unionDate;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
