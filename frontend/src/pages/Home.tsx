@@ -171,7 +171,6 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
 
 // --- STUDENT DASHBOARD ---
 const StudentDashboard = ({ user, roleConfig, navigate, onLogout, myClassCount }: any) => (
-const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f1f8e9' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
         <Container maxWidth="xl" sx={{ py: 4 }}>
