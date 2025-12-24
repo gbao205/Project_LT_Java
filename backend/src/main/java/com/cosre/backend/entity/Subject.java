@@ -18,7 +18,8 @@ public class Subject {
     private Long id;
 
     private String subjectCode; // Mã môn (VD: SWP391)
-    private String name;        // Tên môn
+    private String name;
+    private String specialization;
 
     @Column(columnDefinition = "TEXT")
     private String description;

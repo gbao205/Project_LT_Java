@@ -143,7 +143,7 @@ public class StaffService {
 
                 String classCode = data[0].trim();
                 String className = data[1].trim();
-                int semester = Integer.parseInt(data[2].trim());
+                String semester = data[2].trim();
                 String subCode = data[3].trim();
                 String lecEmail = data[4].trim();
 

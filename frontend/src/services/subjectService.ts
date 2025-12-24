@@ -23,3 +23,24 @@ export const createSubject = async (subject: Omit<Subject, 'id'>): Promise<Subje
         return null;
     }
 };
+// Sửa môn học - Gọi đến endpoint của Staff
+export const updateSubject = async (id: number, data: Subject) => {
+    try {
+        const response = await api.put(`/staff/subjects/${id}`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi cập nhật môn học:", error);
+        throw error;
+    }
+};
+
+// Xóa môn học - Gọi đến endpoint của Staff
+export const deleteSubject = async (id: number) => {
+    try {
+        const response = await api.delete(`/staff/subjects/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi xóa môn học:", error);
+        throw error;
+    }
+};

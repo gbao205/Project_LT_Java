@@ -25,7 +25,7 @@ public class ClassRoom {
 
     private String name; // VD: SE1701
 
-    private int semester;
+    private String semester;
 
     @Column(unique = true)
     private String classCode;

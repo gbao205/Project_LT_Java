@@ -9,7 +9,7 @@ public class ClassResponseDTO {
     private Long id;
     private String name;
     private String classCode;
-    private int semester;
+    private String semester;
     private String subjectName;
     private String lecturerName;
     private boolean isRegistrationOpen;

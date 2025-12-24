@@ -3,10 +3,12 @@ package com.cosre.backend.controller;
 import com.cosre.backend.dto.ClassRequest;
 import com.cosre.backend.entity.ClassRoom;
 import com.cosre.backend.entity.Role;
+import com.cosre.backend.entity.Subject;
 import com.cosre.backend.entity.User;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.StaffService;
+import com.cosre.backend.service.SubjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +26,7 @@ public class StaffController {
 
     private final StaffService staffService;
     private final ClassService classService;
-
+    private final SubjectService subjectService;
     @PostMapping("/import-user")
     public ResponseEntity<?> importUsers(
             @RequestParam("file") MultipartFile file,
@@ -76,4 +78,13 @@ public class StaffController {
                 "status", updatedClass.isRegistrationOpen()
         ));
     }
-}
+    @PutMapping("/subjects/{id}")
+    public ResponseEntity<Subject> updateSubject(@PathVariable Long id, @RequestBody Subject subject) {
+        return ResponseEntity.ok(subjectService.updateSubject(id, subject));
+    }
+    @DeleteMapping("/subjects/{id}")
+    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
+        subjectService.deleteSubject(id);
+        return ResponseEntity.noContent().build();
+
+}}
