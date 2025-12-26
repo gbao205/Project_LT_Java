@@ -48,11 +48,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
 
-                        // 3. PHÂN QUYỀN
+                        // 3. API AI & CHAT (BẮT BUỘC ĐĂNG NHẬP ĐỂ LẤY USER ID)
+                        .requestMatchers("/api/ai/**").authenticated()
+
+                        // 4. PHÂN QUYỀN
                         .requestMatchers("/api/users/contacts").authenticated()
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
 
-                        // 4. CÁC API CÒN LẠI CẦN ĐĂNG NHẬP
+                        // 5. CÁC API CÒN LẠI CẦN ĐĂNG NHẬP
                         .anyRequest().authenticated()
                 );
 

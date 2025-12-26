@@ -12,11 +12,15 @@ import ClassDetail from "./pages/class/ClassDetail";
 import ReportManager from './pages/admin/ReportManager';
 import ReportDialog from './components/common/ReportDialog';
 import StudentProfile from './pages/student/StudentProfile';
+import ChatWidget from "./components/common/ChatWidget.tsx";
+import AIChat from "./pages/student/AIChatWidget.tsx";
 
 function App() {
     return (
         <Router>
             <ReportDialog />
+            <ChatWidget />
+            <AIChat />
 
             <Routes>
                 {/* Chuyển hướng mặc định */}

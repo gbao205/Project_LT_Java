@@ -3,7 +3,7 @@ import {
     Container, Typography, Box, Grid, Card, CardContent,
     Avatar, IconButton, Chip, Stack, Divider, Paper, Button
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import {Route, useNavigate} from 'react-router-dom';
 import { logout } from '../services/authService';
 import api from '../services/api';
 import UserManager from './admin/UserManager';
@@ -11,6 +11,8 @@ import UserManager from './admin/UserManager';
 // --- Imports Component Phụ ---
 import ReportDialog from '../components/common/ReportDialog'; // Import nút Report
 import ChatWidget from '../components/common/ChatWidget';     // Import nút Chat
+import AIChat from './student/AIChatWidget.tsx';
+
 
 // --- Icons Import ---
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -308,12 +310,14 @@ const Home = () => {
         <Box sx={{ position: 'relative', minHeight: '100vh' }}>
             {/* 1. Dashboard chính (Thay đổi theo role) */}
             {renderMainContent()}
-
             {/* 2. Nút Report Bug (Nằm ở góc phải dưới) */}
             <ReportDialog />
 
             {/* 3. Nút Chat Widget (Sẽ tự động nằm TRÊN nút Report do CSS trong ChatWidget) */}
             <ChatWidget />
+
+            <AIChat />
+
         </Box>
     );
 };
