@@ -179,7 +179,7 @@ const ChatWidget = () => {
         <>
             <Zoom in={isOpen}>
                 <Paper elevation={10} sx={{
-                    position: 'fixed', bottom: 100, right: 24,
+                    position: 'fixed', bottom: 8, right: 100,
                     width: 380, height: 550, zIndex: 10000,
                     display: 'flex', flexDirection: 'column',
                     borderRadius: '16px', overflow: 'hidden'

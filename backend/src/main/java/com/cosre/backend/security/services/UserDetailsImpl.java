@@ -2,6 +2,7 @@ package com.cosre.backend.security.services;
 
 import com.cosre.backend.entity.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +18,7 @@ public class UserDetailsImpl implements UserDetails {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    @Getter
     private Long id;
     private String email;
     @JsonIgnore
@@ -66,4 +68,5 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() { return true; }
+
 }

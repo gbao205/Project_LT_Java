@@ -30,10 +30,10 @@ const ReportDialog = () => {
 
     return (
         <>
-            <Tooltip title="Báo cáo sự cố">
+            <Tooltip title="Báo cáo sự cố" placement="left">
                 <Fab
                     color="error"
-                    sx={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}
+                    sx={{ position: 'fixed', bottom: 20, right: 24, zIndex: 9999 }}
                     onClick={() => setOpen(true)}
                 >
                     <BugReportIcon />
