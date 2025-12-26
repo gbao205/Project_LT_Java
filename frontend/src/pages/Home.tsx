@@ -6,9 +6,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../services/authService';
 import api from '../services/api';
-import UserManager from './admin/UserManager';
 
-// --- Icons Import ---
+// --- IMPORT CÁC TRANG CON ---
+import UserManager from './admin/UserManager';
+// 👇 [SỬA ĐỔI 1]: Import LecturerDashboard từ file riêng (Bạn phải tạo file này rồi nhé)
+import LecturerDashboard from './lecturer/LecturerDashboard';
+
+// --- Icons Import (Giữ nguyên) ---
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SchoolIcon from '@mui/icons-material/School';
@@ -20,14 +24,13 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ClassIcon from '@mui/icons-material/Class';
-import RateReviewIcon from '@mui/icons-material/RateReview';
 import SourceIcon from '@mui/icons-material/Source';
 import CastForEducationIcon from '@mui/icons-material/CastForEducation';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 
 // ==========================================
-// 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
+// 1. CÁC COMPONENT DÙNG CHUNG (KHÔNG ĐỔI)
 // ==========================================
 
 const StatCard = ({ title, value, icon, color }: any) => (
@@ -105,7 +108,7 @@ const Header = ({ user, roleConfig, onLogout }: any) => (
 // 2. CÁC DASHBOARD RIÊNG BIỆT (PHÂN QUYỀN)
 // ==========================================
 
-// --- ADMIN DASHBOARD ---
+// --- ADMIN DASHBOARD (KHÔNG ĐỔI) ---
 const AdminDashboard = ({ user, roleConfig, onLogout}: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -115,7 +118,7 @@ const AdminDashboard = ({ user, roleConfig, onLogout}: any) => (
     </Box>
 );
 
-// --- STAFF DASHBOARD ---
+// --- STAFF DASHBOARD (KHÔNG ĐỔI) ---
 const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f3e5f5' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -165,7 +168,7 @@ const StaffDashboard = ({ user, roleConfig, navigate, onLogout, stats }: any) =>
     </Box>
 );
 
-// --- STUDENT DASHBOARD ---
+// --- STUDENT DASHBOARD (KHÔNG ĐỔI) ---
 const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f1f8e9' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
@@ -201,34 +204,8 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     </Box>
 );
 
-// --- LECTURER DASHBOARD ---
-const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#e3f2fd' }}>
-        <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-            <Box mb={5}>
-                <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
-                    Khu Vực Giảng Viên
-                </Typography>
-                <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Lớp Đang Dạy" value="3" icon={<SchoolIcon fontSize="large"/>} color="#0288d1" /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Yêu Cầu Duyệt Đề Tài" value="5" icon={<AssignmentIcon fontSize="large"/>} color="#d32f2f" /></Grid>
-                    <Grid item xs={12} sm={6} md={4}><StatCard title="Sinh Viên Phụ Trách" value="120" icon={<GroupsIcon fontSize="large"/>} color="#7b1fa2" /></Grid>
-                </Grid>
-            </Box>
-            <Divider sx={{ mb: 5 }} />
-            <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Lớp Học Phụ Trách" desc="Quản lý sinh viên & Nhóm." icon={<ClassIcon />} color="#0277bd" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                {user.role === 'HEAD_DEPARTMENT' && (
-                    <Grid item xs={12} sm={6} md={4}><MenuCard title="Phê Duyệt Đề Tài" desc="Duyệt đề tài cấp bộ môn." icon={<AdminPanelSettingsIcon />} color="#ed6c02" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                )}
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Duyệt Đề Tài (GV)" desc="Xem và phê duyệt đề tài SV." icon={<RateReviewIcon />} color="#c2185b" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Chấm Điểm Hội Đồng" desc="Nhập điểm bảo vệ đồ án." icon={<AssignmentIcon />} color="#fbc02d" onClick={() => alert("Tính năng đang phát triển")} /></Grid>
-                <Grid item xs={12} sm={6} md={4}><MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon={<VpnKeyIcon />} color="#455a64" onClick={() => navigate('/change-password')} /></Grid>
-            </Grid>
-        </Container>
-    </Box>
-);
+// 👇 [SỬA ĐỔI 2]: XÓA ĐOẠN "const LecturerDashboard = ..." Ở ĐÂY.
+// Vì ta đã import nó từ file bên ngoài rồi.
 
 // ==========================================
 // 3. HOME CONTROLLER (MAIN)
@@ -283,7 +260,11 @@ const Home = () => {
     // --- PHÂN LUỒNG ---
     if (user.role === 'ADMIN') return <AdminDashboard {...props} />;
     if (user.role === 'STAFF') return <StaffDashboard {...props} />;
-    if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') return <LecturerDashboard {...props} />;
+
+    // 👇 [SỬA ĐỔI 3]: Dùng component LecturerDashboard đã import
+    // (Lưu ý: Nếu component import không cần props thì có thể bỏ {...props}, nhưng để vậy cũng không sao)
+    if (user.role === 'LECTURER' || user.role === 'HEAD_DEPARTMENT') return <LecturerDashboard />;
+
     if (user.role === 'STUDENT') return <StudentDashboard {...props} />;
 
     return (
