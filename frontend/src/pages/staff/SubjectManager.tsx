@@ -17,16 +17,16 @@ import {
   DialogContent,
   DialogActions,
   Stack,
-  Tooltip,
   TextField,
   CircularProgress,
+  Avatar,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import InfoIcon from "@mui/icons-material/Info";
-// 1. Import API Service và Type
+import AssignmentIcon from "@mui/icons-material/Assignment";
+
 import {
   getSubjects,
   createSubject,
@@ -36,68 +36,52 @@ import {
 import type { Subject } from "../../types/Subject";
 
 const SubjectManager = () => {
-  // --- STATE QUẢN LÝ DỮ LIỆU ---
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // --- STATE QUẢN LÝ MODAL ---
   const [openImport, setOpenImport] = useState(false);
   const [openAdd, setOpenAdd] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
-  // --- STATE QUẢN LÝ FORM THÊM MỚI ---
   const [newSubject, setNewSubject] = useState<Omit<Subject, "id">>({
     subjectCode: "",
     name: "",
     specialization: "",
     description: "",
   });
-  // --- STATE CHO CẬP NHẬT ---
-  const [openEdit, setOpenEdit] = useState(false);
-  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
-  // --- STATE CHO XÓA ---
-  const [openDelete, setOpenDelete] = useState(false);
-  const [deletingSubjectId, setDeletingSubjectId] = useState<number | null>(
-    null
-  );
-
-  // 2. HÀM LẤY DỮ LIỆU TỪ BACKEND
   const loadData = async () => {
     setIsLoading(true);
     try {
       const data = await getSubjects();
       setSubjects(data);
     } catch (error) {
-      console.error("Lỗi khi tải danh sách môn học:", error);
+      console.error("Lỗi:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Tự động chạy khi load trang
   useEffect(() => {
     loadData();
   }, []);
 
-  // 3. HÀM XỬ LÝ THÊM MÔN HỌC
   const handleAddSubject = async () => {
-    if (!newSubject.subjectCode || !newSubject.name) {
-      alert("Vui lòng nhập đủ Mã môn và Tên môn!");
-      return;
-    }
+    if (!newSubject.subjectCode || !newSubject.name)
+      return alert("Vui lòng nhập đủ thông tin!");
     const result = await createSubject(newSubject);
     if (result) {
-      setOpenAdd(false); // Đóng form
+      setOpenAdd(false);
       setNewSubject({
         subjectCode: "",
         name: "",
         specialization: "",
         description: "",
-      }); // Reset form
-      loadData(); // Tải lại bảng để thấy môn mới
+      });
+      loadData();
     }
   };
-  // --- HÀM XỬ LÝ SỬA ---
+
   const handleEditClick = (subject: Subject) => {
     setEditingSubject(subject);
     setOpenEdit(true);
@@ -108,47 +92,76 @@ const SubjectManager = () => {
       const result = await updateSubject(editingSubject.id, editingSubject);
       if (result) {
         setOpenEdit(false);
-        loadData(); // Load lại danh sách mới
+        loadData();
       }
     }
   };
 
-  // --- HÀM XỬ LÝ XÓA ---
   const handleDeleteSubject = async (id: number) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa môn học này không?")) {
       try {
         await deleteSubject(id);
-        loadData(); // Load lại bảng sau khi xóa
+        loadData();
       } catch (error) {
-        alert("Không thể xóa môn học này (có thể do đang có lớp học sử dụng).");
+        alert("Lỗi khi xóa!");
       }
     }
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 4 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 6 }}>
       <Container maxWidth="xl">
         {/* Header Section */}
         <Box
           display="flex"
           justifyContent="space-between"
           alignItems="center"
-          mb={4}
+          mb={5}
         >
-          <Box>
-            <Typography variant="h4" fontWeight="800" color="#1e293b">
-              Quản Lý Môn Học
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Quản lý danh sách môn học và chuyên ngành hệ thống
-            </Typography>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Avatar
+              sx={{
+                bgcolor: "#f3e5f5",
+                color: "#9c27b0",
+                width: 56,
+                height: 56,
+              }}
+            >
+              <AssignmentIcon fontSize="large" />
+            </Avatar>
+            <Box>
+              <Typography
+                variant="h4"
+                fontWeight="900"
+                color="#1e293b"
+                sx={{ letterSpacing: -1 }}
+              >
+                Quản Lý Môn Học
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                fontWeight="500"
+              >
+                Thiết lập Syllabus và danh mục đào tạo của hệ thống
+              </Typography>
+            </Box>
           </Box>
+
           <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
               startIcon={<CloudUploadIcon />}
               onClick={() => setOpenImport(true)}
-              sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+              sx={{
+                borderRadius: 3,
+                px: 3,
+                textTransform: "none",
+                fontWeight: 700,
+                color: "#9c27b0",
+                borderColor: "#9c27b0",
+                "&:hover": { borderColor: "#7b1fa2", bgcolor: "#f3e5f5" },
+              }}
             >
               Import Syllabus
             </Button>
@@ -157,11 +170,12 @@ const SubjectManager = () => {
               startIcon={<AddIcon />}
               onClick={() => setOpenAdd(true)}
               sx={{
-                borderRadius: 2,
+                borderRadius: 3,
+                px: 3,
                 textTransform: "none",
-                fontWeight: 600,
-                bgcolor: "#f59e0b",
-                "&:hover": { bgcolor: "#d97706" },
+                fontWeight: 700,
+                bgcolor: "#9c27b0",
+                "&:hover": { bgcolor: "#7b1fa2" },
               }}
             >
               Thêm Môn Học
@@ -173,98 +187,94 @@ const SubjectManager = () => {
         <TableContainer
           component={Paper}
           sx={{
-            borderRadius: 4,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-            border: "1px solid #e2e8f0",
+            borderRadius: 5,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.03)",
+            overflow: "hidden",
           }}
         >
           <Table>
-            <TableHead sx={{ bgcolor: "#fffbeb" }}>
+            <TableHead sx={{ bgcolor: "#f3e5f5" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold" }}>Mã Môn</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Tên Môn Học</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Chuyên Ngành</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Mô Tả</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }} align="right">
-                  Thao Tác
+                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                  MÃ MÔN
+                </TableCell>
+                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                  TÊN MÔN HỌC
+                </TableCell>
+                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                  CHUYÊN NGÀNH
+                </TableCell>
+                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                  MÔ TẢ
+                </TableCell>
+                <TableCell
+                  sx={{ fontWeight: 800, color: "#4a148c" }}
+                  align="right"
+                >
+                  THAO TÁC
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                    <CircularProgress
-                      size={24}
-                      sx={{ color: "#f59e0b", mr: 1 }}
-                    />
-                    Đang tải dữ liệu từ Backend...
-                  </TableCell>
-                </TableRow>
-              ) : subjects.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                    Chưa có môn học nào. Hãy bấm "Thêm Môn Học"!
+                  <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                    <CircularProgress color="secondary" />
                   </TableCell>
                 </TableRow>
               ) : (
                 subjects.map((subject) => (
                   <TableRow key={subject.id} hover>
-                    <TableCell sx={{ fontWeight: 700, color: "#b45309" }}>
+                    <TableCell sx={{ fontWeight: 800, color: "#6a1b9a" }}>
                       {subject.subjectCode}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>
+                    <TableCell sx={{ fontWeight: 600 }}>
                       {subject.name}
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        variant="body2"
+                      <Box
                         sx={{
-                          bgcolor: "#fef3c7",
-                          px: 1.5,
+                          bgcolor: "#e0f2f1",
+                          color: "#00695c",
+                          px: 2,
                           py: 0.5,
-                          borderRadius: 1,
+                          borderRadius: 2,
                           display: "inline-block",
-                          color: "#92400e",
-                          fontWeight: 600,
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
                         }}
                       >
-                        {subject.specialization || "Đại cương"}
+                        {subject.specialization || "ĐẠI CƯƠNG"}
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 250 }}>
+                      <Typography variant="body2" noWrap color="text.secondary">
+                        {subject.description}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 300 }}>
-                      <Tooltip title={subject.description} arrow>
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          sx={{ color: "text.secondary" }}
-                        >
-                          {subject.description}
-                        </Typography>
-                      </Tooltip>
-                    </TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" color="info">
-                        <InfoIcon fontSize="small" />
-                      </IconButton>
-
-                      {/* Nút Sửa: Gọi hàm mở Dialog sửa */}
-                      <IconButton
-                        size="small"
-                        sx={{ color: "#d97706" }}
-                        onClick={() => handleEditClick(subject)}
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="flex-end"
                       >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-
-                      {/* Nút Xóa: Gọi trực tiếp hàm xóa với ID */}
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteSubject(Number(subject.id))}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditClick(subject)}
+                          sx={{ color: "#3b82f6", bgcolor: "#eff6ff" }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            handleDeleteSubject(Number(subject.id))
+                          }
+                          sx={{ color: "#ef4444", bgcolor: "#fef2f2" }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))
@@ -273,20 +283,22 @@ const SubjectManager = () => {
           </Table>
         </TableContainer>
 
-        {/* DIALOG THÊM MÔN HỌC MỚI */}
+        {/* Dialog Add */}
         <Dialog
           open={openAdd}
           onClose={() => setOpenAdd(false)}
           fullWidth
           maxWidth="sm"
         >
-          <DialogTitle sx={{ fontWeight: "bold" }}>
+          <DialogTitle
+            sx={{ fontWeight: 800, bgcolor: "#f3e5f5", color: "#4a148c" }}
+          >
             Thêm Môn Học Mới
           </DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
+          <DialogContent sx={{ pt: 3 }}>
+            <Stack spacing={3} sx={{ mt: 2 }}>
               <TextField
-                label="Mã Môn Học (VD: PRN231)"
+                label="Mã Môn Học"
                 fullWidth
                 value={newSubject.subjectCode}
                 onChange={(e) =>
@@ -313,7 +325,7 @@ const SubjectManager = () => {
                 }
               />
               <TextField
-                label="Mô Tả Chi Tiết"
+                label="Mô Tả"
                 multiline
                 rows={3}
                 fullWidth
@@ -325,66 +337,35 @@ const SubjectManager = () => {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button
-              onClick={() => setOpenAdd(false)}
-              sx={{ color: "text.secondary" }}
-            >
-              Hủy
-            </Button>
+            <Button onClick={() => setOpenAdd(false)}>Hủy</Button>
             <Button
               variant="contained"
               onClick={handleAddSubject}
-              sx={{ bgcolor: "#f59e0b", "&:hover": { bgcolor: "#d97706" } }}
+              sx={{ bgcolor: "#9c27b0" }}
             >
               Lưu Môn Học
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* DIALOG IMPORT (GIỮ NGUYÊN) */}
-        <Dialog
-          open={openImport}
-          onClose={() => setOpenImport(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle sx={{ fontWeight: "bold" }}>
-            Import Môn Học & Syllabus
-          </DialogTitle>
-          <DialogContent>
-            <Box
-              sx={{
-                border: "2px dashed #f59e0b",
-                borderRadius: 3,
-                p: 5,
-                textAlign: "center",
-                mt: 1,
-                bgcolor: "#fffbeb",
-              }}
-            >
-              <CloudUploadIcon sx={{ fontSize: 48, color: "#f59e0b", mb: 2 }} />
-              <Typography variant="body1" fontWeight="600">
-                Chọn file Syllabus (CSV/Excel)
-              </Typography>
-            </Box>
-          </DialogContent>
-        </Dialog>
-        {/* DIALOG CẬP NHẬT MÔN HỌC */}
+        {/* Dialog Edit */}
         <Dialog
           open={openEdit}
           onClose={() => setOpenEdit(false)}
           fullWidth
           maxWidth="sm"
         >
-          <DialogTitle sx={{ fontWeight: "bold" }}>
+          <DialogTitle
+            sx={{ fontWeight: 800, bgcolor: "#f3e5f5", color: "#4a148c" }}
+          >
             Cập Nhật Môn Học
           </DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
+          <DialogContent sx={{ pt: 3 }}>
+            <Stack spacing={3} sx={{ mt: 2 }}>
               <TextField
                 label="Mã Môn Học"
                 fullWidth
-                disabled // Khuyên dùng: Không nên cho sửa mã định danh
+                disabled
                 value={editingSubject?.subjectCode || ""}
               />
               <TextField
@@ -422,19 +403,44 @@ const SubjectManager = () => {
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button
-              onClick={() => setOpenEdit(false)}
-              sx={{ color: "text.secondary" }}
-            >
-              Hủy
-            </Button>
+            <Button onClick={() => setOpenEdit(false)}>Hủy</Button>
             <Button
               variant="contained"
               onClick={handleUpdateSubject}
-              sx={{ bgcolor: "#f59e0b", "&:hover": { bgcolor: "#d97706" } }}
+              sx={{ bgcolor: "#9c27b0" }}
             >
-              Lưu Thay Đổi
+              Cập Nhật
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog Import */}
+        <Dialog
+          open={openImport}
+          onClose={() => setOpenImport(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle sx={{ fontWeight: 800 }}>Import Syllabus</DialogTitle>
+          <DialogContent>
+            <Box
+              sx={{
+                border: "2px dashed #9c27b0",
+                borderRadius: 3,
+                p: 5,
+                textAlign: "center",
+                mt: 1,
+                bgcolor: "#f3e5f5",
+              }}
+            >
+              <CloudUploadIcon sx={{ fontSize: 48, color: "#9c27b0", mb: 2 }} />
+              <Typography variant="body1" fontWeight="600">
+                Chọn file Syllabus (CSV/Excel)
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenImport(false)}>Đóng</Button>
           </DialogActions>
         </Dialog>
       </Container>

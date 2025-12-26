@@ -9,6 +9,7 @@ import com.cosre.backend.exception.AppException;
 import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.StaffService;
 import com.cosre.backend.service.SubjectService;
+import com.cosre.backend.service.import_system.ImportUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,29 +28,31 @@ public class StaffController {
     private final StaffService staffService;
     private final ClassService classService;
     private final SubjectService subjectService;
+    private final ImportUser importUser;
     @PostMapping("/import-user")
     public ResponseEntity<?> importUsers(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("role") String role) {
+            @RequestParam("role") String role,
+            @RequestParam(value = "admissionDate", required = false) String admissionDate)
+    {
 
+        Role targetRole;
         try {
-            Role targetRole = Role.valueOf(role.toUpperCase());
-
-            if (targetRole != Role.LECTURER && targetRole != Role.STUDENT) {
-                throw new AppException("Vai trò này không thể được tạo qua Import (Chỉ Giảng viên/Sinh viên).", HttpStatus.FORBIDDEN);
-            }
-
-            List<User> importedUsers = staffService.importUserFromFile(file, targetRole);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Import tài khoản thành công.",
-                    "totalImported", importedUsers.size(),
-                    "role", targetRole.name()
-            ));
-
+            targetRole = Role.valueOf(role.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new AppException("Vai trò không hợp lệ: " + role + ". Vui lòng nhập LECTURER hoặc STUDENT.", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.badRequest().body("Role không hợp lệ. Chỉ chấp nhận STUDENT hoặc LECTURER");
         }
+
+        if (targetRole != Role.STUDENT && targetRole != Role.LECTURER) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không hỗ trợ import cho Role này");
+        }
+
+        // 3. Thực thi (Lớp cha BaseImportParser sẽ tự lo đọc Excel/CSV và Validate)
+        importUser.execute(file, targetRole,admissionDate);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Import danh sách " + targetRole + " thành công!"
+        ));
     }
     @GetMapping("/search-user")
     public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
