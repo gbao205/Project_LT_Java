@@ -494,7 +494,7 @@ const StaffDashboard = ({
                 fontWeight: 800,
                 "&:hover": { bgcolor: "#e65100" },
               }}
-              onClick={() => navigate("/staff/classes")}
+              onClick={() => navigate("/staff/import")}
             >
               Bắt đầu Import
             </Button>

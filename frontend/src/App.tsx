@@ -17,6 +17,7 @@ import ClassDetail from "./pages/class/ClassDetail";
 import ReportManager from "./pages/admin/ReportManager";
 import ReportDialog from "./components/common/ReportDialog";
 import StaffUserManager from "./pages/staff/UserManager";
+import ImportCenter from "./pages/staff/ImportCenter";
 function App() {
   return (
     <Router>
@@ -54,6 +55,7 @@ function App() {
 
         <Route path="/class/:id" element={<ClassDetail />} />
         <Route path="/staff/users" element={<StaffUserManager />} />
+        <Route path="/staff/import" element={<ImportCenter />} />
         {/* Route cho trang Quản lý Báo cáo của Admin */}
         <Route path="/admin/reports" element={<ReportManager />} />
       </Routes>
