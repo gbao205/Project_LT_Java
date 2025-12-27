@@ -19,6 +19,7 @@ public class Team {
     private Long id;
 
     private String teamName;
+    private String joinCode;
 
     // Nhóm này thuộc lớp nào
     @ManyToOne
@@ -33,4 +34,5 @@ public class Team {
     // Danh sách thành viên
     @OneToMany(mappedBy = "team")
     private List<TeamMember> members;
+
 }

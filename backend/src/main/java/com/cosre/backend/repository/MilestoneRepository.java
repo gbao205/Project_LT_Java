@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface MilestoneRepository extends JpaRepository<Milestone, Long> {
-    // Lấy danh sách Milestone theo Class ID
+    // Tìm các mốc thời gian theo ID lớp học
     List<Milestone> findByClassRoom_Id(Long classId);
 }

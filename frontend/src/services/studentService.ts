@@ -75,24 +75,33 @@ const studentService = {
         return response.data;
     },
 
-    // 1. Tạo nhóm mới
-    createTeam: async (data: CreateTeamRequest) => {
-        const response = await api.post('/student/teams', data);
-        return response.data;
+    // Tạo nhóm mới
+    createTeam: async (data: { teamName: string, classId: number }) => {
+        return api.post('/student/teams/create', data);
     },
 
-    // 2. Tham gia nhóm (bằng ID)
-    joinTeam: async (teamId: number) => {
-        await api.post(`/student/teams/${teamId}/join`);
+    // Tham gia nhóm (bằng ID)
+     joinTeam: async (data: { teamId: number }) => {
+        return api.post('/student/teams/join', data);
     },
 
-    // 3. Đăng ký đề tài (Cho Leader)
+    getMyTeam: async (classId: string) => {
+        const res = await api.get(`/student/classes/${classId}/my-team`);
+        return res.data;
+    },
+
+    getTeamsInClass: async (classId: string) => {
+        const res = await api.get(`/student/classes/${classId}/teams`);
+        return res.data;
+    },
+
+    // Đăng ký đề tài (Cho Leader)
     registerProject: async (data: ProjectRegistrationRequest) => {
         const response = await api.post('/student/project/register', data);
         return response.data;
     },
 
-    // 4. Xem Milestone của lớp
+    // Xem Milestone của lớp
     getClassMilestones: async (classId: number): Promise<Milestone[]> => {
         const response = await api.get<Milestone[]>(`/student/classes/${classId}/milestones`);
         return response.data;
