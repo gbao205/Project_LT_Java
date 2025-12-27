@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/student")
 @RequiredArgsConstructor
@@ -27,17 +29,31 @@ public class StudentController {
         return ResponseEntity.ok(studentService.updateProfile(studentRequest));
     }
 
-    // Tạo nhóm
-    @PostMapping("/teams")
-    public ResponseEntity<Team> createTeam(@RequestBody CreateTeamRequest request) {
+    // Tạo nhóm (Không cần lấy email ở đây nữa)
+    @PostMapping("/teams/create")
+    public ResponseEntity<?> createTeam(@RequestBody CreateTeamRequest request) {
         return ResponseEntity.ok(studentService.createTeam(request));
     }
 
     // Tham gia nhóm
-    @PostMapping("/teams/{teamId}/join")
-    public ResponseEntity<Void> joinTeam(@PathVariable Long teamId) {
-        studentService.joinTeam(teamId);
-        return ResponseEntity.ok().build();
+    @PostMapping("/teams/join")
+    public ResponseEntity<?> joinTeam(@RequestBody JoinTeamRequest request) {
+        // Gọi service với teamId lấy từ request
+        studentService.joinTeam(request.getTeamId());
+        return ResponseEntity.ok(Map.of("message", "Tham gia nhóm thành công!"));
+    }
+
+    // Lấy nhóm của tôi
+    @GetMapping("/classes/{classId}/my-team")
+    public ResponseEntity<?> getMyTeam(@PathVariable Long classId) {
+        Team team = studentService.getMyTeam(classId);
+        return ResponseEntity.ok(team != null ? team : Map.of("message", "Chưa có nhóm"));
+    }
+
+    // Lấy danh sách nhóm trong lớp
+    @GetMapping("/classes/{classId}/teams")
+    public ResponseEntity<?> getClassTeams(@PathVariable Long classId) {
+        return ResponseEntity.ok(studentService.getAvailableTeams(classId));
     }
 
     // Đăng ký đề tài
@@ -46,7 +62,7 @@ public class StudentController {
         return ResponseEntity.ok(studentService.registerProject(request));
     }
 
-    // Xem các mốc thời gian (Milestone)
+    // Xem milestone
     @GetMapping("/classes/{classId}/milestones")
     public ResponseEntity<?> getMilestones(@PathVariable Long classId) {
         return ResponseEntity.ok(studentService.getClassMilestones(classId));
