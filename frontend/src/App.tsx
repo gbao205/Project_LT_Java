@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {BrowserRouter as Router, Routes, Route, Navigate, useLocation} from 'react-router-dom';
 import Login from "./pages/auth/Login";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
@@ -17,12 +17,31 @@ import AIChat from "./pages/student/AIChatWidget.tsx";
 import StaffUserManager from "./pages/staff/UserManager";
 import ImportCenter from "./pages/staff/ImportCenter";
 
+
+function GlobalWidgets() {
+    const location = useLocation(); // Lấy đường dẫn hiện tại
+
+    // Danh sách các trang KHÔNG muốn hiển thị Chat
+    const hideOnRoutes = ['/login'];
+
+    // Nếu đường dẫn hiện tại nằm trong danh sách ẩn thì return null (không vẽ gì cả)
+    if (hideOnRoutes.includes(location.pathname)) {
+        return null;
+    }
+
+    return (
+        <>
+            <ChatWidget />
+            <AIChat />
+        </>
+    );
+}
+
 function App() {
     return (
         <Router>
             <ReportDialog />
-            <ChatWidget />
-            <AIChat />
+            <GlobalWidgets />
 
             <Routes>
                 {/* Chuyển hướng mặc định */}
@@ -62,7 +81,6 @@ function App() {
                 <Route path="/staff/import" element={<ImportCenter />} />
                 {/* Route cho trang Quản lý Báo cáo của Admin */}
                 <Route path="/admin/reports" element={<ReportManager />} />
-
 
             </Routes>
         </Router>
