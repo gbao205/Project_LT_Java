@@ -85,16 +85,6 @@ const studentService = {
         return api.post('/student/teams/join', data);
     },
 
-    getMyTeam: async (classId: string) => {
-        const res = await api.get(`/student/classes/${classId}/my-team`);
-        return res.data;
-    },
-
-    getTeamsInClass: async (classId: string) => {
-        const res = await api.get(`/student/classes/${classId}/teams`);
-        return res.data;
-    },
-
     // Đăng ký đề tài (Cho Leader)
     registerProject: async (data: ProjectRegistrationRequest) => {
         const response = await api.post('/student/project/register', data);
@@ -105,7 +95,19 @@ const studentService = {
     getClassMilestones: async (classId: number): Promise<Milestone[]> => {
         const response = await api.get<Milestone[]>(`/student/classes/${classId}/milestones`);
         return response.data;
-    }
+    },
+
+    // Lấy thông tin nhóm của sinh viên trong lớp
+    getMyTeam: async (classId: string) => {
+        const res = await api.get(`/student/classes/${classId}/my-team`);
+        return res.data;
+    },
+    
+    // Lấy danh sách các nhóm trong lớp
+    getTeamsInClass: async (classId: string) => {
+        const res = await api.get(`/student/classes/${classId}/teams`);
+        return res.data;
+    },
 };
 
 export default studentService;
