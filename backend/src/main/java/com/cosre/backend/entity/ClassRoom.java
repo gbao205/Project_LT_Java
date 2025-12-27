@@ -25,15 +25,15 @@ public class ClassRoom {
 
     private String name; // VD: SE1701
 
-    private String semester; // VD: Spring 2025
+    private String semester;
 
-    @Column(unique=true)
+    @Column(unique = true)
     private String classCode;
 
-    @JsonFormat(pattern="yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
-    @JsonFormat(pattern="yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
     // Lớp này học môn gì
@@ -59,4 +59,10 @@ public class ClassRoom {
     @JsonIgnore // Ngăn chặn loop JSON và load dữ liệu nặng không cần thiết
     @Builder.Default
     private Set<User> students = new HashSet<>();
+    @Builder.Default
+    private boolean isRegistrationOpen = false;
+
+    public boolean canRegister() {
+        return isRegistrationOpen && (students.size() < maxCapacity);
+    }
 }

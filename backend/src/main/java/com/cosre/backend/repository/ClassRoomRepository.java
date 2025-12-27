@@ -11,6 +11,6 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
     boolean existsByName(String name);
 
     boolean existsByClassCode(String classcode);
-    
+
     List<ClassRoom> findByStudents_Email(String email);
 }

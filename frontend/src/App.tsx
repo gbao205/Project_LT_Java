@@ -3,7 +3,7 @@ import Login from "./pages/auth/Login";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
 import UserManager from "./pages/admin/UserManager";
-import SubjectManager from './pages/staff/SubjectManager';
+import SubjectManager from "./pages/staff/SubjectManager";
 import ClassManager from "./pages/staff/ClassManager.tsx";
 import StudentWorkspace from "./pages/student/StudentWorkspace";
 import CourseRegistration from "./pages/student/CourseRegistration";
@@ -14,6 +14,8 @@ import ReportDialog from './components/common/ReportDialog';
 import StudentProfile from './pages/student/StudentProfile';
 import ChatWidget from "./components/common/ChatWidget.tsx";
 import AIChat from "./pages/student/AIChatWidget.tsx";
+import StaffUserManager from "./pages/staff/UserManager";
+import ImportCenter from "./pages/staff/ImportCenter";
 
 function App() {
     return (
@@ -33,7 +35,7 @@ function App() {
                 <Route path="/home" element={<Home />} />
 
                 {/* Các trang chức năng */}
-                <Route path="/admin/subjects" element={<SubjectManager />} />
+                <Route path="/staff/subjects" element={<SubjectManager />} />
 
                 {/* Đổi mật khẩu */}
                 <Route path="/change-password" element={<ChangePassword />} />
@@ -42,7 +44,7 @@ function App() {
                 <Route path="/admin/users" element={<UserManager />} />
 
                 {/* Quản lý lớp học */}
-                <Route path="/admin/classes" element={<ClassManager />} />
+                <Route path="/staff/classes" element={<ClassManager />} />
 
                 {/* Route cho Sinh viên */}
                 <Route path="/student/workspace" element={<StudentWorkspace />} />
@@ -56,7 +58,8 @@ function App() {
                 <Route path="/class/:id" element={<ClassDetail />} />
 
                 <Route path="/student/profile" element={<StudentProfile />} />
-
+                <Route path="/staff/users" element={<StaffUserManager />} />
+                <Route path="/staff/import" element={<ImportCenter />} />
                 {/* Route cho trang Quản lý Báo cáo của Admin */}
                 <Route path="/admin/reports" element={<ReportManager />} />
 

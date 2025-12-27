@@ -33,80 +33,181 @@ import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import { getMyClasses } from '../services/classService';
 
-
 // ==========================================
 // 1. CÁC COMPONENT DÙNG CHUNG (UI KITS)
 // ==========================================
 
 const StatCard = ({ title, value, icon, color }: any) => (
-    <Card elevation={0} sx={{
-        height: '100%', borderRadius: 3, border: '1px solid #e0e0e0',
-        background: `linear-gradient(135deg, #ffffff 0%, ${color}08 100%)`,
-        transition: 'all 0.3s ease',
-        '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: `0 10px 20px ${color}30`,
-            borderColor: color
-        }
-    }}>
-        <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
-            <Box sx={{ p: 2, borderRadius: '16px', bgcolor: `${color}15`, color: color, mr: 2 }}>
-                {icon}
-            </Box>
-            <Box>
-                <Typography variant="h4" fontWeight="bold" color="text.primary">{value}</Typography>
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
-            </Box>
-        </CardContent>
-    </Card>
+  <Card
+    elevation={0}
+    sx={{
+      height: "100%",
+      borderRadius: 3,
+      border: "1px solid #e0e0e0",
+      background: `linear-gradient(135deg, #ffffff 0%, ${color}08 100%)`,
+      transition: "all 0.3s ease",
+      "&:hover": {
+        transform: "translateY(-5px)",
+        boxShadow: `0 10px 20px ${color}30`,
+        borderColor: color,
+      },
+    }}
+  >
+    <CardContent sx={{ display: "flex", alignItems: "center", p: 3 }}>
+      <Box
+        sx={{
+          p: 2,
+          borderRadius: "16px",
+          bgcolor: `${color}15`,
+          color: color,
+          mr: 2,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box>
+        <Typography variant="h4" fontWeight="bold" color="text.primary">
+          {value}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" fontWeight={500}>
+          {title}
+        </Typography>
+      </Box>
+    </CardContent>
+  </Card>
 );
 
 const MenuCard = ({ title, desc, icon, color, onClick }: any) => (
-    <Card onClick={onClick} elevation={0} sx={{
-        height: '100%', cursor: 'pointer', borderRadius: 3, border: '1px solid #f0f0f0',
-        transition: 'all 0.3s ease',
-        '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', borderColor: color, '& .icon-box': { bgcolor: color, color: 'white' } }
-    }}>
-        <CardContent sx={{ p: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <Stack spacing={2}>
-                <Box className="icon-box" sx={{
-                    width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: '12px', bgcolor: `${color}15`, color: color, transition: 'all 0.3s ease'
-                }}>
-                    {icon}
-                </Box>
-                <Box>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>{title}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ minHeight: 40 }}>{desc}</Typography>
-                </Box>
-            </Stack>
-            <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#e0e0e0', mt: 1 }} />
-        </CardContent>
-    </Card>
+  <Card
+    onClick={onClick}
+    elevation={0}
+    sx={{
+      height: "100%",
+      cursor: "pointer",
+      borderRadius: 3,
+      border: "1px solid #f0f0f0",
+      transition: "all 0.3s ease",
+      "&:hover": {
+        transform: "translateY(-5px)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+        borderColor: color,
+        "& .icon-box": { bgcolor: color, color: "white" },
+      },
+    }}
+  >
+    <CardContent
+      sx={{
+        p: 3,
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+      }}
+    >
+      <Stack spacing={2}>
+        <Box
+          className="icon-box"
+          sx={{
+            width: 50,
+            height: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "12px",
+            bgcolor: `${color}15`,
+            color: color,
+            transition: "all 0.3s ease",
+          }}
+        >
+          {icon}
+        </Box>
+        <Box>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            {title}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ minHeight: 40 }}
+          >
+            {desc}
+          </Typography>
+        </Box>
+      </Stack>
+      <ArrowForwardIosIcon sx={{ fontSize: 16, color: "#e0e0e0", mt: 1 }} />
+    </CardContent>
+  </Card>
 );
 
 const Header = ({ user, roleConfig, onLogout }: any) => (
-    <Paper elevation={0} sx={{
-        bgcolor: 'white', px: { xs: 2, md: 4 }, py: 2,
-        borderBottom: '1px solid #eaeaea', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        position: 'sticky', top: 0, zIndex: 100
-    }}>
-        <Box display="flex" alignItems="center" gap={2}>
-            <Box sx={{ width: 40, height: 40, bgcolor: roleConfig.color, borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>CS</Box>
-            <Box>
-                <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>CollabSphere</Typography>
-                <Typography variant="caption" color="text.secondary">{roleConfig.label} Workspace</Typography>
-            </Box>
-        </Box>
-        <Box display="flex" alignItems="center" gap={2}>
-            <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="subtitle2" fontWeight="bold">{user.fullName}</Typography>
-                <Chip label={roleConfig.label} size="small" sx={{ bgcolor: roleConfig.bg, color: roleConfig.color, fontWeight: 'bold', height: 20, fontSize: 10 }} />
-            </Box>
-            <Avatar sx={{ bgcolor: roleConfig.color }}>{user.fullName?.charAt(0)}</Avatar>
-            <IconButton size="small" onClick={onLogout} sx={{ bgcolor: '#ffebee', color: '#d32f2f' }}><LogoutIcon fontSize="small" /></IconButton>
-        </Box>
-    </Paper>
+  <Paper
+    elevation={0}
+    sx={{
+      bgcolor: "white",
+      px: { xs: 2, md: 4 },
+      py: 2,
+      borderBottom: "1px solid #eaeaea",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      position: "sticky",
+      top: 0,
+      zIndex: 100,
+    }}
+  >
+    <Box display="flex" alignItems="center" gap={2}>
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          bgcolor: roleConfig.color,
+          borderRadius: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontWeight: "bold",
+        }}
+      >
+        CS
+      </Box>
+      <Box>
+        <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
+          CollabSphere
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {roleConfig.label} Workspace
+        </Typography>
+      </Box>
+    </Box>
+    <Box display="flex" alignItems="center" gap={2}>
+      <Box sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
+        <Typography variant="subtitle2" fontWeight="bold">
+          {user.fullName}
+        </Typography>
+        <Chip
+          label={roleConfig.label}
+          size="small"
+          sx={{
+            bgcolor: roleConfig.bg,
+            color: roleConfig.color,
+            fontWeight: "bold",
+            height: 20,
+            fontSize: 10,
+          }}
+        />
+      </Box>
+      <Avatar sx={{ bgcolor: roleConfig.color }}>
+        {user.fullName?.charAt(0)}
+      </Avatar>
+      <IconButton
+        size="small"
+        onClick={onLogout}
+        sx={{ bgcolor: "#ffebee", color: "#d32f2f" }}
+      >
+        <LogoutIcon fontSize="small" />
+      </IconButton>
+    </Box>
+  </Paper>
 );
 
 // ==========================================
@@ -207,6 +308,7 @@ const StudentDashboard = ({ user, roleConfig, navigate, onLogout, myClassCount }
     </Box>
 );
 
+// --- LECTURER DASHBOARD ---
 const LecturerDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     <Box sx={{ minHeight: '100vh', bgcolor: '#e3f2fd' }}>
         <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />

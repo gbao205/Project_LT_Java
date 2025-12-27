@@ -56,4 +56,8 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(body, status);
     }
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<Object> handleAppException(AppException ex) {
+        return buildResponse(ex.getStatus(), ex.getMessage());
+    }
 }

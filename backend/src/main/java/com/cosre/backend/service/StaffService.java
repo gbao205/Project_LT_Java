@@ -1,11 +1,14 @@
 package com.cosre.backend.service;
 
+import com.cosre.backend.dto.staff.ClassResponseDTO;
 import com.cosre.backend.entity.ClassRoom;
 import com.cosre.backend.entity.Role;
 import com.cosre.backend.entity.User;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.ClassRoomRepository;
+import com.cosre.backend.repository.SubjectRepository;
 import com.cosre.backend.repository.UserRepository;
+import com.cosre.backend.entity.Subject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,13 +32,9 @@ public class StaffService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ClassRoomRepository classRoomRepository;
+    private final SubjectRepository subjectRepository;
     private static final String DEFAULT_DOMAIN = "collabsphere.edu.vn";
     private static final String DEFAULT_PASSWORD = "123";
-    /**
-     * @param file CSV chứa fullName
-     * @param targetRole Vai trò (lecture,student)
-     * @return danh sách user tạo thành công
-     */
 
     @Transactional
     public List<User> importUserFromFile(MultipartFile file, Role targetRole){
@@ -124,58 +123,117 @@ public class StaffService {
         return fillterUser;
     }
 
-    // =========================================================================
-    //                            CLASS MANAGEMENT
-    // =========================================================================
     @Transactional
-    public List<ClassRoom> importClassesFromFile(MultipartFile file) {
+    public List<ClassResponseDTO> importClassesFromFile(MultipartFile file) {
         String fname = file.getOriginalFilename();
         if (fname == null || (!fname.endsWith(".csv") && !fname.endsWith(".txt"))) {
-            throw new AppException("File không đúng định dạng. Chỉ chấp nhận CSV/TXT", HttpStatus.BAD_REQUEST);
+            throw new AppException("File không đúng định dạng. Chỉ chấp nhận CSV hoặc TXT", HttpStatus.BAD_REQUEST);
         }
 
-        List<ClassRoom> importclass = new ArrayList<>();
+        List<ClassRoom> importedClasses = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"))) {
+            reader.readLine(); // Bỏ qua dòng tiêu đề
 
-        try (BufferedReader fread = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"))) {
             String line;
-            fread.readLine();
-
-            while ((line = fread.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 String[] data = line.split(",");
-                if (data.length < 4 || data[0].trim().isEmpty()) {
+                if (data.length < 5 || data[0].trim().isEmpty()) {
                     continue;
                 }
+
                 String classCode = data[0].trim();
-                String name = data[1].trim();
+                String className = data[1].trim();
                 String semester = data[2].trim();
-                String maxCapacityStr = data[3].trim();
-                if (classRoomRepository.existsByClassCode(classCode)) {
-                    throw new AppException(
-                            "ClassCode bị trùng: " + classCode,
-                            HttpStatus.BAD_REQUEST
-                    );
-                }
+                String subCode = data[3].trim();
+                String lecEmail = data[4].trim();
+
+                if (classRoomRepository.existsByClassCode(classCode)) continue;
+
+                Subject subject = subjectRepository.findBySubjectCode(subCode)
+                        .orElseThrow(() -> new AppException("Môn học " + subCode + " chưa có!", HttpStatus.NOT_FOUND));
+
+                User lecturer = userRepository.findByEmail(lecEmail)
+                        .orElseThrow(() -> new AppException("Giảng viên " + lecEmail + " chưa có!", HttpStatus.NOT_FOUND));
+
                 LocalDate startDate = null;
                 LocalDate endDate = null;
 
                 try {
-                    if (data.length > 4) startDate = LocalDate.parse(data[4].trim());
-                    if (data.length > 5) endDate = LocalDate.parse(data[5].trim());
+                    if (data.length > 5 && !data[5].trim().isEmpty()) {
+                        startDate = LocalDate.parse(data[5].trim());
+                    }
+                    if (data.length > 6 && !data[6].trim().isEmpty()) {
+                        endDate = LocalDate.parse(data[6].trim());
+                    }
                 } catch (Exception e) {
+                    startDate = null;
+                    endDate = null;
                 }
+
                 ClassRoom newClass = ClassRoom.builder()
                         .classCode(classCode)
-                        .name(name)
+                        .name(className)
                         .semester(semester)
-                        .endDate(endDate)
+                        .subject(subject)
+                        .lecturer(lecturer)
                         .startDate(startDate)
+                        .endDate(endDate)
+                        .isRegistrationOpen(false)
+                        .maxCapacity(60)
                         .build();
-                importclass.add(newClass);
+
+                importedClasses.add(newClass);
             }
-            classRoomRepository.saveAll(importclass);
-            return importclass;
+            List<ClassRoom> savedClasses = classRoomRepository.saveAll(importedClasses);
+            return savedClasses.stream()
+                    .map(clazz -> ClassResponseDTO.builder()
+                            .id(clazz.getId())
+                            .name(clazz.getName())
+                            .classCode(clazz.getClassCode())
+                            .semester(clazz.getSemester())
+                            .subjectName(clazz.getSubject() != null ? clazz.getSubject().getName() : "N/A")
+                            .lecturerName(clazz.getLecturer() != null ? clazz.getLecturer().getFullName() : "N/A")
+                            .isRegistrationOpen(clazz.isRegistrationOpen())
+                            .maxCapacity(clazz.getMaxCapacity())
+                            .studentCount(0) // Mới import thì sĩ số luôn là 0
+                            .build())
+                    .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new AppException("Lỗi đọc file:" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new AppException("Lỗi đọc file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
     }
+    public List<ClassResponseDTO> getAllClassesForStaff() {
+        return classRoomRepository.findAll().stream()
+                .map(clazz -> ClassResponseDTO.builder()
+                        .id(clazz.getId())
+                        .name(clazz.getName())
+                        .classCode(clazz.getClassCode())
+                        .semester(clazz.getSemester())
+                        .subjectName(clazz.getSubject() != null ? clazz.getSubject().getName() : "N/A")
+                        .lecturerName(clazz.getLecturer() != null ? clazz.getLecturer().getFullName() : "Chưa phân công")
+                        .isRegistrationOpen(clazz.isRegistrationOpen())
+                        .maxCapacity(clazz.getMaxCapacity())
+                        .studentCount(clazz.getStudents() != null ? clazz.getStudents().size() : 0)
+                        .build())
+                .collect(Collectors.toList());
+    }
+    @Transactional
+    public ClassResponseDTO toggleRegistrationStatus(Long classId) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new AppException("Lớp không tồn tại", HttpStatus.NOT_FOUND));
+
+        classRoom.setRegistrationOpen(!classRoom.isRegistrationOpen());
+        classRoomRepository.save(classRoom);
+
+        return ClassResponseDTO.builder()
+                .id(classRoom.getId())
+                .classCode(classRoom.getClassCode())
+                .isRegistrationOpen(classRoom.isRegistrationOpen())
+                .studentCount(classRoom.getStudents().size())
+                .maxCapacity(classRoom.getMaxCapacity())
+                .build();
+    }
+
+
 }
