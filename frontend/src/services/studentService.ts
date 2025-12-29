@@ -4,6 +4,7 @@ import api from './api';
 export interface CreateTeamRequest {
     teamName: string;
     classId: number;
+    memberIds?: number[];
 }
 
 export interface ProjectRegistrationRequest {
@@ -80,6 +81,11 @@ const studentService = {
         return api.post('/student/teams/create', data);
     },
 
+    getStudentsNoTeam: async (classId: string | number) => {
+        const res = await api.get(`/student/classes/${classId}/students-no-team`);
+        return res.data;
+    },
+
     // Tham gia nhóm (bằng ID)
      joinTeam: async (data: { teamId: number }) => {
         return api.post('/student/teams/join', data);
@@ -89,6 +95,16 @@ const studentService = {
     registerProject: async (data: ProjectRegistrationRequest) => {
         const response = await api.post('/student/project/register', data);
         return response.data;
+    },
+
+    // API Chuyển quyền Leader
+    assignLeader: async (data: { teamId: number, newLeaderId: number }) => {
+        return api.post('/student/teams/assign-leader', data);
+    },
+
+    // API Rời nhóm
+    leaveTeam: async (data: { teamId: number }) => {
+        return api.post('/student/teams/leave', data);
     },
 
     // Xem Milestone của lớp

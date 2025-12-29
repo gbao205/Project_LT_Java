@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "team_members")
@@ -20,6 +21,7 @@ public class TeamMember {
     // Thành viên của nhóm nào
     @ManyToOne
     @JoinColumn(name = "team_id", nullable = false)
+    @JsonIgnoreProperties("members") // Ngắt vòng lặp: Khi load Member -> Team, không load lại list Members nữa
     private Team team;
 
     // Là sinh viên nào

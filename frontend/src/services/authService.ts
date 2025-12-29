@@ -9,6 +9,7 @@ export interface LoginRequest {
 // Kiểu dữ liệu trả về
 export interface LoginResponse {
     token: string;
+    id: number;
     email: string;
     fullName: string;
     role: string;

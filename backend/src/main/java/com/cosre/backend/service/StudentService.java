@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -104,32 +105,61 @@ public class StudentService {
         return teamRepository.findByClassRoom_Id(classId);
     }
 
+    // Hàm lấy danh sách sinh viên chưa có nhóm
+    public List<User> getStudentsWithoutTeam(Long classId) {
+        return userRepository.findUsersWithoutTeamInClass(classId);
+    }
+
     // Tạo nhóm mới
     @Transactional
     public Team createTeam(CreateTeamRequest request) {
-        User student = getCurrentUser();
+        User currentUser = getCurrentUser();
 
-        if (teamMemberRepository.existsByStudent_IdAndTeam_ClassRoom_Id(student.getId(), request.getClassId())) {
+        // Kiểm tra xem đã có nhóm chưa
+        if (teamMemberRepository.existsByStudent_IdAndTeam_ClassRoom_Id(currentUser.getId(), request.getClassId())) {
             throw new AppException("Bạn đã tham gia một nhóm trong lớp này rồi!", HttpStatus.BAD_REQUEST);
         }
 
         ClassRoom classRoom = classRoomRepository.findById(request.getClassId())
                 .orElseThrow(() -> new AppException("Lớp học không tồn tại", HttpStatus.NOT_FOUND));
 
-        Team team = Team.builder()
-                .teamName(request.getTeamName())
-                .classRoom(classRoom)
-                .build();
-        team = teamRepository.save(team);
+        // Tạo Team
+        Team team = new Team();
+        team.setTeamName(request.getTeamName());
+        team.setClassRoom(classRoom);
+        team.setJoinCode(generateJoinCode());
 
-        TeamMember member = TeamMember.builder()
-                .team(team)
-                .student(student)
-                .role(TeamRole.LEADER)
-                .build();
-        teamMemberRepository.save(member);
+        teamRepository.save(team);
+
+        // Thêm Leader (người tạo)
+        TeamMember leader = new TeamMember();
+        leader.setStudent(currentUser);
+        leader.setTeam(team);
+        leader.setRole(TeamRole.LEADER);
+        teamMemberRepository.save(leader);
+
+        // THÊM THÀNH VIÊN ĐƯỢC CHỌN
+        if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
+            List<User> selectedUsers = userRepository.findAllById(request.getMemberIds());
+
+            for (User selectedUser : selectedUsers) {
+                // Bỏ qua nếu chọn trúng chính mình
+                if (selectedUser.getId().equals(currentUser.getId())) continue;
+
+                TeamMember member = new TeamMember();
+                member.setStudent(selectedUser);
+                member.setTeam(team);
+                member.setRole(TeamRole.MEMBER);
+                teamMemberRepository.save(member);
+            }
+        }
 
         return team;
+    }
+
+    private String generateJoinCode() {
+        // Tạo chuỗi ngẫu nhiên 6 ký tự (VD: A1B2C3)
+        return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
 
     // Tham gia nhóm
@@ -149,6 +179,76 @@ public class StudentService {
                 .role(TeamRole.MEMBER)
                 .build();
         teamMemberRepository.save(member);
+    }
+
+    // rời nhóm
+    @Transactional
+    public void leaveTeam(Long teamId) {
+        // 1. Lấy User hiện tại
+        User user = getCurrentUser();
+
+        // 2. Tìm thành viên trong nhóm
+        TeamMember currentMember = teamMemberRepository.findByTeam_IdAndStudent_Id(teamId, user.getId())
+                .orElseThrow(() -> new AppException("Bạn không phải thành viên của nhóm này", HttpStatus.BAD_REQUEST));
+
+        // Nếu KHÔNG phải Leader -> Xóa và kết thúc ngay lập tức (return)
+        if (currentMember.getRole() != TeamRole.LEADER) {
+            teamMemberRepository.delete(currentMember);
+            return;
+        }
+
+        // 3. Xử lý riêng cho Leader (chỉ chạy xuống đây nếu là LEADER)
+        Team team = currentMember.getTeam();
+
+        // Lấy danh sách thành viên CÒN LẠI (trừ Leader đang rời đi)
+        List<TeamMember> remainingMembers = team.getMembers().stream()
+                .filter(m -> !m.getId().equals(currentMember.getId()))
+                .toList();
+
+        if (remainingMembers.isEmpty()) {
+            // Trường hợp: Không còn ai -> Xóa nhóm
+            // Xóa thành viên trước
+            teamMemberRepository.delete(currentMember);
+            // Sau đó xóa nhóm
+            teamRepository.delete(team);
+        } else {
+            // Trường hợp: Còn thành viên -> Chọn người kế vị (người vào nhóm sớm nhất)
+            TeamMember newLeader = remainingMembers.get(0);
+            newLeader.setRole(TeamRole.LEADER);
+            teamMemberRepository.save(newLeader);
+
+            // Xóa Leader cũ
+            teamMemberRepository.delete(currentMember);
+        }
+    }
+
+    // Chuyển quyền Leader cho thành viên khác
+    @Transactional
+    public void assignLeader(Long teamId, Long newLeaderId) {
+        User currentUser = getCurrentUser();
+
+        // 1. Kiểm tra quyền Leader hiện tại
+        TeamMember currentLeader = teamMemberRepository.findByTeam_IdAndStudent_Id(teamId, currentUser.getId())
+                .orElseThrow(() -> new AppException("Bạn không thuộc nhóm này", HttpStatus.BAD_REQUEST));
+
+        if (currentLeader.getRole() != TeamRole.LEADER) {
+            throw new AppException("Bạn không phải là Trưởng nhóm", HttpStatus.FORBIDDEN);
+        }
+
+        // 2. Tìm thành viên được chỉ định làm Leader mới
+        TeamMember newLeader = teamMemberRepository.findById(newLeaderId)
+                .orElseThrow(() -> new AppException("Thành viên không tồn tại", HttpStatus.NOT_FOUND));
+
+        if (!newLeader.getTeam().getId().equals(teamId)) {
+            throw new AppException("Thành viên này không thuộc nhóm của bạn", HttpStatus.BAD_REQUEST);
+        }
+
+        // 3. Hoán đổi vai trò
+        currentLeader.setRole(TeamRole.MEMBER);
+        newLeader.setRole(TeamRole.LEADER);
+
+        teamMemberRepository.save(currentLeader);
+        teamMemberRepository.save(newLeader);
     }
 
     // --- 4. QUẢN LÝ ĐỀ TÀI & MILESTONE ---
