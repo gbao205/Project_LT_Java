@@ -16,6 +16,7 @@ import java.util.List; // Import List
 @Builder
 public class User {
     @Id
+
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
