@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "team_members")
@@ -32,4 +34,8 @@ public class TeamMember {
     // Vai trò: LEADER, MEMBER
     @Enumerated(EnumType.STRING)
     private TeamRole role;
+
+    // Điểm tổng kết cuối cùng sau khi giảng viên chốt
+    @Column(precision = 4, scale = 2)
+    private BigDecimal finalGrade;
 }
