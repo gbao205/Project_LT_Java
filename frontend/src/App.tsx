@@ -1,53 +1,64 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import Login from "./pages/auth/Login";
 import Home from "./pages/Home";
 import ChangePassword from "./pages/auth/ChangePassword";
 import UserManager from "./pages/admin/UserManager";
-import SubjectManager from './pages/staff/SubjectManager';
+import SubjectManager from "./pages/staff/SubjectManager";
 import StaffClassManager from "./pages/staff/ClassManager.tsx";
 import StudentWorkspace from "./pages/student/StudentWorkspace";
 import CourseRegistration from "./pages/student/CourseRegistration";
 import MyClasses from "./pages/student/MyClasses";
 import ClassDetail from "./pages/class/ClassDetail";
-import ReportManager from './pages/admin/ReportManager';
-import ReportDialog from './components/common/ReportDialog';
-import StudentProfile from './pages/student/StudentProfile';
+import ReportManager from "./pages/admin/ReportManager";
+import ReportDialog from "./components/common/ReportDialog";
+import StudentProfile from "./pages/student/StudentProfile";
 import ChatWidget from "./components/common/ChatWidget.tsx";
 import AIChat from "./pages/student/AIChatWidget.tsx";
-
+import ImportCenter from "./pages/staff/ImportCenter";
 // Import Lecturer
-import TeamDetail from './pages/lecturer/TeamDetail';
-import LecturerClassManager from './pages/lecturer/ClassManager';
-import LecturerDashboard from './pages/lecturer/LecturerDashboard';
+import TeamDetail from "./pages/lecturer/TeamDetail";
+import LecturerClassManager from "./pages/lecturer/ClassManager";
+import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 
 function App() {
-    return (
-        <Router>
-            <ReportDialog />
-            <ChatWidget />
-            <AIChat />
-            <Routes>
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/change-password" element={<ChangePassword />} />
-                {/* Admin & Staff */}
-                <Route path="/admin/users" element={<UserManager />} />
-                <Route path="/admin/reports" element={<ReportManager />} />
-                <Route path="/admin/subjects" element={<SubjectManager />} />
-                <Route path="/admin/classes" element={<StaffClassManager />} />
-                {/* Student */}
-                <Route path="/student/workspace" element={<StudentWorkspace />} />
-                <Route path="/student/registration" element={<CourseRegistration />} />
-                <Route path="/student/classes" element={<MyClasses />} />
-                <Route path="/student/profile" element={<StudentProfile />} />
-                <Route path="/class/:id" element={<ClassDetail />} />
-                {/* Lecturer */}
-                <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
-                <Route path="/lecturer/classes" element={<LecturerClassManager />} />
-                <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
-            </Routes>
-        </Router>
-    );
+  return (
+    <Router>
+      <ReportDialog />
+      <ChatWidget />
+      <AIChat />
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/change-password" element={<ChangePassword />} />
+        {/* Admin & Staff */}
+        <Route path="/admin/users" element={<UserManager />} />
+        <Route path="/admin/reports" element={<ReportManager />} />
+        <Route path="/admin/subjects" element={<SubjectManager />} />
+        <Route path="/admin/classes" element={<StaffClassManager />} />
+        {/*Staff */}
+        <Route path="/staff/import" element={<ImportCenter />} />
+        <Route path="/staff/users" element={<UserManager />} />
+        <Route path="/staff/reports" element={<ReportManager />} />
+        <Route path="/staff/subjects" element={<SubjectManager />} />
+        <Route path="/staff/classes" element={<StaffClassManager />} />
+        {/* Student */}
+        <Route path="/student/workspace" element={<StudentWorkspace />} />
+        <Route path="/student/registration" element={<CourseRegistration />} />
+        <Route path="/student/classes" element={<MyClasses />} />
+        <Route path="/student/profile" element={<StudentProfile />} />
+        <Route path="/class/:id" element={<ClassDetail />} />
+        {/* Lecturer */}
+        <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
+        <Route path="/lecturer/classes" element={<LecturerClassManager />} />
+        <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
+      </Routes>
+    </Router>
+  );
 }
 export default App;
