@@ -48,8 +48,6 @@ public class UserImportDTO {
     @CsvBindByName(column = "Ngày sinh")
     private String dob;
 
-    @ExcelProperty("Ngày nhập học")
-    @CsvBindByName(column = "Ngày nhập học")
     private String admissionDate;
 
     // --- GIẢNG VIÊN ---

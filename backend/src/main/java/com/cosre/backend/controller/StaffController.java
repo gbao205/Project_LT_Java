@@ -9,6 +9,7 @@ import com.cosre.backend.exception.AppException;
 import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.StaffService;
 import com.cosre.backend.service.SubjectService;
+import com.cosre.backend.service.import_system.ImportSubject;
 import com.cosre.backend.service.import_system.ImportUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ public class StaffController {
     private final ClassService classService;
     private final SubjectService subjectService;
     private final ImportUser importUser;
+    private final ImportSubject importSubject;
     @PostMapping("/import-user")
     public ResponseEntity<?> importUsers(
             @RequestParam("file") MultipartFile file,
@@ -47,7 +49,6 @@ public class StaffController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không hỗ trợ import cho Role này");
         }
 
-        // 3. Thực thi (Lớp cha BaseImportParser sẽ tự lo đọc Excel/CSV và Validate)
         importUser.execute(file, targetRole,admissionDate);
 
         return ResponseEntity.ok(Map.of(
@@ -89,5 +90,13 @@ public class StaffController {
     public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
         subjectService.deleteSubject(id);
         return ResponseEntity.noContent().build();
+    }
+    @PostMapping("/import-subject")
+    public ResponseEntity<?> importSubject(@RequestParam("file") MultipartFile file) {
+        importSubject.execute(file);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(Map.of("message", "Import môn học thành công!"));
+    }
 
-}}
+}
+
