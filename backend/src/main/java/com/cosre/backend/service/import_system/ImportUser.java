@@ -150,7 +150,4 @@ public class ImportUser extends BaseImportParser<UserImportDTO> {
         return ten + hoDem; // Trả về dạng: nambui
     }
 
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
 }

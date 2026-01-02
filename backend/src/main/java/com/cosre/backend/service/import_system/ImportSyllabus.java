@@ -57,7 +57,4 @@ public class ImportSyllabus extends BaseImportParser<SyllabusImportDTO> {
         }
     }
 
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
 }

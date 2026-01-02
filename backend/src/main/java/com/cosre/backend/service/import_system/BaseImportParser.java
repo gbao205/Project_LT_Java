@@ -15,6 +15,9 @@ public abstract class BaseImportParser<T> implements IimportParser<T> {
     protected abstract Class<T> getDtoClass();
     protected abstract void validate(List<T> data,Object... params);
     protected abstract void saveToDb(List<T> data, Object... params);
+    protected boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
 
     @Override
     public void execute(MultipartFile file, Object... params) {

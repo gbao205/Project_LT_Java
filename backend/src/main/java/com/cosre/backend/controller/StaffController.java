@@ -9,6 +9,7 @@ import com.cosre.backend.exception.AppException;
 import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.StaffService;
 import com.cosre.backend.service.SubjectService;
+import com.cosre.backend.service.import_system.ImportClass;
 import com.cosre.backend.service.import_system.ImportSubject;
 import com.cosre.backend.service.import_system.ImportSyllabus;
 import com.cosre.backend.service.import_system.ImportUser;
@@ -28,11 +29,55 @@ import java.util.Map;
 public class StaffController {
 
     private final StaffService staffService;
-    private final ClassService classService;
     private final SubjectService subjectService;
     private final ImportUser importUser;
     private final ImportSubject importSubject;
     private final ImportSyllabus importSyllabus;
+    private final ImportClass importClass;
+
+    @GetMapping("/search-user")
+    public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
+        return ResponseEntity.ok()
+                .body(staffService.getAllUser(search));
+    }
+
+    @GetMapping("/classes")
+    public ResponseEntity<List<ClassResponseDTO>> getAllClasses() {
+        return ResponseEntity.ok(staffService.getAllClassesForStaff());
+    }
+    @PatchMapping("/classes/{id}/toggle")
+    public ResponseEntity<?> toggleClass(@PathVariable Long id) {
+        staffService.toggleClassStatus(id);
+        return ResponseEntity.ok(Map.of("message", "Thay đổi trạng thái lớp học thành công!"));
+    }
+    @PutMapping("/subjects/{id}")
+    public ResponseEntity<Subject> updateSubject(@PathVariable Long id, @RequestBody Subject subject) {
+        return ResponseEntity.ok(subjectService.updateSubject(id, subject));
+    }
+    @DeleteMapping("/subjects/{id}")
+    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
+        subjectService.deleteSubject(id);
+        return ResponseEntity.noContent().build();
+    }
+    //===================================import================================================
+    @PostMapping("/import-subject")
+    public ResponseEntity<?> importSubject(@RequestParam("file") MultipartFile file) {
+        importSubject.execute(file);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(Map.of("message", "Import môn học thành công!"));
+    }
+    @PostMapping("/import-syllabus")
+    public ResponseEntity<?> importSyllabus(@RequestParam("file") MultipartFile file)
+    {
+        importSyllabus.execute(file);
+        return ResponseEntity.status(HttpStatus.OK
+        ).body(Map.of("message","import Syllabus thành công!"));
+    }
+    @PostMapping("/import-classes")
+    public ResponseEntity<?> importClasses(@RequestParam("file") MultipartFile  file) {
+        importClass.execute(file);
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of("message","Import class thành công"));
+    }
     @PostMapping("/import-user")
     public ResponseEntity<?> importUsers(
             @RequestParam("file") MultipartFile file,
@@ -56,55 +101,6 @@ public class StaffController {
         return ResponseEntity.ok(Map.of(
                 "message", "Import danh sách " + targetRole + " thành công!"
         ));
-    }
-    @GetMapping("/search-user")
-    public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
-        return ResponseEntity.ok()
-                .body(staffService.getAllUser(search));
-    }
-
-    @PostMapping("/import-classes")
-    public ResponseEntity<?> importClasses(@RequestParam("file") MultipartFile  file) {
-        List<ClassResponseDTO> result = staffService.importClassesFromFile(file);
-        return ResponseEntity.ok(result);
-    }
-    @PostMapping("/createclass")
-    public ResponseEntity<?> createClass(@RequestBody ClassRequest request) {
-        return ResponseEntity.ok(classService.createClass(request));
-    }
-    @GetMapping("/classes")
-    public ResponseEntity<List<ClassResponseDTO>> getAllClasses() {
-        return ResponseEntity.ok(staffService.getAllClassesForStaff());
-    }
-    @PatchMapping("/classes/{classId}/toggle-registration")
-    public ResponseEntity<?> toggleRegistration(@PathVariable Long classId) {
-        ClassResponseDTO updatedClass = staffService.toggleRegistrationStatus(classId);
-        return ResponseEntity.ok(Map.of(
-                "message", "Cập nhật thành công",
-                "status", updatedClass.isRegistrationOpen()
-        ));
-    }
-    @PutMapping("/subjects/{id}")
-    public ResponseEntity<Subject> updateSubject(@PathVariable Long id, @RequestBody Subject subject) {
-        return ResponseEntity.ok(subjectService.updateSubject(id, subject));
-    }
-    @DeleteMapping("/subjects/{id}")
-    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
-        subjectService.deleteSubject(id);
-        return ResponseEntity.noContent().build();
-    }
-    @PostMapping("/import-subject")
-    public ResponseEntity<?> importSubject(@RequestParam("file") MultipartFile file) {
-        importSubject.execute(file);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(Map.of("message", "Import môn học thành công!"));
-    }
-    @PostMapping("/import-syllabus")
-    public ResponseEntity<?> importsyllabus(@RequestParam("file") MultipartFile file)
-    {
-        importSyllabus.execute(file);
-        return ResponseEntity.status(HttpStatus.OK
-        ).body(Map.of("message","import Syllabus thành công!"));
     }
 
 }
