@@ -10,6 +10,7 @@ import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.StaffService;
 import com.cosre.backend.service.SubjectService;
 import com.cosre.backend.service.import_system.ImportSubject;
+import com.cosre.backend.service.import_system.ImportSyllabus;
 import com.cosre.backend.service.import_system.ImportUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ public class StaffController {
     private final SubjectService subjectService;
     private final ImportUser importUser;
     private final ImportSubject importSubject;
+    private final ImportSyllabus importSyllabus;
     @PostMapping("/import-user")
     public ResponseEntity<?> importUsers(
             @RequestParam("file") MultipartFile file,
@@ -97,6 +99,12 @@ public class StaffController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(Map.of("message", "Import môn học thành công!"));
     }
+    @PostMapping("/import-syllabus")
+    public ResponseEntity<?> importsyllabus(@RequestParam("file") MultipartFile file)
+    {
+        importSyllabus.execute(file);
+        return ResponseEntity.status(HttpStatus.OK
+        ).body(Map.of("message","import Syllabus thành công!"));
+    }
 
 }
-
