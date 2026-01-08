@@ -67,7 +67,7 @@ const CourseRegistration = () => {
                 <Typography variant="body2" fontWeight="bold">{row.subject?.name}</Typography>
                 <Typography variant="caption" color="textSecondary">{row.subject?.subjectCode}</Typography>
             </TableCell>
-            <TableCell>{row.lecturer?.fullName}</TableCell>
+            <TableCell>{row.com.cosre.backend.dto.lecturer?.fullName}</TableCell>
             <TableCell>{row.semester}</TableCell>
             <TableCell>
                 <Chip

@@ -61,8 +61,8 @@ export default function ClassManager() {
     setLoading(true);
     try {
       // Gọi API lấy danh sách lớp của giảng viên
-      // Backend cần có endpoint: GET /api/classes/lecturer (hoặc tương tự)
-      const response = await api.get('/classes/lecturer');
+      // Backend cần có endpoint: GET /api/classes/com.cosre.backend.dto.lecturer (hoặc tương tự)
+      const response = await api.get('/classes/com.cosre.backend.dto.lecturer');
 
       // Map dữ liệu từ Backend sang cấu trúc UI (Nếu cần thiết)
       // Giả sử Backend trả về đúng cấu trúc, nếu không bạn cần map lại ở đây

@@ -15,10 +15,12 @@ import StudentProfile from './pages/student/StudentProfile';
 import ChatWidget from "./components/common/ChatWidget.tsx";
 import AIChat from "./pages/student/AIChatWidget.tsx";
 
-// Import Lecturer
+// --- SỬA LẠI IMPORT LECTURER (Quan trọng) ---
+import ProposalApproval from './pages/lecturer/ProposalApproval';
 import TeamDetail from './pages/lecturer/TeamDetail';
 import LecturerClassManager from './pages/lecturer/ClassManager';
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
+import DetailedTeachingSchedule from './pages/lecturer/DetailedTeachingSchedule';
 
 function App() {
     return (
@@ -31,21 +33,36 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/change-password" element={<ChangePassword />} />
+
                 {/* Admin & Staff */}
                 <Route path="/admin/users" element={<UserManager />} />
                 <Route path="/admin/reports" element={<ReportManager />} />
                 <Route path="/admin/subjects" element={<SubjectManager />} />
                 <Route path="/admin/classes" element={<StaffClassManager />} />
+
                 {/* Student */}
                 <Route path="/student/workspace" element={<StudentWorkspace />} />
                 <Route path="/student/registration" element={<CourseRegistration />} />
                 <Route path="/student/classes" element={<MyClasses />} />
                 <Route path="/student/profile" element={<StudentProfile />} />
                 <Route path="/class/:id" element={<ClassDetail />} />
-                {/* Lecturer */}
+
+
+                {/* 1. Dashboard */}
                 <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
+
+                {/* 2. Quản lý lớp */}
                 <Route path="/lecturer/classes" element={<LecturerClassManager />} />
+
+                {/* 3. Chi tiết nhóm */}
                 <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
+
+                {/* 4. Lịch dạy chi tiết */}
+                <Route path="/lecturer/schedule" element={<DetailedTeachingSchedule />} />
+
+                {/* 5. Duyệt đề tài (Đã OK) */}
+                <Route path="/lecturer/proposals" element={<ProposalApproval />} />
+
             </Routes>
         </Router>
     );

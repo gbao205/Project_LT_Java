@@ -120,8 +120,8 @@ const ClassManager = () => {
                     : "---"}
                 </TableCell>
                 <TableCell>
-                  {cls.lecturer ? (
-                    cls.lecturer.fullName
+                  {cls.com.cosre.backend.dto.lecturer ? (
+                    cls.com.cosre.backend.dto.lecturer.fullName
                   ) : (
                     <span style={{ color: "gray" }}>Chưa phân công</span>
                   )}
