@@ -1,6 +1,7 @@
 package com.cosre.backend.controller;
 
 import com.cosre.backend.dto.ClassRequest;
+import com.cosre.backend.dto.staff.SubjectDTO;
 import com.cosre.backend.dto.staff.SyllabusDetailDTO;
 import com.cosre.backend.dto.staff.SyllabusListDTO;
 import com.cosre.backend.entity.ClassRoom;
@@ -55,21 +56,6 @@ public class StaffController {
                 .body(staffService.getAllUser(search));
     }
 
-    @GetMapping("/classes")
-    public ResponseEntity<List<ClassResponseDTO>> getAllClasses() {
-        return ResponseEntity.ok(staffService.getAllClassesForStaff());
-    }
-//
-//    @PutMapping("/subjects/{id}")
-//    public ResponseEntity<Subject> updateSubject(@PathVariable Long id, @RequestBody Subject subject) {
-//        return ResponseEntity.ok(subjectService.updateSubject(id, subject));
-//    }
-//
-//    @DeleteMapping("/subjects/{id}")
-//    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
-//        subjectService.deleteSubject(id);
-//        return ResponseEntity.noContent().build();
-//    }
     //===================================import================================================
     @PostMapping("/import-subject")
     public ResponseEntity<?> importSubject(@RequestParam("file") MultipartFile file) {
@@ -129,5 +115,51 @@ public class StaffController {
     public SyllabusDetailDTO getSyllabusDetail(@PathVariable Long id){
         return staffService.getSyllabusDetail(id);
     }
+    //===================================Subject================================================
+    @GetMapping("/subject")
+    public Page<SubjectDTO> getSubjects(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String subjectCode,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String specialization
+    ) {
+        return staffService.getSubjects(
+                page,
+                size,
+                id,
+                subjectCode,
+                name,
+                specialization
+        );
+    }
+    //===================================class================================================
+    @GetMapping("/classes")
+    public Page<ClassResponseDTO> getClasses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String classCode,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String semester,
+            @RequestParam(required = false) String subjectName,
+            @RequestParam(required = false) String lecturerName,
+            @RequestParam(required = false) Boolean isRegistrationOpen
+    ) {
+        return staffService.getClasses(
+                page,
+                size,
+                id,
+                classCode,
+                name,
+                semester,
+                subjectName,
+                lecturerName,
+                isRegistrationOpen
+        );
+    }
+
 
 }
