@@ -1,19 +1,21 @@
 package com.cosre.backend.controller;
 
 import com.cosre.backend.dto.ClassRequest;
+import com.cosre.backend.dto.staff.SyllabusDetailDTO;
+import com.cosre.backend.dto.staff.SyllabusListDTO;
 import com.cosre.backend.entity.ClassRoom;
 import com.cosre.backend.entity.Role;
 import com.cosre.backend.entity.Subject;
 import com.cosre.backend.entity.User;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.service.ClassService;
+import com.cosre.backend.service.IStaffService;
 import com.cosre.backend.service.StaffService;
 import com.cosre.backend.service.SubjectService;
-import com.cosre.backend.service.import_system.ImportClass;
-import com.cosre.backend.service.import_system.ImportSubject;
-import com.cosre.backend.service.import_system.ImportSyllabus;
-import com.cosre.backend.service.import_system.ImportUser;
-import lombok.RequiredArgsConstructor;
+import com.cosre.backend.service.import_system.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,16 +26,28 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/staff")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class StaffController {
 
-    private final StaffService staffService;
-    private final SubjectService subjectService;
-    private final ImportUser importUser;
-    private final ImportSubject importSubject;
-    private final ImportSyllabus importSyllabus;
-    private final ImportClass importClass;
+    private final IimportParser<?> importUser;
+    private final IimportParser<?> importSubject;
+    private final IimportParser<?> importClass;
+    private final IimportParser<?> importSyllabus;
+    private final IStaffService staffService;
+    @Autowired
+    public StaffController(
+            IStaffService staffService,
+            @Qualifier("importUser") IimportParser<?> importUser,
+            @Qualifier("importSubject") IimportParser<?> importSubject,
+            @Qualifier("importClass") IimportParser<?> importClasses,
+            @Qualifier("importSyllabus") IimportParser<?> importSyllabus
+            ) {
+        this.staffService = staffService;
+        this.importUser = importUser;
+        this.importSubject =importSubject;
+        this.importClass=importClasses;
+        this.importSyllabus=importSyllabus;
+    }
 
     @GetMapping("/search-user")
     public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
@@ -45,20 +59,17 @@ public class StaffController {
     public ResponseEntity<List<ClassResponseDTO>> getAllClasses() {
         return ResponseEntity.ok(staffService.getAllClassesForStaff());
     }
-    @PatchMapping("/classes/{id}/toggle")
-    public ResponseEntity<?> toggleClass(@PathVariable Long id) {
-        staffService.toggleClassStatus(id);
-        return ResponseEntity.ok(Map.of("message", "Thay đổi trạng thái lớp học thành công!"));
-    }
-    @PutMapping("/subjects/{id}")
-    public ResponseEntity<Subject> updateSubject(@PathVariable Long id, @RequestBody Subject subject) {
-        return ResponseEntity.ok(subjectService.updateSubject(id, subject));
-    }
-    @DeleteMapping("/subjects/{id}")
-    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
-        subjectService.deleteSubject(id);
-        return ResponseEntity.noContent().build();
-    }
+//
+//    @PutMapping("/subjects/{id}")
+//    public ResponseEntity<Subject> updateSubject(@PathVariable Long id, @RequestBody Subject subject) {
+//        return ResponseEntity.ok(subjectService.updateSubject(id, subject));
+//    }
+//
+//    @DeleteMapping("/subjects/{id}")
+//    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
+//        subjectService.deleteSubject(id);
+//        return ResponseEntity.noContent().build();
+//    }
     //===================================import================================================
     @PostMapping("/import-subject")
     public ResponseEntity<?> importSubject(@RequestParam("file") MultipartFile file) {
@@ -101,6 +112,22 @@ public class StaffController {
         return ResponseEntity.ok(Map.of(
                 "message", "Import danh sách " + targetRole + " thành công!"
         ));
+    }
+    //===================================Syllabus================================================
+    @GetMapping("/syllabus")
+    public ResponseEntity<Page<SyllabusListDTO>> getSyllabusList( // Bọc trong ResponseEntity là chuẩn REST
+                                                                  @RequestParam(defaultValue="0") int page,
+                                                                  @RequestParam(defaultValue="10") int size,
+                                                                  @RequestParam(required = false) Long id,
+                                                                  @RequestParam(required = false) String subjectName,
+                                                                  @RequestParam(required = false) Integer year
+    ) {
+        Page<SyllabusListDTO> result = staffService.getSyllabusList(page, size, id, subjectName, year);
+        return ResponseEntity.ok(result);
+    }
+    @GetMapping("/syllabus/{id}")
+    public SyllabusDetailDTO getSyllabusDetail(@PathVariable Long id){
+        return staffService.getSyllabusDetail(id);
     }
 
 }

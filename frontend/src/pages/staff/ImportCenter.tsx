@@ -38,25 +38,41 @@ const ImportCenter = () => {
   const commonFont = { fontFamily: "'Inter', sans-serif !important" };
 
   const handleImport = async () => {
-    if (!file || !importType) return;
+    if (!file || !importType) {
+      setMessage({
+        type: "error",
+        text: "Vui lòng chọn loại dữ liệu và file!",
+      });
+      return;
+    }
 
     setLoading(true);
-    setMessage({ type: "", text: "" });
-
     const formData = new FormData();
     formData.append("file", file);
 
     let url = "";
 
+    // LOGIC ĐIỀU HƯỚNG API
     switch (importType) {
       case "USER":
         url = "http://localhost:8080/api/staff/import-user";
         formData.append("role", role);
-        if (role === "STUDENT") formData.append("admissionDate", admissionDate);
+        if (role === "STUDENT" && admissionDate) {
+          formData.append("admissionDate", admissionDate);
+        }
         break;
       case "CLASS":
         url = "http://localhost:8080/api/staff/import-classes";
         break;
+      case "SUBJECT":
+        url = "http://localhost:8080/api/staff/import-subject";
+        break;
+      case "SYLLABUS":
+        url = "http://localhost:8080/api/staff/import-syllabus";
+        break;
+      default:
+        setLoading(false);
+        return;
     }
 
     try {
@@ -66,14 +82,19 @@ const ImportCenter = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      setMessage({
-        type: "success",
-        text: response.data.message || "Import thành công!",
-      });
-    } catch (error: any) {
-      const errorMsg =
-        error.response?.data?.message || "Đã có lỗi xảy ra khi import";
-      setMessage({ type: "error", text: errorMsg });
+      setMessage({ type: "success", text: response.data.message });
+      setFile(null); // Reset file sau khi thành công
+    } catch (error: unknown) {
+      // Vì error là unknown, chúng ta cần kiểm tra xem nó có phải lỗi từ Axios không
+      if (axios.isAxiosError(error)) {
+        // Bây giờ TypeScript đã biết 'error' là AxiosError, con có thể truy cập data an toàn
+        const errorMsg =
+          error.response?.data?.message || "Lỗi hệ thống khi import";
+        setMessage({ type: "error", text: errorMsg });
+      } else {
+        // Trường hợp lỗi không phải từ API (lỗi code, lỗi mạng...)
+        setMessage({ type: "error", text: "Đã có lỗi xảy ra ngoài dự kiến" });
+      }
     } finally {
       setLoading(false);
     }
@@ -128,7 +149,12 @@ const ImportCenter = () => {
               {message.text && (
                 <Alert
                   severity={(message.type as "success" | "error") || "info"}
-                  sx={{ mb: 3, borderRadius: 3 }}
+                  onClose={() => setMessage({ type: "", text: "" })}
+                  sx={{
+                    mb: 3,
+                    borderRadius: 3,
+                    "& .MuiAlert-message": { whiteSpace: "pre-line" },
+                  }}
                 >
                   {message.text}
                 </Alert>
@@ -152,6 +178,7 @@ const ImportCenter = () => {
                         Người dùng (Sinh viên/Giảng viên)
                       </MenuItem>
                       <MenuItem value="CLASS">Lớp học</MenuItem>
+                      <MenuItem value="SYLLABUS">Đề cương môn học</MenuItem>
                       <MenuItem value="SUBJECT">Môn học</MenuItem>
                     </Select>
                   </FormControl>
