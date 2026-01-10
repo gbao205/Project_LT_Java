@@ -17,6 +17,12 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CircleIcon from '@mui/icons-material/Circle';
 
+// --- TỰ ĐỘNG CHỌN URL BACKEND ---
+// Nếu chạy trên Vercel, dùng server Render. Nếu chạy máy local, dùng localhost.
+const BASE_BACKEND_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:8080'
+    : 'https://collabsphere-backend-mk5g.onrender.com';
+
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [view, setView] = useState<'CONTACTS' | 'CHAT'>('CONTACTS');
@@ -32,7 +38,7 @@ const ChatWidget = () => {
     const clientRef = useRef<Client | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedUserRef = useRef<any>(null);
-    const isOpenRef = useRef(false); // Dùng Ref để theo dõi trạng thái đóng/mở trong callback socket
+    const isOpenRef = useRef(false);
 
     useEffect(() => {
         selectedUserRef.current = selectedUser;
@@ -53,17 +59,16 @@ const ChatWidget = () => {
 
     const loadContacts = async (authToken: string) => {
         try {
-            const res = await axios.get('http://localhost:8080/api/users/contacts', {
+            const res = await axios.get(`${BASE_BACKEND_URL}/api/users/contacts`, {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
             setContacts(res.data);
         } catch (error) { console.error("Lỗi danh bạ:", error); }
     };
 
-    // MỚI: Đồng bộ số tin nhắn chưa đọc từ Database
     const syncUnreadCounts = async (email: string, authToken: string) => {
         try {
-            const res = await axios.get(`http://localhost:8080/api/chat/unread-map?email=${email}`, {
+            const res = await axios.get(`${BASE_BACKEND_URL}/api/chat/unread-map?email=${email}`, {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
             setUnreadCounts(res.data);
@@ -84,7 +89,8 @@ const ChatWidget = () => {
         if (!myEmail || !token) return;
 
         const client = new Client({
-            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            // SỬA QUAN TRỌNG: Dùng link Render (HTTPS) để không bị lỗi bảo mật
+            webSocketFactory: () => new SockJS(`${BASE_BACKEND_URL}/ws`),
             onConnect: () => {
                 setConnected(true);
                 client.subscribe(`/topic/private/${myEmail}`, (message) => {
@@ -94,20 +100,16 @@ const ChatWidget = () => {
 
                     moveContactToTop(body.sender);
 
-                    // Logic thông báo:
-                    // 1. Nếu đang mở khung chat VÀ đang chat với chính người gửi -> Hiển thị tin nhắn & Mark Read
                     if (isWidgetOpen && chattingWith === body.sender) {
                         setMessages(prev => [...prev, body]);
-                        axios.post(`http://localhost:8080/api/chat/mark-read`, null, {
+                        axios.post(`${BASE_BACKEND_URL}/api/chat/mark-read`, null, {
                             params: { me: myEmail, other: body.sender },
                             headers: { Authorization: `Bearer ${token}` }
                         });
                     }
-                    // 2. Nếu tin nhắn của mình gửi từ thiết bị khác -> Chỉ hiển thị tin nhắn (Echo)
                     else if (body.sender === myEmail) {
                         setMessages(prev => [...prev, body]);
                     }
-                    // 3. Trường hợp còn lại (đang đóng widget, hoặc đang chat với người khác) -> Tăng số đỏ
                     else {
                         setUnreadCounts(prev => ({
                             ...prev,
@@ -117,6 +119,7 @@ const ChatWidget = () => {
                     }
                 });
             },
+            reconnectDelay: 5000, // Tự động kết nối lại nếu rớt mạng
         });
         client.activate();
         clientRef.current = client;
@@ -128,17 +131,14 @@ const ChatWidget = () => {
         setSelectedUser(user);
         setView('CHAT');
 
-        // Xóa số đỏ local
         setUnreadCounts(prev => ({ ...prev, [user.email]: 0 }));
 
-        // Báo Server đã đọc
-        await axios.post(`http://localhost:8080/api/chat/mark-read`, null, {
+        await axios.post(`${BASE_BACKEND_URL}/api/chat/mark-read`, null, {
             params: { me: myEmail, other: user.email },
             headers: { Authorization: `Bearer ${token}` }
         });
 
-        // Tải lịch sử
-        const res = await axios.get(`http://localhost:8080/api/chat/history/private`, {
+        const res = await axios.get(`${BASE_BACKEND_URL}/api/chat/history/private`, {
             params: { me: myEmail, other: user.email },
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -161,7 +161,6 @@ const ChatWidget = () => {
         }
     };
 
-    // Khi người dùng bấm nút mở khung chat -> Đồng bộ lại số đỏ từ Server cho chắc chắn
     const toggleWidget = () => {
         if (!isOpen) {
             syncUnreadCounts(myEmail, token);
