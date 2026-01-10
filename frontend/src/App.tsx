@@ -3,7 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation, // <--- Thêm cái này
+  useLocation,
 } from "react-router-dom";
 
 // Components & Auth
@@ -20,7 +20,6 @@ import ReportManager from "./pages/admin/ReportManager";
 import SubjectManager from "./pages/staff/SubjectManager";
 import StaffClassManager from "./pages/staff/ClassManager";
 import ImportCenter from "./pages/staff/ImportCenter";
-
 // Các trang sinh viên...
 import StudentWorkspace from "./pages/student/StudentWorkspace";
 import CourseRegistration from "./pages/student/CourseRegistration";
