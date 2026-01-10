@@ -10,10 +10,10 @@ export interface ClassRoom {
         subjectCode: string;
     };
     lecturer: {
-        id: number;
-        fullName: string;
-        email: string;
-    };
+            id: number;
+            fullName: string;
+            email: string;
+        };
 }
 
 // Lấy danh sách lớp

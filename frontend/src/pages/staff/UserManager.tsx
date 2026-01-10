@@ -53,7 +53,7 @@ interface UserAccount {
   email: string;
   role: "STUDENT" | "LECTURER";
   student?: StudentInfo;
-  lecturer?: LecturerInfo;
+  com.cosre.backend.dto.lecturer?: LecturerInfo;
 }
 
 interface InfoItemProps {
@@ -475,17 +475,17 @@ const StaffUserManager = () => {
                 <Grid container spacing={2}>
                   <InfoItem
                     label="Học vị"
-                    value={selectedUser.lecturer?.degree}
+                    value={selectedUser.com.cosre.backend.dto.lecturer?.degree}
                     size={6}
                   />
                   <InfoItem
                     label="Bộ môn"
-                    value={selectedUser.lecturer?.department}
+                    value={selectedUser.com.cosre.backend.dto.lecturer?.department}
                     size={6}
                   />
                   <InfoItem
                     label="Số CCCD"
-                    value={selectedUser.lecturer?.cccd}
+                    value={selectedUser.com.cosre.backend.dto.lecturer?.cccd}
                     size={12}
                   />
                 </Grid>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api'; // Import API thật
-import { logout } from '../../services/authService'; // Import hàm logout
+import api from '../../services/api';
+import { logout } from '../../services/authService';
 
 // --- INTERFACES ---
 interface Activity {
@@ -22,7 +22,7 @@ interface Task {
     priority: 'high' | 'medium' | 'low';
 }
 
-// --- STYLES (Giữ nguyên style đẹp của bạn) ---
+// --- STYLES ---
 const styles = {
     header: {
         background: 'white',
@@ -78,13 +78,6 @@ const styles = {
         padding: '2rem',
         minHeight: '100vh',
         background: '#f5f5f5'
-    },
-    // Grid cho phần Activities + Tasks + Calendar
-    mainGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', // Responsive
-        gap: '1.5rem',
-        marginBottom: '2rem'
     }
 };
 
@@ -107,7 +100,7 @@ const Header = ({ user, onLogout }: any) => (
                     borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold',
                     display: 'inline-block', marginTop: '2px'
                 }}>
-                    Giảng Viên
+                    {user?.role === 'LECTURER' ? 'Giảng Viên' : user?.role}
                 </span>
             </div>
             <div style={styles.avatar}>{user?.fullName?.charAt(0)}</div>
@@ -116,7 +109,7 @@ const Header = ({ user, onLogout }: any) => (
     </div>
 );
 
-const StatCard = ({ title, value, icon, color, bgColor, linkText }: any) => (
+const StatCard = ({ title, value, icon, color, bgColor, linkText, onLinkClick }: any) => (
     <div style={{
         background: 'white', borderRadius: '12px', padding: '1.2rem',
         border: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column',
@@ -132,7 +125,14 @@ const StatCard = ({ title, value, icon, color, bgColor, linkText }: any) => (
         </div>
         <div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: color, marginBottom: '0.5rem' }}>{value}</div>
-            {linkText && <div style={{ color: color, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>{linkText}</div>}
+            {linkText && (
+                <div
+                    onClick={onLinkClick}
+                    style={{ color: color, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                    {linkText}
+                </div>
+            )}
         </div>
     </div>
 );
@@ -268,46 +268,42 @@ const MenuCard = ({ title, desc, icon, color, bgColor, onClick }: any) => {
 const LecturerDashboard = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
-    const [stats, setStats] = useState({ activeClasses: 0, pendingRequests: 0, totalStudents: 0 });
+    const [stats, setStats] = useState({
+        activeClasses: 0,
+        pendingRequests: 0,
+        totalStudents: 0
+    });
 
-    // --- STATE DỮ LIỆU ---
-    // (Sau này bạn có thể thay bằng API call)
     const [scheduleData, setScheduleData] = useState<any>({
         '2025-12-28': [{ color: '#f44336' }],
         '2025-12-29': [{ color: '#4caf50' }],
     });
-
-    const [activities, setActivities] = useState<Activity[]>([
-        { id: 1, type: 'submit', student: 'Nguyễn Văn A', action: 'đã nộp đề tài', class: 'CNTT2023A', time: '10 phút trước', color: '#4caf50' },
-        { id: 2, type: 'pending', student: 'Trần Thị B', action: 'yêu cầu duyệt đề tài', class: 'CNTT2023B', time: '1 giờ trước', color: '#ff9800' },
-        { id: 3, type: 'complete', student: 'Lê Văn C', action: 'hoàn thành bảo vệ', class: 'CNTT2023A', time: '2 giờ trước', color: '#2196f3' },
-    ]);
-
-    const [tasks, setTasks] = useState<Task[]>([
-        { id: 1, task: 'Chấm báo cáo giữa kỳ', class: 'CNTT2023A', deadline: '28/12/2025', priority: 'high' },
-        { id: 2, task: 'Họp hội đồng bảo vệ', class: 'CNTT2023B', deadline: '29/12/2025', priority: 'high' },
-        { id: 3, task: 'Duyệt đề cương', class: 'CNTT2023A', deadline: '30/12/2025', priority: 'medium' },
-    ]);
+    const [activities, setActivities] = useState<Activity[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
-        if (userStr) { setUser(JSON.parse(userStr)); }
-        else { navigate('/login'); return; }
+        if (userStr) {
+            setUser(JSON.parse(userStr));
+        } else {
+            navigate('/login');
+            return;
+        }
 
         const fetchDashboardData = async () => {
             try {
-                // Ví dụ gọi API lấy thống kê
-                // const res = await api.get('/dashboard/stats');
-                // setStats(res.data);
-                // setActivities(res.data.activities);
-                // setTasks(res.data.tasks);
-
-                // Tạm thời dùng mock data + stats giả
-                setStats({ activeClasses: 3, pendingRequests: 5, totalStudents: 120 });
+                const res = await api.get('/dashboard/stats');
+                const data = res.data;
+                setStats({
+                    activeClasses: data.totalClasses || 0,
+                    pendingRequests: data.pendingRequests || 0,
+                    totalStudents: data.totalStudents || 0
+                });
             } catch (error) {
-                console.error("Lỗi lấy dữ liệu:", error);
+                console.error("Lỗi lấy dữ liệu Dashboard:", error);
             }
         };
+
         fetchDashboardData();
     }, [navigate]);
 
@@ -323,16 +319,37 @@ const LecturerDashboard = () => {
                     Khu Vực Giảng Viên
                 </h1>
 
-                {/* 1. Dashboard Stats Grid (5 cột) */}
+                {/* 1. Dashboard Stats Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.2rem', marginBottom: '2rem' }}>
-                    <StatCard title="LỚP ĐANG DẠY" value={stats.activeClasses} icon="🎓" color="#0288d1" bgColor="#e3f2fd" />
-                    <StatCard title="YÊU CẦU DUYỆT" value={stats.pendingRequests} icon="📝" color="#d32f2f" bgColor="#ffebee" />
+                    <StatCard
+                        title="LỚP ĐANG DẠY"
+                        value={stats.activeClasses}
+                        icon="🎓" color="#0288d1" bgColor="#e3f2fd"
+                        // 👇 Link đúng: Quản lý lớp
+                        onLinkClick={() => navigate('/lecturer/classes')}
+                        linkText="Xem chi tiết"
+                    />
+                    <StatCard
+                        title="YÊU CẦU DUYỆT"
+                        value={stats.pendingRequests}
+                        icon="📝" color="#d32f2f" bgColor="#ffebee"
+                        // 👇 Link đúng: Duyệt đề tài
+                        onLinkClick={() => navigate('/lecturer/proposals')}
+                        linkText="Xem danh sách"
+                    />
                     <StatCard title="SINH VIÊN" value={stats.totalStudents} icon="👥" color="#7b1fa2" bgColor="#f3e5f5" />
-                    <StatCard title="NHẮC NHỞ" value="2" icon="🔔" color="#ff6f00" bgColor="#fff3e0" linkText="Xem chi tiết" />
-                    <StatCard title="LỊCH DẠY TUẦN" value="12" icon="📆" color="#0097a7" bgColor="#e0f7fa" linkText="Xem chi tiết" />
+
+                    <StatCard
+                        title="LỊCH DẠY TUẦN"
+                        value="12"
+                        icon="📆" color="#0097a7" bgColor="#e0f7fa"
+                        linkText="Xem chi tiết"
+                        // 👇 Link đúng: Lịch dạy
+                        onLinkClick={() => navigate('/lecturer/schedule')}
+                    />
                 </div>
 
-                {/* 2. Main Content Grid (Activity + Tasks + Calendar) */}
+                {/* 2. Main Content Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.2rem', marginBottom: '2rem' }}>
                     <RecentActivities activities={activities} />
                     <UpcomingTasks tasks={tasks} />
@@ -341,13 +358,40 @@ const LecturerDashboard = () => {
 
                 <div style={{ height: '1px', background: '#e0e0e0', margin: '2rem 0' }} />
 
-                {/* 3. Menu Functions */}
+                {/* 3. Menu Functions (ĐÃ SỬA LINK) */}
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#424242' }}>Chức Năng Quản Lý</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                    <MenuCard title="Lớp Học Phụ Trách" desc="Quản lý sinh viên & Nhóm." icon="📚" color="#0277bd" bgColor="#e3f2fd" onClick={() => navigate('/lecturer/classes')} />
-                    <MenuCard title="Duyệt Đề Tài (GV)" desc="Xem và phê duyệt đề tài SV." icon="✓" color="#c2185b" bgColor="#fff3e0" onClick={() => alert('Tính năng đang phát triển')} />
-                    <MenuCard title="Chấm Điểm Hội Đồng" desc="Nhập điểm bảo vệ đồ án." icon="📊" color="#fbc02d" bgColor="#fff9c4" onClick={() => navigate('/lecturer/teams/1')} />
-                    <MenuCard title="Đổi Mật Khẩu" desc="Bảo mật tài khoản." icon="🔑" color="#455a64" bgColor="#eceff1" onClick={() => navigate('/change-password')} />
+
+                    {/* ✅ SỬA 1: Link quản lý lớp */}
+                    <MenuCard
+                        title="Lớp Học Phụ Trách"
+                        desc="Quản lý sinh viên & Nhóm."
+                        icon="📚" color="#0277bd" bgColor="#e3f2fd"
+                        onClick={() => navigate('/lecturer/classes')}
+                    />
+
+                    {/* ✅ SỬA 2: Link duyệt đề tài */}
+                    <MenuCard
+                        title="Duyệt Đề Tài (GV)"
+                        desc="Xem và phê duyệt đề tài SV."
+                        icon="✓" color="#c2185b" bgColor="#fff3e0"
+                        onClick={() => navigate('/lecturer/proposals')}
+                    />
+
+                    {/* ✅ SỬA 3: Link Chấm điểm (Ví dụ: ID=1) */}
+                    <MenuCard
+                        title="Chấm Điểm Hội Đồng"
+                        desc="Nhập điểm bảo vệ đồ án."
+                        icon="📊" color="#fbc02d" bgColor="#fff9c4"
+                        onClick={() => navigate('/lecturer/teams/1')}
+                    />
+
+                    <MenuCard
+                        title="Đổi Mật Khẩu"
+                        desc="Bảo mật tài khoản."
+                        icon="🔑" color="#455a64" bgColor="#eceff1"
+                        onClick={() => navigate('/change-password')}
+                    />
                 </div>
             </div>
         </div>

@@ -283,7 +283,7 @@ const ClassDetail = () => {
                     <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
                         <Box>
                             <Typography variant="subtitle1" color="textSecondary">
-                                <b>Giảng viên:</b> {classData.classInfo.lecturer?.fullName}
+                                <b>Giảng viên:</b> {classData.classInfo.com.cosre.backend.dto.lecturer?.fullName}
                             </Typography>
                             <Typography variant="subtitle2" color="textSecondary">
                                 <b>Học kỳ:</b> {classData.classInfo.semester}
