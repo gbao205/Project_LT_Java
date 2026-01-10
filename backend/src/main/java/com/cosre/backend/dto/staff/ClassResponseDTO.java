@@ -13,6 +13,6 @@ public class ClassResponseDTO {
     private String subjectName;
     private String lecturerName;
     private boolean isRegistrationOpen;
-    private int studentCount; // Số sinh viên đã đăng ký
-    private int maxCapacity;  // Sĩ số tối đa (60)
+    private int studentCount;
+    private int maxCapacity;
 }

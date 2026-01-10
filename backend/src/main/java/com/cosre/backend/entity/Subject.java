@@ -23,4 +23,6 @@ public class Subject {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+    @OneToOne(mappedBy="subject")
+    private Syllabus syllabus;
 }
