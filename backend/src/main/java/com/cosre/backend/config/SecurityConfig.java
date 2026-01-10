@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/subjects/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-
+                        .requestMatchers("/api/chat/**").permitAll()
                         // 3. API AI & CHAT (BẮT BUỘC ĐĂNG NHẬP ĐỂ LẤY USER ID)
                         .requestMatchers("/api/ai/**").authenticated()
 

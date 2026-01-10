@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Document(collection = "chat_messages")
-@Data // Annotation này sẽ tự tạo getRecipient và setRecipient cho bạn
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatMessage {
@@ -16,9 +16,11 @@ public class ChatMessage {
     private String id;
 
     private String sender;    // Email người gửi
-    private String recipient; // <--- THÊM DÒNG NÀY (Email người nhận)
+    private String recipient; // Email người nhận (cho chat 1-1)
+    private String roomId;    // ID phòng (cho chat nhóm Team/Class)
     private String content;   // Nội dung tin nhắn
     private String type;      // "CHAT" hoặc "JOIN"
 
     private LocalDateTime timestamp;
+    private Boolean isRead = false;
 }

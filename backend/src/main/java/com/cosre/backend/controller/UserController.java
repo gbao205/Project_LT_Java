@@ -63,56 +63,63 @@ public class UserController {
     }
 
     // ==========================================
-    // PHẦN 2: API DANH BẠ CHAT (MỚI - ĐÃ FIX LỖI USERNAME)
+    // PHẦN 2: API DANH BẠ CHAT
     // ==========================================
 
     @GetMapping("/contacts")
     public ResponseEntity<?> getChatContacts() {
-        // 1. Lấy EMAIL người đang đăng nhập (Vì bạn dùng Email làm ID)
+        // 1. Lấy thông tin người dùng hiện tại từ Security Context
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentEmail = auth.getName();
 
-        // Tìm user trong DB bằng EMAIL
         User currentUser = userRepository.findByEmail(currentEmail)
-                .orElseThrow(() -> new RuntimeException("Error: User not found."));
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy người dùng."));
 
         Role myRole = currentUser.getRole();
         List<Role> allowedRoles = new ArrayList<>();
 
-        // 2. MA TRẬN PHÂN QUYỀN CHAT
+        // 2. CẬP NHẬT MA TRẬN PHÂN QUYỀN CHAT THEO YÊU CẦU MỚI
         switch (myRole) {
             case ADMIN:
+                // ADMIN nhắn được cho Head và Staff
+                allowedRoles.add(Role.HEAD_DEPARTMENT);
                 allowedRoles.add(Role.STAFF);
                 break;
+
+            case HEAD_DEPARTMENT:
+                // Head nhắn được cho Staff, Lecturer, Admin và Head khác
+                allowedRoles.add(Role.STAFF);
+                allowedRoles.add(Role.LECTURER);
+                allowedRoles.add(Role.ADMIN);
+                allowedRoles.add(Role.HEAD_DEPARTMENT);
+                break;
+
             case STAFF:
+                // Staff nhắn được cho Head, Lecturer, Admin và Staff khác
+                allowedRoles.add(Role.HEAD_DEPARTMENT);
+                allowedRoles.add(Role.LECTURER);
                 allowedRoles.add(Role.ADMIN);
                 allowedRoles.add(Role.STAFF);
-                allowedRoles.add(Role.HEAD_DEPARTMENT);
-                allowedRoles.add(Role.LECTURER);
                 break;
-            case STUDENT:
-                allowedRoles.add(Role.LECTURER);
-                allowedRoles.add(Role.STUDENT);
-                break;
+
             case LECTURER:
+                // Lecturer nhắn được cho Lecturer khác, Head và Student
+                allowedRoles.add(Role.LECTURER);
+                allowedRoles.add(Role.HEAD_DEPARTMENT);
                 allowedRoles.add(Role.STUDENT);
-                allowedRoles.add(Role.HEAD_DEPARTMENT);
-                allowedRoles.add(Role.STAFF);
-                allowedRoles.add(Role.LECTURER);
                 break;
-            case HEAD_DEPARTMENT:
+
+            case STUDENT:
+                // Student nhắn được cho Student khác và Lecturer
+                allowedRoles.add(Role.STUDENT);
                 allowedRoles.add(Role.LECTURER);
-                allowedRoles.add(Role.STAFF);
-                allowedRoles.add(Role.HEAD_DEPARTMENT);
                 break;
         }
 
-        // 3. Lọc danh sách user theo Role cho phép
+        // 3. Lọc danh sách user theo Role cho phép và loại bỏ chính mình
         List<User> contacts = userRepository.findByRoleIn(allowedRoles);
-
-        // 4. Loại bỏ chính mình ra khỏi danh sách (So sánh bằng EMAIL)
         List<User> finalContacts = contacts.stream()
-                .filter(u -> !u.getEmail().equals(currentEmail)) // <--- Đã sửa thành getEmail()
+                .filter(u -> !u.getEmail().equals(currentEmail))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(finalContacts);

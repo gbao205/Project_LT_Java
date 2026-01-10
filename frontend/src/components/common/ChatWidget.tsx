@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    Box, Paper, IconButton, Typography,
-    TextField, Fab, Tooltip, Zoom, Avatar, Badge,
-    List, ListItem, ListItemAvatar, ListItemText, Divider
+    Box, Paper, IconButton, Typography, TextField, Fab, Tooltip, Zoom, Avatar, Badge,
+    List, ListItem, ListItemButton, ListItemAvatar, ListItemText, Divider
 } from '@mui/material';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -19,26 +18,27 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CircleIcon from '@mui/icons-material/Circle';
 
 const ChatWidget = () => {
-    // --- STATE ĐIỀU KHIỂN UI ---
     const [isOpen, setIsOpen] = useState(false);
     const [view, setView] = useState<'CONTACTS' | 'CHAT'>('CONTACTS');
-
-    // --- STATE DỮ LIỆU ---
     const [contacts, setContacts] = useState<any[]>([]);
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [msgInput, setMsgInput] = useState("");
     const [connected, setConnected] = useState(false);
-
-    // --- THÔNG TIN USER & THÔNG BÁO ---
     const [unreadCounts, setUnreadCounts] = useState<{[key: string]: number}>({});
     const [myEmail, setMyEmail] = useState("");
     const [token, setToken] = useState("");
 
     const clientRef = useRef<Client | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const selectedUserRef = useRef<any>(null);
+    const isOpenRef = useRef(false); // Dùng Ref để theo dõi trạng thái đóng/mở trong callback socket
 
-    // 1. Khởi tạo dữ liệu User khi Component mount
+    useEffect(() => {
+        selectedUserRef.current = selectedUser;
+        isOpenRef.current = isOpen;
+    }, [selectedUser, isOpen]);
+
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         const tokenStr = localStorage.getItem('token');
@@ -47,94 +47,104 @@ const ChatWidget = () => {
             setMyEmail(userObj.email);
             setToken(tokenStr);
             loadContacts(tokenStr);
+            syncUnreadCounts(userObj.email, tokenStr);
         }
     }, []);
 
-    // 2. Tải danh sách những người được phép chat (theo Role)
     const loadContacts = async (authToken: string) => {
         try {
             const res = await axios.get('http://localhost:8080/api/users/contacts', {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
             setContacts(res.data);
-        } catch (error) {
-            console.error("Lỗi khi tải danh bạ:", error);
-        }
+        } catch (error) { console.error("Lỗi danh bạ:", error); }
     };
 
-    // 3. Tải lịch sử chat riêng tư giữa 2 người (từ MongoDB)
-    const loadPrivateHistory = async (otherEmail: string) => {
+    // MỚI: Đồng bộ số tin nhắn chưa đọc từ Database
+    const syncUnreadCounts = async (email: string, authToken: string) => {
         try {
-            const res = await axios.get(`http://localhost:8080/api/chat/history/private`, {
-                params: {
-                    me: myEmail,
-                    other: otherEmail
-                }
+            const res = await axios.get(`http://localhost:8080/api/chat/unread-map?email=${email}`, {
+                headers: { Authorization: `Bearer ${authToken}` }
             });
-            if (res.data) setMessages(res.data);
-        } catch (error) {
-            console.error("Lỗi khi tải lịch sử chat:", error);
-        }
+            setUnreadCounts(res.data);
+        } catch (error) { console.error("Lỗi sync unread:", error); }
     };
 
-    // 4. Thiết lập kết nối WebSocket Real-time
+    const moveContactToTop = (email: string) => {
+        setContacts(prev => {
+            const index = prev.findIndex(c => c.email === email);
+            if (index === -1) return prev;
+            const updated = [...prev];
+            const contact = updated.splice(index, 1)[0];
+            return [contact, ...updated];
+        });
+    };
+
     useEffect(() => {
-        if (!myEmail) return;
+        if (!myEmail || !token) return;
 
         const client = new Client({
             webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
-            reconnectDelay: 5000,
             onConnect: () => {
                 setConnected(true);
-                // Đăng ký nhận tin nhắn tại kênh riêng tư của mình
                 client.subscribe(`/topic/private/${myEmail}`, (message) => {
                     const body = JSON.parse(message.body);
+                    const chattingWith = selectedUserRef.current?.email;
+                    const isWidgetOpen = isOpenRef.current;
 
-                    // A. Tự động đẩy người vừa nhắn lên đầu danh sách danh bạ
-                    setContacts(prev => {
-                        const newContacts = [...prev];
-                        const index = newContacts.findIndex(c => c.email === body.sender);
-                        if (index > -1) {
-                            const sender = newContacts.splice(index, 1)[0];
-                            return [sender, ...newContacts];
-                        }
-                        return prev;
-                    });
+                    moveContactToTop(body.sender);
 
-                    // B. Nếu đang mở đúng khung chat với người gửi, cập nhật tin nhắn ngay
-                    if (selectedUser?.email === body.sender) {
+                    // Logic thông báo:
+                    // 1. Nếu đang mở khung chat VÀ đang chat với chính người gửi -> Hiển thị tin nhắn & Mark Read
+                    if (isWidgetOpen && chattingWith === body.sender) {
+                        setMessages(prev => [...prev, body]);
+                        axios.post(`http://localhost:8080/api/chat/mark-read`, null, {
+                            params: { me: myEmail, other: body.sender },
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                    }
+                    // 2. Nếu tin nhắn của mình gửi từ thiết bị khác -> Chỉ hiển thị tin nhắn (Echo)
+                    else if (body.sender === myEmail) {
                         setMessages(prev => [...prev, body]);
                     }
-
-                    // C. Xử lý Badge thông báo (nếu đang không xem chat với người đó)
-                    if (!isOpen || view === 'CONTACTS' || selectedUser?.email !== body.sender) {
+                    // 3. Trường hợp còn lại (đang đóng widget, hoặc đang chat với người khác) -> Tăng số đỏ
+                    else {
                         setUnreadCounts(prev => ({
                             ...prev,
-                            [body.sender]: (prev[body.sender] || 0) + 1
+                            [body.sender]: (Number(prev[body.sender]) || 0) + 1
                         }));
-                        // Phát âm thanh thông báo
                         new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3').play().catch(() => {});
                     }
                 });
             },
         });
-
         client.activate();
         clientRef.current = client;
         return () => clientRef.current?.deactivate();
-    }, [myEmail, selectedUser, isOpen, view]);
+    }, [myEmail, token]);
 
-    // 5. Khi nhấn chọn một người để chat
-    const handleSelectUser = (user: any) => {
+    const handleSelectUser = async (user: any) => {
+        setMessages([]);
         setSelectedUser(user);
         setView('CHAT');
-        // Xóa thông báo của người này
+
+        // Xóa số đỏ local
         setUnreadCounts(prev => ({ ...prev, [user.email]: 0 }));
-        // Tải lịch sử chat 1-1
-        loadPrivateHistory(user.email);
+
+        // Báo Server đã đọc
+        await axios.post(`http://localhost:8080/api/chat/mark-read`, null, {
+            params: { me: myEmail, other: user.email },
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Tải lịch sử
+        const res = await axios.get(`http://localhost:8080/api/chat/history/private`, {
+            params: { me: myEmail, other: user.email },
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data) setMessages(res.data);
     };
 
-    // 6. Gửi tin nhắn
     const sendMessage = () => {
         if (clientRef.current?.connected && msgInput.trim() && selectedUser) {
             const chatMessage = {
@@ -142,158 +152,78 @@ const ChatWidget = () => {
                 recipient: selectedUser.email,
                 content: msgInput,
                 type: 'CHAT',
+                isRead: false,
                 timestamp: new Date().toISOString()
             };
-
-            // Gửi qua WebSocket
-            clientRef.current.publish({
-                destination: "/app/chat.sendMessage",
-                body: JSON.stringify(chatMessage)
-            });
-
-            // Cập nhật giao diện của chính mình ngay lập tức
-            setMessages(prev => [...prev, chatMessage]);
+            clientRef.current.publish({ destination: "/app/chat.sendMessage", body: JSON.stringify(chatMessage) });
+            moveContactToTop(selectedUser.email);
             setMsgInput("");
-
-            // Đẩy người mình vừa nhắn lên đầu danh sách của mình
-            setContacts(prev => {
-                const newContacts = [...prev];
-                const index = newContacts.findIndex(c => c.email === selectedUser.email);
-                if (index > -1) {
-                    const recipient = newContacts.splice(index, 1)[0];
-                    return [recipient, ...newContacts];
-                }
-                return prev;
-            });
         }
     };
 
-    // Tự động cuộn xuống tin nhắn mới nhất
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, view]);
+    // Khi người dùng bấm nút mở khung chat -> Đồng bộ lại số đỏ từ Server cho chắc chắn
+    const toggleWidget = () => {
+        if (!isOpen) {
+            syncUnreadCounts(myEmail, token);
+        }
+        setIsOpen(!isOpen);
+    };
 
-    const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+    const totalUnread = Object.values(unreadCounts).reduce((a, b) => Number(a) + Number(b), 0);
 
     return (
         <>
             <Zoom in={isOpen}>
-                <Paper elevation={10} sx={{
-                    position: 'fixed', bottom: 8, right: 100,
-                    width: 380, height: 550, zIndex: 10000,
-                    display: 'flex', flexDirection: 'column',
-                    borderRadius: '16px', overflow: 'hidden'
-                }}>
-
-                    {/* HEADER */}
+                <Paper elevation={10} sx={{ position: 'fixed', bottom: 8, right: 100, width: 380, height: 550, zIndex: 10000, display: 'flex', flexDirection: 'column', borderRadius: '16px', overflow: 'hidden' }}>
                     <Box sx={{ p: 2, bgcolor: '#007bff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Box display="flex" alignItems="center">
-                            {view === 'CHAT' && (
-                                <IconButton size="small" onClick={() => setView('CONTACTS')} sx={{ color: 'white', mr: 1 }}>
-                                    <ArrowBackIcon />
-                                </IconButton>
-                            )}
-                            <Typography variant="subtitle1" fontWeight="bold">
-                                {view === 'CONTACTS' ? 'Trò chuyện' : selectedUser?.fullName}
-                            </Typography>
+                            {view === 'CHAT' && <IconButton size="small" onClick={() => setView('CONTACTS')} sx={{ color: 'white', mr: 1 }}><ArrowBackIcon /></IconButton>}
+                            <Typography variant="subtitle1" fontWeight="bold">{view === 'CONTACTS' ? 'Trò chuyện' : selectedUser?.fullName}</Typography>
                         </Box>
-                        <IconButton size="small" onClick={() => setIsOpen(false)} sx={{ color: 'white' }}>
-                            <RemoveIcon />
-                        </IconButton>
+                        <IconButton size="small" onClick={() => setIsOpen(false)} sx={{ color: 'white' }}><RemoveIcon /></IconButton>
                     </Box>
 
-                    {/* VIEW: DANH BẠ (CONTACTS) */}
-                    {view === 'CONTACTS' && (
-                        <Box sx={{ flexGrow: 1, overflowY: 'auto', bgcolor: '#fff' }}>
+                    {view === 'CONTACTS' ? (
+                        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
                             <List>
-                                {contacts.length === 0 ? (
-                                    <Typography sx={{ p: 3, textAlign: 'center', color: '#999' }}>Không có người liên hệ nào</Typography>
-                                ) : (
-                                    contacts.map((user) => (
-                                        <React.Fragment key={user.id}>
-                                            <ListItem button onClick={() => handleSelectUser(user)}>
-                                                <ListItemAvatar>
-                                                    <Badge badgeContent={unreadCounts[user.email]} color="error">
-                                                        <Avatar sx={{ bgcolor: user.role === 'ADMIN' ? '#d32f2f' : '#1976d2' }}>
-                                                            {user.fullName?.charAt(0)}
-                                                        </Avatar>
-                                                    </Badge>
-                                                </ListItemAvatar>
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography variant="body1" sx={{ fontWeight: unreadCounts[user.email] > 0 ? 'bold' : 'normal' }}>
-                                                            {user.fullName}
-                                                        </Typography>
-                                                    }
-                                                    secondary={user.role}
-                                                />
-                                                {unreadCounts[user.email] > 0 ? (
-                                                    <CircleIcon sx={{ fontSize: 12, color: '#f44336' }} />
-                                                ) : (
-                                                    <CircleIcon sx={{ fontSize: 10, color: '#4caf50' }} />
-                                                )}
-                                            </ListItem>
-                                            <Divider variant="inset" component="li" />
-                                        </React.Fragment>
-                                    ))
-                                )}
+                                {contacts.map((user) => (
+                                    <ListItem key={user.email} disablePadding>
+                                        <ListItemButton onClick={() => handleSelectUser(user)}>
+                                            <ListItemAvatar>
+                                                <Badge badgeContent={unreadCounts[user.email]} color="error">
+                                                    <Avatar sx={{ bgcolor: '#1976d2' }}>{user.fullName?.charAt(0)}</Avatar>
+                                                </Badge>
+                                            </ListItemAvatar>
+                                            <ListItemText primary={user.fullName} secondary={user.role} />
+                                            {unreadCounts[user.email] > 0 && <CircleIcon sx={{ fontSize: 10, color: '#f44336' }} />}
+                                        </ListItemButton>
+                                    </ListItem>
+                                ))}
                             </List>
                         </Box>
-                    )}
-
-                    {/* VIEW: KHUNG CHAT (CHAT) */}
-                    {view === 'CHAT' && (
+                    ) : (
                         <>
                             <Box sx={{ flexGrow: 1, p: 2, bgcolor: '#f5f7fb', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                {messages.map((msg, index) => {
-                                    const isMe = msg.sender === myEmail;
-                                    return (
-                                        <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                                            <Paper sx={{
-                                                p: 1.5,
-                                                bgcolor: isMe ? '#007bff' : 'white',
-                                                color: isMe ? 'white' : 'black',
-                                                borderRadius: isMe ? '12px 12px 0 12px' : '12px 12px 12px 0',
-                                                maxWidth: '85%',
-                                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                            }}>
-                                                <Typography variant="body2">{msg.content}</Typography>
-                                            </Paper>
-                                            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5 }}>
-                                                {msg.timestamp ? formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: vi }) : ''}
-                                            </Typography>
-                                        </Box>
-                                    );
-                                })}
+                                {messages.map((msg, i) => (
+                                    <Box key={i} sx={{ alignSelf: msg.sender === myEmail ? 'flex-end' : 'flex-start' }}>
+                                        <Paper sx={{ p: 1.5, bgcolor: msg.sender === myEmail ? '#007bff' : 'white', color: msg.sender === myEmail ? 'white' : 'black', borderRadius: '12px' }}>
+                                            <Typography variant="body2">{msg.content}</Typography>
+                                        </Paper>
+                                    </Box>
+                                ))}
                                 <div ref={messagesEndRef} />
                             </Box>
-
-                            {/* INPUT GỬI TIN */}
-                            <Box sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid #eee', display: 'flex', gap: 1 }}>
-                                <TextField
-                                    fullWidth size="small" placeholder="Nhập tin nhắn..."
-                                    value={msgInput}
-                                    onChange={(e) => setMsgInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '20px' } }}
-                                />
-                                <IconButton color="primary" onClick={sendMessage} disabled={!msgInput.trim() || !connected}>
-                                    <SendIcon />
-                                </IconButton>
+                            <Box sx={{ p: 2, display: 'flex', gap: 1 }}>
+                                <TextField fullWidth size="small" value={msgInput} onChange={(e) => setMsgInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} />
+                                <IconButton color="primary" onClick={sendMessage} disabled={!msgInput.trim()}><SendIcon /></IconButton>
                             </Box>
                         </>
                     )}
                 </Paper>
             </Zoom>
-
-            {/* NÚT BÓNG CHAT (FAB) */}
-            <Tooltip title="Trò chuyện" placement="left">
-                <Fab color="primary" onClick={() => setIsOpen(!isOpen)} sx={{ position: 'fixed', bottom: 90, right: 24, zIndex: 9999 }}>
-                    <Badge badgeContent={totalUnread} color="error">
-                        {isOpen ? <CloseIcon /> : <ChatBubbleIcon />}
-                    </Badge>
-                </Fab>
-            </Tooltip>
+            <Fab color="primary" onClick={toggleWidget} sx={{ position: 'fixed', bottom: 90, right: 24 }}><Badge badgeContent={totalUnread} color="error">{isOpen ? <CloseIcon /> : <ChatBubbleIcon />}</Badge></Fab>
         </>
     );
 };
