@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
@@ -43,4 +44,16 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
             Boolean isRegistrationOpen,
             Pageable pageable
     );
+
+
+    // "Lấy các lớp (c) có sinh viên này (s) NHƯNG ID lớp đó KHÔNG nằm trong 
+    // danh sách các lớp mà sinh viên này đang ở trong một nhóm (tm.team.classRoom.id)"
+    @Query("SELECT c FROM ClassRoom c " +
+           "JOIN c.students s " +
+           "WHERE s.id = :studentId " +
+           "AND c.id NOT IN (" +
+           "    SELECT tm.team.classRoom.id FROM TeamMember tm " +
+           "    WHERE tm.student.id = :studentId" +
+           ")")
+    List<ClassRoom> findClassesWithoutTeam(@Param("studentId") Long studentId);
 }

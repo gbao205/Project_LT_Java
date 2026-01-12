@@ -15,6 +15,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
+import LoginIcon from '@mui/icons-material/Login';
 import studentService from '../../services/studentService';
 import { getClassDetails, createMaterial, createAssignment, submitAssignment } from '../../services/classService';
 import AdminLayout from '../../components/layout/AdminLayout';
@@ -43,6 +44,8 @@ const ClassDetail = () => {
     const [openLeaderDialog, setOpenLeaderDialog] = useState(false);
     const [selectedNewLeaderId, setSelectedNewLeaderId] = useState<number | null>(null);
     const [openRegisterProject, setOpenRegisterProject] = useState(false);
+    const [openJoinDialog, setOpenJoinDialog] = useState(false);
+    const [joinCode, setJoinCode] = useState("");
 
     // Form Data & Search
     const [formData, setFormData] = useState({ title: '', description: '', url: '', deadline: '' });
@@ -202,6 +205,27 @@ const ClassDetail = () => {
             fetchTeamData();
         } catch (error: any) {
             showSnackbar(error.response?.data?.message || "Lỗi tạo nhóm", "error");
+        }
+    };
+
+    const handleJoinByCode = async () => {
+        if (!joinCode.trim()) {
+            setSnackbar({ open: true, message: "Vui lòng nhập mã nhóm!", severity: 'error' });
+            return;
+        }
+        try {
+            await studentService.joinTeam(joinCode.trim());
+            setSnackbar({ open: true, message: "Tham gia nhóm thành công!", severity: 'success' });
+            setOpenJoinDialog(false);
+            setJoinCode("");
+            fetchData();
+            fetchTeamData();
+        } catch (error: any) {
+            setSnackbar({ 
+                open: true, 
+                message: error.response?.data?.message || "Lỗi tham gia nhóm", 
+                severity: 'error' 
+            });
         }
     };
 
@@ -549,9 +573,14 @@ const ClassDetail = () => {
                                     <Box>
                                         <Alert severity="info" sx={{ mb: 2 }}>Bạn chưa tham gia nhóm nào. Hãy chọn nhóm hoặc tạo mới.</Alert>
                                         <Box display="flex" justifyContent="flex-end" mb={2}>
-                                            <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreateTeam}>
-                                                Tạo Nhóm Mới
-                                            </Button>
+                                            <Box display="flex" gap={2}>
+                                                <Button variant="outlined" color="primary" startIcon={<LoginIcon />} onClick={() => setOpenJoinDialog(true)}>
+                                                    Tham Gia Bằng Mã
+                                                </Button>
+                                                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreateTeam}>
+                                                    Tạo Nhóm Mới
+                                                </Button>
+                                            </Box>
                                         </Box>
                                     </Box>
                                 )}
@@ -600,7 +629,7 @@ const ClassDetail = () => {
                                                                 gutterBottom
                                                                 sx={{
                                                                     pr: isMyTeamCard ? 12 : 0,
-                                                                    minHeight: '48px',
+                                                                    minHeight: '32px',
                                                                     lineHeight: '1.5',
                                                                     wordBreak: 'break-word',
                                                                 }}
@@ -613,6 +642,9 @@ const ClassDetail = () => {
                                                                 }}
                                                             >
                                                                 {team.teamName || team.name}
+                                                            </Typography>
+                                                            <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase">
+                                                                Mã tham gia: {team.joinCode || "null"}
                                                             </Typography>
                                                         </Tooltip>
 
@@ -853,6 +885,36 @@ const ClassDetail = () => {
                     <Button onClick={() => setOpenCreateTeam(false)} color="inherit">Hủy</Button>
                     <Button onClick={handleCreateTeam} variant="contained" disabled={!teamName.trim()}>
                         Tạo Nhóm {selectedMemberIds.length > 0 && `(+${selectedMemberIds.length})`}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* --- DIALOG JOIN BY CODE --- */}
+            <Dialog open={openJoinDialog} onClose={() => setOpenJoinDialog(false)} fullWidth maxWidth="xs">
+                <DialogTitle>Tham Gia Nhóm</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                        Nhập mã nhóm (Join Code) để tham gia.
+                    </Typography>
+                    <TextField
+                        autoFocus
+                        margin="normal"
+                        label="Mã Nhóm"
+                        fullWidth
+                        variant="outlined"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        placeholder="VD: A1B2C3"
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenJoinDialog(false)}>Hủy</Button>
+                    <Button 
+                        onClick={handleJoinByCode} 
+                        variant="contained" 
+                        disabled={!joinCode.trim()}
+                    >
+                        Tham Gia
                     </Button>
                 </DialogActions>
             </Dialog>
