@@ -1,7 +1,10 @@
 package com.cosre.backend.service;
 
+import com.cosre.backend.dto.staff.ClassResponseDTO;
+import com.cosre.backend.dto.staff.SubjectDTO;
 import com.cosre.backend.dto.student.CreateTeamRequest;
 import com.cosre.backend.dto.student.ProjectRegistrationRequest;
+import com.cosre.backend.dto.student.JoinTeamRequest;
 import com.cosre.backend.entity.*;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.*;
@@ -164,20 +167,25 @@ public class StudentService {
 
     // Tham gia nhóm
     @Transactional
-    public void joinTeam(Long teamId) {
+    public void joinTeam(JoinTeamRequest request) {
         User student = getCurrentUser();
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new AppException("Nhóm không tồn tại", HttpStatus.NOT_FOUND));
+        
+        // 1. Tìm nhóm bằng joinCode
+        Team team = teamRepository.findByJoinCode(request.getJoinCode())
+                .orElseThrow(() -> new AppException("Mã nhóm không tồn tại hoặc không hợp lệ!", HttpStatus.NOT_FOUND));
 
+        // 2. Kiểm tra xem sinh viên đã có nhóm trong lớp này chưa
         if (teamMemberRepository.existsByStudent_IdAndTeam_ClassRoom_Id(student.getId(), team.getClassRoom().getId())) {
-            throw new AppException("Bạn đã có nhóm trong lớp này!", HttpStatus.BAD_REQUEST);
+            throw new AppException("Bạn đã tham gia một nhóm khác trong lớp này rồi!", HttpStatus.BAD_REQUEST);
         }
 
+        // 3. Thêm vào nhóm
         TeamMember member = TeamMember.builder()
                 .team(team)
                 .student(student)
                 .role(TeamRole.MEMBER)
                 .build();
+        
         teamMemberRepository.save(member);
     }
 
@@ -279,6 +287,30 @@ public class StudentService {
 
         team.setProject(project);
         return teamRepository.save(team);
+    }
+
+    public List<ClassResponseDTO> getClassesAvailableForTeam() {
+        User student = getCurrentUser();
+        List<ClassRoom> classes = classRoomRepository.findClassesWithoutTeam(student.getId());
+
+        // Map từ Entity sang DTO (giản lược để hiển thị trên Dropdown)
+        return classes.stream().map(c -> ClassResponseDTO.builder()
+                .id(c.getId())
+                .name(c.getName())
+                .semester(c.getSemester())
+                .subjectName(c.getSubject() != null ? c.getSubject().getName() : "") 
+                .classCode(c.getName()) 
+                .build()
+        ).toList();
+    }
+
+    // Lấy tất cả nhóm mà sinh viên đã tham gia
+    public List<Team> getAllJoinedTeams() {
+        User student = getCurrentUser();
+        return teamMemberRepository.findByStudent_Id(student.getId())
+                .stream()
+                .map(TeamMember::getTeam) // Lấy đối tượng Team từ TeamMember
+                .toList();
     }
 
     // Lấy Milestone (Mốc thời gian)

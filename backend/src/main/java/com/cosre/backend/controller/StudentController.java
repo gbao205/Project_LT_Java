@@ -1,5 +1,6 @@
 package com.cosre.backend.controller;
 
+import com.cosre.backend.dto.staff.ClassResponseDTO;
 import com.cosre.backend.dto.student.*;
 import com.cosre.backend.entity.Student;
 import com.cosre.backend.entity.Team;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/student")
@@ -38,11 +40,10 @@ public class StudentController {
     }
 
     // Tham gia nhóm
-    @PostMapping("/teams/join")
+    @PostMapping("/teams/join-team-by-code")
     public ResponseEntity<?> joinTeam(@RequestBody JoinTeamRequest request) {
-        // Gọi service với teamId lấy từ request
-        studentService.joinTeam(request.getTeamId());
-        return ResponseEntity.ok(Map.of("message", "Tham gia nhóm thành công!"));
+        studentService.joinTeam(request);
+        return ResponseEntity.ok("Tham gia nhóm thành công!");
     }
 
     // API Rời nhóm (Sửa lỗi No static resource)
@@ -84,6 +85,12 @@ public class StudentController {
         return ResponseEntity.ok(studentService.registerProject(request));
     }
 
+    // Lấy danh sách tất cả nhóm đã tham gia
+    @GetMapping("/my-teams")
+    public ResponseEntity<List<Team>> getAllJoinedTeams() {
+        return ResponseEntity.ok(studentService.getAllJoinedTeams());
+    }
+
     // Xem milestone
     @GetMapping("/classes/{classId}/milestones")
     public ResponseEntity<?> getMilestones(@PathVariable Long classId) {
@@ -94,5 +101,11 @@ public class StudentController {
     @GetMapping("/classes/{classId}/students-no-team")
     public ResponseEntity<?> getStudentsNoTeam(@PathVariable Long classId) {
         return ResponseEntity.ok(studentService.getStudentsWithoutTeam(classId));
+    }
+
+    // Lấy danh sách lớp chưa có nhóm
+    @GetMapping("/classes/no-team")
+    public ResponseEntity<List<ClassResponseDTO>> getClassesAvailableForTeam() {
+        return ResponseEntity.ok(studentService.getClassesAvailableForTeam());
     }
 }

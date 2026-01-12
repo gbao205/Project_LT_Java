@@ -86,9 +86,9 @@ const studentService = {
         return res.data;
     },
 
-    // Tham gia nhóm (bằng ID)
-     joinTeam: async (data: { teamId: number }) => {
-        return api.post('/student/teams/join', data);
+    // Tham gia nhóm bằng Mã Code (String)
+     joinTeam: async (joinCode: string) => {
+        return api.post('/student/teams/join-team-by-code', { joinCode });
     },
 
     // Đăng ký đề tài (Cho Leader)
@@ -123,6 +123,16 @@ const studentService = {
     getTeamsInClass: async (classId: string) => {
         const res = await api.get(`/student/classes/${classId}/teams`);
         return res.data;
+    },
+
+    getAllJoinedTeams: async () => {
+        const response = await api.get('/student/my-teams');
+        return response.data;
+    },
+
+    getClassesWithoutTeam: async () => {
+        const response = await api.get('/student/classes/no-team');
+        return response.data;
     },
 };
 

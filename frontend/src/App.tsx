@@ -26,6 +26,7 @@ import CourseRegistration from "./pages/student/CourseRegistration";
 import MyClasses from "./pages/student/MyClasses";
 import StudentProfile from "./pages/student/StudentProfile";
 import ClassDetail from "./pages/class/ClassDetail";
+import MyTeams from "./pages/student/MyTeams";
 
 // Các trang giảng viên...
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
@@ -91,6 +92,7 @@ function App() {
           <Route path="/student/classes" element={<MyClasses />} />
           <Route path="/student/profile" element={<StudentProfile />} />
           <Route path="/class/:id" element={<ClassDetail />} />
+          <Route path="student/my-teams" element={<MyTeams />} />
 
           {/* Lecturer Routes */}
           <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />

@@ -40,4 +40,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     // Lấy danh sách thành viên của 1 team
     List<TeamMember> findByTeam_Id(Long teamId);
+
+    // Tìm tất cả các nhóm mà studentId tham gia
+    List<TeamMember> findByStudent_Id(Long studentId);
 }
