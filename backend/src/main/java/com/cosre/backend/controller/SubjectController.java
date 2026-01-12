@@ -11,7 +11,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/subjects")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Cho phép Frontend gọi API thoải mái
+@CrossOrigin(origins = "*") 
 public class SubjectController {
 
     private final SubjectService subjectService;

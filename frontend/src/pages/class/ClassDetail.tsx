@@ -14,12 +14,14 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
 import GroupsIcon from '@mui/icons-material/Groups';
+import PersonIcon from '@mui/icons-material/Person';
 import studentService from '../../services/studentService';
 import { getClassDetails, createMaterial, createAssignment, submitAssignment } from '../../services/classService';
 import AdminLayout from '../../components/layout/AdminLayout';
 import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from '@mui/icons-material/Warning';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 
 const ClassDetail = () => {
     const { id } = useParams();
@@ -40,6 +42,7 @@ const ClassDetail = () => {
     const [openCreateTeam, setOpenCreateTeam] = useState(false);
     const [openLeaderDialog, setOpenLeaderDialog] = useState(false);
     const [selectedNewLeaderId, setSelectedNewLeaderId] = useState<number | null>(null);
+    const [openRegisterProject, setOpenRegisterProject] = useState(false);
 
     // Form Data & Search
     const [formData, setFormData] = useState({ title: '', description: '', url: '', deadline: '' });
@@ -49,6 +52,8 @@ const ClassDetail = () => {
     const [studentsNoTeam, setStudentsNoTeam] = useState<any[]>([]);
     const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [projectForm, setProjectForm] = useState({ projectName: '', description: ''});
+    const [isLeader, setIsLeader] = useState(false);
 
     // --- STATE CHO UI MỚI (SNACKBAR & CONFIRM) ---
     const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' | 'warning' }>({
@@ -84,15 +89,25 @@ const ClassDetail = () => {
     };
 
     const fetchTeamData = async () => {
-        if (!id) return;
+        if (!id || !user) return;
         try {
+            const team = await studentService.getMyTeam(id);
             const teams = await studentService.getTeamsInClass(id);
             setAvailableTeams(teams);
-            const team = await studentService.getMyTeam(id);
-            if (team && team.id) setMyTeam(team);
-            else setMyTeam(null);
-        } catch (e) {
-            console.error(e);
+            if (team && team.id) {
+                setMyTeam(team);
+                // Kiểm tra xem User hiện tại có phải Leader không
+                const currentUserMember = team.members.find((m: any) => m.student?.email === user.email);
+                setIsLeader(currentUserMember?.role === 'LEADER');
+            } else {
+                setMyTeam(null);
+                setIsLeader(false);
+                // Nếu chưa có nhóm, tải danh sách nhóm có sẵn
+                const teams = await studentService.getTeamsInClass(id);
+                setAvailableTeams(teams);
+            }
+        } catch (error) {
+            console.error("Lỗi tải thông tin nhóm:", error);
         }
     };
 
@@ -190,6 +205,17 @@ const ClassDetail = () => {
         }
     };
 
+    const handleRegisterProject = async () => {
+        try {
+            await studentService.registerProject({...projectForm, classId: Number(id)});
+            showSnackbar("Đăng ký đề tài thành công! Chờ giảng viên duyệt.");
+            setOpenRegisterProject(false);
+            fetchTeamData();
+        } catch (error: any) {
+            showSnackbar(error.response?.data?.message || "Lỗi đăng ký đề tài", "error");
+        }
+    };
+
     const handleJoinTeam = (teamId: number) => {
         // Thay thế confirm mặc định bằng Dialog
         setConfirmDialog({
@@ -283,7 +309,7 @@ const ClassDetail = () => {
                     <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
                         <Box>
                             <Typography variant="subtitle1" color="textSecondary">
-                                <b>Giảng viên:</b> {classData.classInfo.com.cosre.backend.dto.lecturer?.fullName}
+                                <b>Giảng viên:</b> {classData.classInfo.lecturer?.fullName}
                             </Typography>
                             <Typography variant="subtitle2" color="textSecondary">
                                 <b>Học kỳ:</b> {classData.classInfo.semester}
@@ -425,58 +451,90 @@ const ClassDetail = () => {
 
                                     <Grid container spacing={3}>
                                         <Grid item xs={12} md={6}>
-                                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <DescriptionIcon color="action" /> Đề tài đăng ký
-                                            </Typography>
-                                            {myTeam.project ? (
-                                                <Card variant="outlined" sx={{ p: 2, bgcolor: '#fff' }}>
-                                                    <Typography variant="subtitle1" fontWeight="bold" color="secondary">
-                                                        {myTeam.project.name}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary" mt={1}>
-                                                        {myTeam.project.description || "Không có mô tả chi tiết."}
-                                                    </Typography>
-                                                    <Chip label={myTeam.project.status || "PENDING"} size="small" color="success" sx={{ mt: 1 }} />
-                                                </Card>
-                                            ) : (
-                                                <Box p={2} border="1px dashed #ccc" borderRadius={1} bgcolor="#fff">
-                                                    <Typography color="text.secondary" fontStyle="italic">Chưa đăng ký đề tài nào.</Typography>
-                                                </Box>
-                                            )}
+                                            <Grid item xs={12} md={8}>
+                                                <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                                                    <Box display="flex" alignItems="center" gap={1} mb={2}>
+                                                        <FactCheckIcon color="secondary" />
+                                                        <Typography variant="h6" fontWeight="bold">Thông Tin Đề Tài</Typography>
+                                                    </Box>
+                                                    <Divider sx={{ mb: 2 }} />
+
+                                                    {myTeam.project ? (
+                                                        /* Đã có đề tài */
+                                                        <Box>
+                                                            <Typography variant="h5" color="secondary.main" fontWeight="bold" gutterBottom>
+                                                                {myTeam.project.name}
+                                                            </Typography>
+                                                            <Chip 
+                                                                label={myTeam.project.status === 'APPROVED' ? "Đã Duyệt" : "Đang Chờ Duyệt"} 
+                                                                color={myTeam.project.status === 'APPROVED' ? "success" : "warning"} 
+                                                                variant="outlined" 
+                                                                sx={{ mb: 2 }}
+                                                            />
+                                                            <Typography variant="body1" paragraph>
+                                                                {myTeam.project.description}
+                                                            </Typography>
+                                                        </Box>
+                                                    ) : (
+                                                        /* Chưa có đề tài */
+                                                        <Box textAlign="center" py={4}>
+                                                            <Typography variant="body1" color="textSecondary" paragraph>
+                                                                Nhóm chưa đăng ký đề tài nào.
+                                                            </Typography>
+                                                            {isLeader ? (
+                                                                <Button variant="contained" color="secondary" onClick={() => setOpenRegisterProject(true)}>
+                                                                    Đăng Ký Đề Tài Ngay
+                                                                </Button>
+                                                            ) : (
+                                                                <Alert severity="warning">Vui lòng nhắc Nhóm trưởng đăng ký đề tài.</Alert>
+                                                            )}
+                                                        </Box>
+                                                    )}
+                                                </Paper>
+                                            </Grid>
                                         </Grid>
 
                                         <Grid item xs={12} md={6}>
-                                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <GroupsIcon color="action" /> Thành viên ({myTeam.members?.length || 0})
-                                            </Typography>
-                                            <List dense sx={{ bgcolor: '#fff', borderRadius: 1, border: '1px solid #eee' }}>
-                                                {myTeam.members
-                                                    ?.sort((a: any, b: any) => (a.role === 'LEADER' ? -1 : b.role === 'LEADER' ? 1 : 0))
-                                                    .map((mem: any) => (
-                                                        <ListItem key={mem.id}>
-                                                            <ListItemIcon sx={{ minWidth: 40 }}>
-                                                                <Avatar sx={{ width: 32, height: 32, bgcolor: mem.role === 'LEADER' ? '#ff9800' : '#bdbdbd' }}>
-                                                                    {mem.student?.fullName?.charAt(0)}
-                                                                </Avatar>
-                                                            </ListItemIcon>
-                                                            <ListItemText
-                                                                primary={
-                                                                    <Box display="flex" alignItems="center" gap={1}>
-                                                                        <Typography variant="body1" fontWeight={mem.student?.id === user?.id ? 'bold' : 'normal'}>
-                                                                            {mem.student?.fullName}
-                                                                        </Typography>
-                                                                        {mem.role === 'LEADER' && (
-                                                                            <Tooltip title="Nhóm trưởng">
-                                                                                <StarIcon fontSize="small" sx={{ color: '#ff9800' }} />
-                                                                            </Tooltip>
-                                                                        )}
-                                                                    </Box>
-                                                                }
-                                                                secondary={mem.student?.email}
-                                                            />
-                                                        </ListItem>
-                                                    ))}
-                                            </List>
+                                            <Grid item xs={12} md={8}>
+                                                <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                                                    <Box display="flex" alignItems="center" gap={1} mb={2}>
+                                                        <GroupsIcon color="action"/>
+                                                        <Typography variant="h6" fontWeight="bold">
+                                                            Thành viên ({myTeam.members?.length || 0})
+                                                        </Typography>
+                                                    </Box>
+                                                    <Divider sx={{ mb: 2 }} />
+                                                    <List dense sx={{ bgcolor: '#fff'}}>
+                                                    <Chip label={isLeader ? "Bạn là Nhóm Trưởng" : "Thành viên"} color={isLeader ? "error" : "default"} size="small" sx={{mb: 2}} />
+                                                        {myTeam.members
+                                                            ?.sort((a: any, b: any) => (a.role === 'LEADER' ? -1 : b.role === 'LEADER' ? 1 : 0))
+                                                            .map((mem: any) => (
+                                                                <ListItem key={mem.id}>
+                                                                    <ListItemIcon sx={{ minWidth: 40 }}>
+                                                                        <Avatar sx={{ width: 32, height: 32, bgcolor: mem.role === 'LEADER' ? '#ff9800' : '#bdbdbd' }}>
+                                                                            {mem.student?.fullName?.charAt(0)}
+                                                                        </Avatar>
+                                                                    </ListItemIcon>
+                                                                    <ListItemText
+                                                                        primary={
+                                                                            <Box display="flex" alignItems="center" gap={1}>
+                                                                                <Typography variant="body1" fontWeight={mem.student?.id === user?.id ? 'bold' : 'normal'}>
+                                                                                    {mem.student?.fullName}
+                                                                                </Typography>
+                                                                                {mem.role === 'LEADER' && (
+                                                                                    <Tooltip title="Nhóm trưởng">
+                                                                                        <StarIcon fontSize="small" sx={{ color: '#ff9800' }} />
+                                                                                    </Tooltip>
+                                                                                )}
+                                                                            </Box>
+                                                                        }
+                                                                        secondary={mem.student?.email}
+                                                                    />
+                                                                </ListItem>
+                                                            ))}
+                                                    </List>
+                                                </Paper>
+                                            </Grid>
                                         </Grid>
                                     </Grid>
                                 </Paper>
@@ -488,9 +546,14 @@ const ClassDetail = () => {
                                 </Typography>
 
                                 {!myTeam && (
-                                    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreateTeam}>
-                                        Tạo Nhóm Mới
-                                    </Button>
+                                    <Box>
+                                        <Alert severity="info" sx={{ mb: 2 }}>Bạn chưa tham gia nhóm nào. Hãy chọn nhóm hoặc tạo mới.</Alert>
+                                        <Box display="flex" justifyContent="flex-end" mb={2}>
+                                            <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreateTeam}>
+                                                Tạo Nhóm Mới
+                                            </Button>
+                                        </Box>
+                                    </Box>
                                 )}
                             </Box>
 
@@ -516,7 +579,7 @@ const ClassDetail = () => {
                                                 <Card
                                                     elevation={3}
                                                     sx={{
-                                                        minWidth: 275,
+                                                        width: 270,
                                                         height: '100%',
                                                         display: 'flex',
                                                         flexDirection: 'column',
@@ -555,7 +618,7 @@ const ClassDetail = () => {
 
                                                         <Divider sx={{ my: 1.5 }} />
 
-                                                        <Box mb={2}>
+                                                        <Box sx={{mb: 1}}>
                                                             <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase">
                                                                 Đề tài
                                                             </Typography>
@@ -563,6 +626,9 @@ const ClassDetail = () => {
                                                                 <Box>
                                                                     <Typography variant="body2" fontWeight="bold" sx={{ color: '#2e7d32', mt: 0.5 }}>
                                                                         {team.project.name}
+                                                                        {team.project?.status !== "APPROVED" && (
+                                                                            <Chip label="Chưa duyệt" color="error" size="small" sx={{mt: 1}} />
+                                                                        )}
                                                                     </Typography>
                                                                 </Box>
                                                             ) : (
@@ -791,9 +857,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* --- CÁC COMPONENT UI CHUNG (MỚI) --- */}
-
-            {/* 1. Hộp thoại xác nhận (Thay thế window.confirm) */}
+            {/* 1. Hộp thoại xác nhận */}
             <Dialog
                 open={confirmDialog.open}
                 onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
@@ -824,7 +888,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* 2. Snackbar thông báo (Thay thế alert) */}
+            {/* 2. Snackbar thông báo */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000} // Tự đóng sau 4 giây
@@ -835,6 +899,33 @@ const ClassDetail = () => {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            {/* --- MODAL ĐĂNG KÝ ĐỀ TÀI --- */}
+            <Dialog open={openRegisterProject} onClose={() => setOpenRegisterProject(false)} fullWidth maxWidth="sm">
+                <DialogTitle>Đăng Ký Đề Tài Dự Án</DialogTitle>
+                <DialogContent>
+                    <Typography variant="caption" color="textSecondary" gutterBottom>
+                        Lưu ý: Chỉ nhóm trưởng mới được phép đăng ký.
+                    </Typography>
+                    <TextField 
+                        label="Tên Đề Tài" 
+                        fullWidth margin="normal" 
+                        value={projectForm.projectName} 
+                        onChange={(e) => setProjectForm({...projectForm, projectName: e.target.value})} 
+                    />
+                    <TextField 
+                        label="Mô tả chi tiết / Yêu cầu" 
+                        fullWidth margin="normal" 
+                        multiline rows={4} 
+                        value={projectForm.description} 
+                        onChange={(e) => setProjectForm({...projectForm, description: e.target.value})} 
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenRegisterProject(false)}>Hủy</Button>
+                    <Button onClick={handleRegisterProject} variant="contained" color="secondary">Đăng Ký</Button>
+                </DialogActions>
+            </Dialog>
 
         </AdminLayout>
     );

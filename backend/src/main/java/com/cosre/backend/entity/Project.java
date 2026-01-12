@@ -5,7 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "projects")
@@ -30,5 +33,7 @@ public class Project {
 
     // Mối quan hệ: Một đề tài có thể được chọn bởi nhiều nhóm
     @OneToMany(mappedBy = "project")
+    @JsonIgnore // Quan trọng: Ngắt vòng lặp JSON. Jackson sẽ bỏ qua field này khi trả về response.
+    //@ToString.Exclude // Ngắt vòng lặp toString của Lombok
     private List<Team> teams;
 }
