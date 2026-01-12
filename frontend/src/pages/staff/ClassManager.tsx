@@ -22,10 +22,10 @@ import {
   getAllClasses,
   createClass,
   type ClassRoom,
-} from "../../services/classService.ts";
-import { getSubjects } from "../../services/subjectService.ts";
-import { getAllUsers } from "../../services/userService.tsx";
-import AdminLayout from "../../components/layout/AdminLayout.tsx";
+} from "../../services/classService";
+import { getSubjects } from "../../services/subjectService";
+import { getAllUsers } from "../../services/userService";
+import AdminLayout from "../../components/layout/AdminLayout";
 
 const ClassManager = () => {
   const [classes, setClasses] = useState<ClassRoom[]>([]);
@@ -52,8 +52,10 @@ const ClassManager = () => {
       setClasses(classRes);
       setSubjects(subRes);
       // Lọc user để lấy danh sách Giảng viên (LECTURER)
-      const lecturerList = userRes.data.filter(
-        (u: any) => u.role === "LECTURER"
+      // Lưu ý: Kiểm tra lại cấu trúc trả về của getAllUsers, đôi khi nó trả về mảng trực tiếp hoặc object { data: [...] }
+      const users = Array.isArray(userRes) ? userRes : userRes.data || [];
+      const lecturerList = users.filter(
+          (u: any) => u.role === "LECTURER"
       );
       setLecturers(lecturerList);
     } catch (error) {
@@ -82,136 +84,137 @@ const ClassManager = () => {
   };
 
   return (
-    <AdminLayout title="Quản Lý Lớp Học">
-      {/* THANH CÔNG CỤ (Nút Tạo mới) */}
-      <Box display="flex" justifyContent="flex-end" mb={2}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpen(true)}
-        >
-          Tạo Lớp Mới
-        </Button>
-      </Box>
+      <AdminLayout title="Quản Lý Lớp Học">
+        {/* THANH CÔNG CỤ (Nút Tạo mới) */}
+        <Box display="flex" justifyContent="flex-end" mb={2}>
+          <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpen(true)}
+          >
+            Tạo Lớp Mới
+          </Button>
+        </Box>
 
-      {/* BẢNG DỮ LIỆU */}
-      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
-        <Table>
-          <TableHead sx={{ bgcolor: "#f5f5f5" }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Tên Lớp</TableCell>
-              <TableCell>Học Kỳ</TableCell>
-              <TableCell>Môn Học</TableCell>
-              <TableCell>Giảng Viên</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {classes.map((cls) => (
-              <TableRow key={cls.id} hover>
-                <TableCell>{cls.id}</TableCell>
-                <TableCell sx={{ color: "red", fontWeight: "bold" }}>
-                  {cls.name}
-                </TableCell>
-                <TableCell>{cls.semester}</TableCell>
-                <TableCell>
-                  {cls.subject
-                    ? `${cls.subject.name} (${cls.subject.subjectCode})`
-                    : "---"}
-                </TableCell>
-                <TableCell>
-                  {cls.com.cosre.backend.dto.lecturer ? (
-                    cls.com.cosre.backend.dto.lecturer.fullName
-                  ) : (
-                    <span style={{ color: "gray" }}>Chưa phân công</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {classes.length === 0 && (
+        {/* BẢNG DỮ LIỆU */}
+        <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+          <Table>
+            <TableHead sx={{ bgcolor: "#f5f5f5" }}>
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  align="center"
-                  sx={{ py: 3, color: "text.secondary" }}
-                >
-                  Chưa có lớp học nào được tạo
-                </TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Tên Lớp</TableCell>
+                <TableCell>Học Kỳ</TableCell>
+                <TableCell>Môn Học</TableCell>
+                <TableCell>Giảng Viên</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {classes.map((cls) => (
+                  <TableRow key={cls.id} hover>
+                    <TableCell>{cls.id}</TableCell>
+                    <TableCell sx={{ color: "red", fontWeight: "bold" }}>
+                      {cls.name}
+                    </TableCell>
+                    <TableCell>{cls.semester}</TableCell>
+                    <TableCell>
+                      {cls.subject
+                          ? `${cls.subject.name} (${cls.subject.subjectCode})`
+                          : "---"}
+                    </TableCell>
+                    {/* ✅ ĐÃ SỬA LỖI: Gọi đúng tên biến lecturer */}
+                    <TableCell>
+                      {cls.lecturer ? (
+                          cls.lecturer.fullName
+                      ) : (
+                          <span style={{ color: "gray" }}>Chưa phân công</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+              ))}
+              {classes.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                        colSpan={5}
+                        align="center"
+                        sx={{ py: 3, color: "text.secondary" }}
+                    >
+                      Chưa có lớp học nào được tạo
+                    </TableCell>
+                  </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-      {/* DIALOG FORM TẠO LỚP */}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>Mở Lớp Học Mới</DialogTitle>
-          <DialogContent>
-            <Box display="flex" flexDirection="column" gap={2} mt={1}>
-              <TextField
-                label="Tên lớp (VD: SE1702)"
-                fullWidth
-                {...register("name", { required: "Nhập tên lớp" })}
-                error={!!errors.name}
-              />
+        {/* DIALOG FORM TẠO LỚP */}
+        <Dialog
+            open={open}
+            onClose={() => setOpen(false)}
+            fullWidth
+            maxWidth="sm"
+        >
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <DialogTitle>Mở Lớp Học Mới</DialogTitle>
+            <DialogContent>
+              <Box display="flex" flexDirection="column" gap={2} mt={1}>
+                <TextField
+                    label="Tên lớp (VD: SE1702)"
+                    fullWidth
+                    {...register("name", { required: "Nhập tên lớp" })}
+                    error={!!errors.name}
+                />
 
-              <TextField
-                label="Học kỳ (VD: Spring 2025)"
-                fullWidth
-                {...register("semester", { required: "Nhập học kỳ" })}
-                error={!!errors.semester}
-              />
+                <TextField
+                    label="Học kỳ (VD: Spring 2025)"
+                    fullWidth
+                    {...register("semester", { required: "Nhập học kỳ" })}
+                    error={!!errors.semester}
+                />
 
-              {/* Select Môn Học */}
-              <TextField
-                select
-                label="Chọn Môn Học"
-                fullWidth
-                defaultValue=""
-                inputProps={register("subjectId", { required: "Chọn môn học" })}
-                error={!!errors.subjectId}
-              >
-                {subjects.map((sub) => (
-                  <MenuItem key={sub.id} value={sub.id}>
-                    {sub.subjectCode} - {sub.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+                {/* Select Môn Học */}
+                <TextField
+                    select
+                    label="Chọn Môn Học"
+                    fullWidth
+                    defaultValue=""
+                    inputProps={register("subjectId", { required: "Chọn môn học" })}
+                    error={!!errors.subjectId}
+                >
+                  {subjects.map((sub) => (
+                      <MenuItem key={sub.id} value={sub.id}>
+                        {sub.subjectCode} - {sub.name}
+                      </MenuItem>
+                  ))}
+                </TextField>
 
-              {/* Select Giảng Viên */}
-              <TextField
-                select
-                label="Chọn Giảng Viên"
-                fullWidth
-                defaultValue=""
-                inputProps={register("lecturerId", {
-                  required: "Chọn giảng viên",
-                })}
-                error={!!errors.lecturerId}
-              >
-                {lecturers.map((lec) => (
-                  <MenuItem key={lec.id} value={lec.id}>
-                    {lec.fullName} ({lec.email})
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Hủy</Button>
-            <Button type="submit" variant="contained">
-              Lưu
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </AdminLayout>
+                {/* Select Giảng Viên */}
+                <TextField
+                    select
+                    label="Chọn Giảng Viên"
+                    fullWidth
+                    defaultValue=""
+                    inputProps={register("lecturerId", {
+                      required: "Chọn giảng viên",
+                    })}
+                    error={!!errors.lecturerId}
+                >
+                  {lecturers.map((lec) => (
+                      <MenuItem key={lec.id} value={lec.id}>
+                        {lec.fullName} ({lec.email})
+                      </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpen(false)}>Hủy</Button>
+              <Button type="submit" variant="contained">
+                Lưu
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+      </AdminLayout>
   );
 };
 
