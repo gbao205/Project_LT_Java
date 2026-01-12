@@ -259,7 +259,7 @@ public class StudentService {
         User student = getCurrentUser();
 
         // Tìm quyền Leader của sinh viên
-        TeamMember leadership = teamMemberRepository.findByStudent_IdAndRole(student.getId(), TeamRole.LEADER)
+        TeamMember leadership = teamMemberRepository.findByStudent_IdAndRoleAndTeam_ClassRoom_Id(student.getId(), TeamRole.LEADER, request.getClassId())
                 .orElseThrow(() -> new AppException("Bạn không phải nhóm trưởng hoặc chưa có nhóm!", HttpStatus.FORBIDDEN));
 
         Team team = leadership.getTeam();

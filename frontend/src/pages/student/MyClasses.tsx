@@ -61,7 +61,7 @@ const MyClasses = () => {
                                             <Typography variant="body2" fontWeight="600">{cls.subject?.name}</Typography>
                                             <Typography variant="caption" color="textSecondary">{cls.subject?.subjectCode}</Typography>
                                         </TableCell>
-                                        <TableCell>{cls.com.cosre.backend.dto.lecturer?.fullName || "Chưa phân công"}</TableCell>
+                                        <TableCell>{cls.lecturer?.fullName || "Chưa phân công"}</TableCell>
                                         <TableCell>{cls.semester}</TableCell>
                                         <TableCell align="center">
                                             <Chip label="Đang Học" color="success" size="small" variant="outlined" />

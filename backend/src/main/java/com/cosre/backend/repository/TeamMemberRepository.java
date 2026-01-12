@@ -11,17 +11,22 @@ import java.util.Optional;
 @Repository
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
-    // Tìm thành viên theo Student và Role (để tìm nhóm trưởng)
+    // Kiểm tra SV có trong nhóm cụ thể không (theo Team ID)
     boolean existsByTeam_IdAndStudent_Id(Long teamId, Long studentId);
 
+    // Kiểm tra SV có trong lớp cụ thể không (theo Class ID)
     boolean existsByTeam_ClassRoom_IdAndStudent_Id(Long classId, Long studentId);
 
-    Optional<TeamMember> findByStudent_IdAndRole(Long studentId, TeamRole role);
-
-    // --- CÁC METHOD TỪ NHÁNH MAIN (Quản lý lớp học) ---
-    
     // Kiểm tra xem user đã ở trong nhóm nào thuộc lớp classId chưa
     boolean existsByStudent_IdAndTeam_ClassRoom_Id(Long studentId, Long classId);
+    
+    // --- CÁC METHOD TỪ NHÁNH MAIN (Quản lý lớp học) ---
+
+    // xác định chính xác quyền Leader trong lớp đang thao tác
+    Optional<TeamMember> findByStudent_IdAndRoleAndTeam_ClassRoom_Id(Long studentId, TeamRole role, Long classId);
+
+    // tìm tất cả các nhóm mà SV này làm Leader (ở mọi lớp)
+    List<TeamMember> findByStudent_IdAndRole(Long studentId, TeamRole role);
 
     // Tìm thành viên trong lớp cụ thể
     Optional<TeamMember> findByStudent_IdAndTeam_ClassRoom_Id(Long studentId, Long classId);
