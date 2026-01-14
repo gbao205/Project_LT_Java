@@ -26,9 +26,10 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import Pagination from "@mui/material/Pagination";
 
 import {
-  getSubjects,
+  getStaffSubjects,
   createSubject,
   updateSubject,
   deleteSubject,
@@ -42,6 +43,9 @@ const SubjectManager = () => {
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const pageSize = 10;
 
   const [newSubject, setNewSubject] = useState<Omit<Subject, "id">>({
     subjectCode: "",
@@ -53,8 +57,9 @@ const SubjectManager = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await getSubjects();
-      setSubjects(data);
+      const pageData = await getStaffSubjects(page, pageSize);
+      setSubjects(pageData.content);
+      setTotalPages(pageData.totalPages);
     } catch (error) {
       console.error("Lỗi:", error);
     } finally {
@@ -64,7 +69,7 @@ const SubjectManager = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [page]);
 
   const handleAddSubject = async () => {
     if (!newSubject.subjectCode || !newSubject.name)
@@ -204,9 +209,6 @@ const SubjectManager = () => {
                 <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
                   CHUYÊN NGÀNH
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                  MÔ TẢ
-                </TableCell>
                 <TableCell
                   sx={{ fontWeight: 800, color: "#4a148c" }}
                   align="right"
@@ -247,11 +249,6 @@ const SubjectManager = () => {
                         {subject.specialization || "ĐẠI CƯƠNG"}
                       </Box>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 250 }}>
-                      <Typography variant="body2" noWrap color="text.secondary">
-                        {subject.description}
-                      </Typography>
-                    </TableCell>
                     <TableCell align="right">
                       <Stack
                         direction="row"
@@ -282,6 +279,16 @@ const SubjectManager = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <Box display="flex" justifyContent="center" py={4}>
+          <Pagination
+            count={totalPages}
+            page={page + 1}
+            onChange={(_, value) => setPage(value - 1)}
+            color="secondary"
+            shape="rounded"
+            size="large"
+          />
+        </Box>
 
         {/* Dialog Add */}
         <Dialog

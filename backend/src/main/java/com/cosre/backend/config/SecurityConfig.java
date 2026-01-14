@@ -44,7 +44,7 @@ public class SecurityConfig {
                         // 2. CÁC API PUBLIC
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/configs/**").permitAll()
-                        .requestMatchers("/api/subjects/**").permitAll()
+                        .requestMatchers("/api/subject/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/chat/**").permitAll()

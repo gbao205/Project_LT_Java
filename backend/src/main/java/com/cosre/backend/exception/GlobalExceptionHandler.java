@@ -34,7 +34,10 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
         return buildResponse(HttpStatus.BAD_REQUEST, "Lỗi JSON chi tiết: " + ex.getMessage());
     }
-
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<Object> handleAppException(AppException ex) {
+        return buildResponse(ex.getStatus(), ex.getMessage());
+    }
     // 3. Xử lý các lỗi Runtime khác (ví dụ: Logic lỗi, NullPointer...)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Object> handleRuntimeExceptions(RuntimeException ex) {
@@ -56,8 +59,5 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(body, status);
     }
-    @ExceptionHandler(AppException.class)
-    public ResponseEntity<Object> handleAppException(AppException ex) {
-        return buildResponse(ex.getStatus(), ex.getMessage());
-    }
+
 }
