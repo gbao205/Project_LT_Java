@@ -113,7 +113,6 @@ public class StaffController {
     public Page<SubjectDTO> getSubjects(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Long id,
             @RequestParam(required = false) String subjectCode,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String specialization
@@ -121,7 +120,6 @@ public class StaffController {
         return staffService.getSubjects(
                 page,
                 size,
-                id,
                 subjectCode,
                 name,
                 specialization

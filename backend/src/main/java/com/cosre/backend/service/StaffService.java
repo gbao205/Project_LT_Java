@@ -106,11 +106,10 @@ public class StaffService implements IStaffService {
 
     //===================================Subject================================================
     @Override
-    public Page<SubjectDTO> getSubjects(int page, int size, Long id, String subjectCode, String name, String specialization) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Subject> result = subjectRepository.filter(id, subjectCode, name, specialization, pageable);
+    public Page<SubjectDTO> getSubjects(int page, int size, String subjectCode, String name, String specialization) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "subjectCode"));
+        Page<Subject> result = subjectRepository.filter( subjectCode, name, specialization, pageable);
         return result.map(s -> SubjectDTO.builder()
-                .id(s.getId())
                 .subjectCode(s.getSubjectCode())
                 .name(s.getName())
                 .specialization(s.getSpecialization())

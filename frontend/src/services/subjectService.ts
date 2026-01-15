@@ -54,12 +54,15 @@ interface PageResponse<T> {
 }
 
 export const getStaffSubjects = async (
-  page = 0,
-  size = 5
+  page: number = 0,
+  size: number = 10,
+  subjectCode?: string,
+  name?: string,
+  specialization?: string
 ): Promise<PageResponse<Subject>> => {
   try {
     const response = await api.get('/staff/subject', {
-      params: { page, size },
+      params: { page, size,subjectCode, name,specialization },
     });
     return response.data;
   } catch (error) {
