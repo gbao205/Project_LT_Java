@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "submissions")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -23,9 +26,11 @@ public class Submission {
 
     @ManyToOne
     @JoinColumn(name = "student_id")
+    @JsonIgnore
     private User student;
 
     @ManyToOne
     @JoinColumn(name = "assignment_id")
+    @JsonIgnore
     private Assignment assignment;
 }

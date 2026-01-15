@@ -319,7 +319,7 @@ const ClassDetail = () => {
 
     const pageTitle = loading || !classData
         ? "Chi Tiết Lớp Học"
-        : `${classData.classInfo.name} - ${classData.classInfo.subject?.name}`;
+        : `Lớp Học: ${classData.classInfo.name}`;
 
     return (
         <AdminLayout title={pageTitle} showBack={true} backPath="/student/classes">

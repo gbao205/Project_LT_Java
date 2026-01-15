@@ -6,6 +6,9 @@ import {
   useLocation,
 } from "react-router-dom";
 
+import { SnackbarProvider } from './context/SnackbarContext';
+import { ConfirmProvider } from './context/ConfirmContext';
+
 // Components & Auth
 import Login from "./pages/auth/Login";
 import Home from "./pages/Home";

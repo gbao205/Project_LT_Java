@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "assignments")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,5 +24,6 @@ public class Assignment {
 
     @ManyToOne
     @JoinColumn(name = "class_id")
+    @JsonIgnore
     private ClassRoom classRoom;
 }

@@ -12,6 +12,8 @@ import java.util.List;
 @Entity
 @Table(name = "users")
 @Data // Tự động sinh Getter/Setter (bao gồm getCode, setCode, etc.)
+@ToString(exclude = "teamMemberships")
+@EqualsAndHashCode(exclude = "teamMemberships")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDate;
@@ -14,7 +16,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "classes") // Tên bảng là classes (tránh trùng từ khóa class của Java)
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -39,6 +42,7 @@ public class ClassRoom {
     // Lớp này học môn gì
     @ManyToOne
     @JoinColumn(name = "subject_id")
+    @JsonIgnore 
     private Subject subject;
 
     // Giảng viên nào dạy

@@ -1,7 +1,6 @@
 package com.cosre.backend.service;
 
 import com.cosre.backend.dto.staff.ClassResponseDTO;
-import com.cosre.backend.dto.staff.SubjectDTO;
 import com.cosre.backend.dto.student.CreateTeamRequest;
 import com.cosre.backend.dto.student.ProjectRegistrationRequest;
 import com.cosre.backend.dto.student.JoinTeamRequest;
@@ -33,7 +32,7 @@ public class StudentService {
 
     // --- 1. CÁC HÀM BỔ TRỢ ---
     // Lấy User hiện tại an toàn (tránh NullPointer)
-    private User getCurrentUser() {
+    public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         // Kiểm tra kỹ trước khi gọi getName()
@@ -316,5 +315,30 @@ public class StudentService {
     // Lấy Milestone (Mốc thời gian)
     public List<Milestone> getClassMilestones(Long classId) {
         return milestoneRepository.findByClassRoom_Id(classId);
+    }
+
+    /**
+    // Lấy thông tin chi tiết một nhóm theo ID và kiểm tra quyền truy cập của sinh viên hiện tại.
+    @param teamId ID của nhóm cần lấy thông tin.
+    @return Đối tượng Team nếu tìm thấy và sinh viên thuộc nhóm.
+    @throws AppException nếu không tìm thấy nhóm (404) hoặc sinh viên không thuộc nhóm (403).
+    */
+    public Team getTeamById(Long teamId) {
+        // 1. Lấy thông tin người dùng hiện tại 
+        User currentUser = getCurrentUser();
+
+        // 2. Tìm nhóm theo ID
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new AppException("Nhóm không tồn tại!", HttpStatus.NOT_FOUND));
+
+        // 3. Kiểm tra xem sinh viên có phải là thành viên của nhóm này không
+        // Sử dụng TeamMemberRepository để xác thực quan hệ giữa Team và Student [cite: 2, 3]
+        boolean isMember = teamMemberRepository.existsByTeam_IdAndStudent_Id(teamId, currentUser.getId());
+
+        if (!isMember) {
+            throw new AppException("Bạn không có quyền truy cập vào thông tin của nhóm này!", HttpStatus.FORBIDDEN);
+        }
+
+        return team;
     }
 }

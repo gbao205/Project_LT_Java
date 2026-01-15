@@ -108,4 +108,11 @@ public class StudentController {
     public ResponseEntity<List<ClassResponseDTO>> getClassesAvailableForTeam() {
         return ResponseEntity.ok(studentService.getClassesAvailableForTeam());
     }
+
+    // lấy thông tin chi tiết của một nhóm duy nhất bằng ID
+    @GetMapping("/teams/{teamId}")
+    public ResponseEntity<Team> getTeamDetail(@PathVariable Long teamId) {
+        // Logic: Tìm team theo ID và kiểm tra xem sinh viên hiện tại có thuộc team đó không
+        return ResponseEntity.ok(studentService.getTeamById(teamId));
+    }
 }
