@@ -1,17 +1,15 @@
 package com.cosre.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "team_members")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"team", "student"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -23,7 +21,7 @@ public class TeamMember {
     // Thành viên của nhóm nào
     @ManyToOne
     @JoinColumn(name = "team_id", nullable = false)
-    @JsonIgnoreProperties("members") // Ngắt vòng lặp: Khi load Member -> Team, không load lại list Members nữa
+    @JsonIgnoreProperties("members")
     private Team team;
 
     // Là sinh viên nào

@@ -4,13 +4,16 @@ import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
 
 @Entity
 @Table(name = "teams")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,17 +28,18 @@ public class Team {
     // Nhóm này thuộc lớp nào
     @ManyToOne
     @JoinColumn(name = "class_id", nullable = false)
-    @JsonIgnoreProperties("teams")  // Ngắt vòng lặp nếu ClassRoom có list teams
+    @JsonIgnoreProperties({"students", "subject"})
     private ClassRoom classRoom;
 
     // Nhóm làm đề tài nào
     @ManyToOne
     @JoinColumn(name = "project_id")
+    @JsonIgnoreProperties("teams")
     private Project project;
 
     // Danh sách thành viên
     @OneToMany(mappedBy = "team")
-    @JsonIgnoreProperties("team") // Bỏ qua field 'team' trong mỗi TeamMember
+    @JsonIgnoreProperties("team")
     private List<TeamMember> members;
 
 }

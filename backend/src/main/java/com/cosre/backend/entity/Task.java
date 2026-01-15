@@ -3,13 +3,16 @@ package com.cosre.backend.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "tasks")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,10 +33,12 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "team_id", nullable = false)
+    @JsonIgnoreProperties({"tasks", "members", "milestones", "classRoom"})
     private Team team; // Task được giao cho nhóm nào
 
     @ManyToOne
     @JoinColumn(name = "assigned_to_id")
+    @JsonIgnoreProperties({"tasks", "teams"})
     private User assignedTo; // Người được giao cụ thể trong nhóm (optional)
 
     @Enumerated(EnumType.STRING)

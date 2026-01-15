@@ -6,6 +6,8 @@ import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,21 @@ public class TaskService {
     private final TeamRepository teamRepository;
     private final MilestoneRepository milestoneRepository;
     private final UserRepository userRepository;
+    private final TeamMemberRepository teamMemberRepository;
+
+    // Lấy User hiện tại an toàn (tránh NullPointer)
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Kiểm tra kỹ trước khi gọi getName()
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AppException("Người dùng chưa đăng nhập hoặc phiên làm việc hết hạn", HttpStatus.UNAUTHORIZED);
+        }
+
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.UNAUTHORIZED));
+    }
 
     // Định nghĩa Finite State Machine (FSM) cho chuyển đổi trạng thái Task
     // Map: CurrentStatus -> Set<ValidNextStatuses>
@@ -49,32 +66,38 @@ public class TaskService {
     // 3. Tạo Task mới
     @Transactional
     public Task createTask(TaskRequest request) {
+        // 1. Kiểm tra Team tồn tại
         Team team = teamRepository.findById(request.getTeamId())
-                .orElseThrow(() -> new AppException("Team không tồn tại", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Nhóm không tồn tại", HttpStatus.NOT_FOUND));
 
-        Milestone milestone = null;
-        if (request.getMilestoneId() != null) {
-            milestone = milestoneRepository.findById(request.getMilestoneId())
-                    .orElseThrow(() -> new AppException("Milestone không tồn tại", HttpStatus.NOT_FOUND));
+        // 2. Kiểm tra quyền thành viên
+        User currentUser = getCurrentUser(); 
+        boolean isMember = teamMemberRepository.existsByTeam_IdAndStudent_Id(request.getTeamId(), currentUser.getId());
+        if (!isMember) {
+            throw new AppException("Bạn không có quyền tạo công việc cho nhóm này", HttpStatus.FORBIDDEN);
         }
 
-        User assignedTo = null;
-        if (request.getAssignedToId() != null) {
-            assignedTo = userRepository.findById(request.getAssignedToId())
-                    .orElseThrow(() -> new AppException("Người được giao không tồn tại", HttpStatus.NOT_FOUND));
-        }
+        // 3. Tìm các đối tượng liên quan nếu có ID gửi lên
+        User assignedTo = (request.getAssignedToId() != null) ? 
+            userRepository.findById(request.getAssignedToId())
+                .orElseThrow(() -> new AppException("Người dùng không tồn tại", HttpStatus.NOT_FOUND)) : null;
 
-        Task newTask = Task.builder()
+        Milestone milestone = (request.getMilestoneId() != null) ? 
+            milestoneRepository.findById(request.getMilestoneId())
+                .orElseThrow(() -> new AppException("Cột mốc không tồn tại", HttpStatus.NOT_FOUND)) : null;
+
+        // 4. Sử dụng Builder để tạo Task đồng bộ với style của dự án
+        Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
-                .team(team)
-                .milestone(milestone)
-                .assignedTo(assignedTo)
                 .dueDate(request.getDueDate())
-                .status(TaskStatus.TO_DO) // Mặc định là TO_DO
+                .status(TaskStatus.TO_DO)
+                .team(team)
+                .assignedTo(assignedTo)
+                .milestone(milestone)
                 .build();
 
-        return taskRepository.save(newTask);
+        return taskRepository.save(task);
     }
 
     // 4. Chuyển đổi trạng thái Task (áp dụng FSM)
@@ -97,6 +120,63 @@ public class TaskService {
 
         // Thực hiện chuyển đổi trạng thái
         task.setStatus(newStatus);
+        return taskRepository.save(task);
+    }
+
+    // 5. Xóa Task
+    @Transactional
+    public void deleteTask(Long id) {
+        // Kiểm tra task có tồn tại không bằng Repository
+        if (!taskRepository.existsById(id)) {
+            throw new AppException("Không tìm thấy nhiệm vụ với ID: " + id, HttpStatus.NOT_FOUND);
+        }
+        
+        try {
+            // Thực hiện xóa khỏi PostgreSQL qua Hibernate
+            taskRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new AppException("Lỗi hệ thống khi xóa nhiệm vụ", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // gán lại task
+    @Transactional
+    public Task updateTask(Long taskId, TaskRequest request) {
+        // 1. Tìm task hiện tại
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new AppException("Nhiệm vụ không tồn tại", HttpStatus.NOT_FOUND));
+
+        // 2. Xử lý gán người thực hiện (AssignedTo)
+        if (request.getAssignedToId() != null) {
+            User newAssignee = userRepository.findById(request.getAssignedToId())
+                    .orElseThrow(() -> new AppException("Thành viên không tồn tại", HttpStatus.NOT_FOUND));
+
+            // Logic quan trọng: Kiểm tra người được gán có thuộc Team của Task này không
+            boolean isMember = teamMemberRepository.existsByTeam_IdAndStudent_Id(
+                    task.getTeam().getId(), 
+                    newAssignee.getId()
+            );
+            
+            if (!isMember) {
+                throw new AppException("Thành viên này không thuộc nhóm của nhiệm vụ", HttpStatus.BAD_REQUEST);
+            }
+            task.setAssignedTo(newAssignee);
+        } else {
+            // Nếu assignedToId là null thì gỡ bỏ người thực hiện (Unassigned)
+            task.setAssignedTo(null);
+        }
+
+        // 3. Cập nhật các trường khác (nếu có gửi lên)
+        if (request.getTitle() != null) task.setTitle(request.getTitle());
+        if (request.getDescription() != null) task.setDescription(request.getDescription());
+        if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
+        
+        if (request.getMilestoneId() != null) {
+            Milestone milestone = milestoneRepository.findById(request.getMilestoneId())
+                    .orElseThrow(() -> new AppException("Cột mốc không tồn tại", HttpStatus.NOT_FOUND));
+            task.setMilestone(milestone);
+        }
+
         return taskRepository.save(task);
     }
 }

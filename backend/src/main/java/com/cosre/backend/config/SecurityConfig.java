@@ -34,29 +34,36 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF vì dùng JWT
+                .headers(headers -> headers
+                    // CHO PHÉP hiển thị nội dung trong iframe từ cùng một server
+                    .frameOptions(frame -> frame.sameOrigin()) 
+                    .frameOptions(frame -> frame.disable())
+                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Cho phép request lỗi và preflight (OPTIONS)
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/api/workspace/download/**").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    // 1. Cho phép request lỗi và preflight (OPTIONS)
+                    .requestMatchers("/error").permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 2. CÁC API PUBLIC
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/api/configs/**").permitAll()
-                        .requestMatchers("/api/subjects/**").permitAll()
-                        .requestMatchers("/api/test/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/chat/**").permitAll()
-                        // 3. API AI & CHAT (BẮT BUỘC ĐĂNG NHẬP ĐỂ LẤY USER ID)
-                        .requestMatchers("/api/ai/**").authenticated()
+                    // 2. CÁC API PUBLIC
+                    .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                    .requestMatchers("/api/configs/**").permitAll()
+                    .requestMatchers("/api/subjects/**").permitAll()
+                    .requestMatchers("/api/test/**").permitAll()
+                    .requestMatchers("/ws/**").permitAll()
+                    .requestMatchers("/api/chat/**").permitAll()
+                    // 3. API AI & CHAT (BẮT BUỘC ĐĂNG NHẬP ĐỂ LẤY USER ID)
+                    .requestMatchers("/api/ai/**").authenticated()
 
-                        // 4. PHÂN QUYỀN
-                        .requestMatchers("/api/users/contacts").authenticated()
-                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+                    // 4. PHÂN QUYỀN
+                    .requestMatchers("/api/users/contacts").authenticated()
+                    .requestMatchers("/api/users/**").hasRole("ADMIN")
 
-                        // 5. CÁC API CÒN LẠI CẦN ĐĂNG NHẬP
-                        .anyRequest().authenticated()
+                    // 5. CÁC API CÒN LẠI CẦN ĐĂNG NHẬP
+                    .anyRequest().authenticated()
                 );
 
         // Thêm filter kiểm tra Token trước

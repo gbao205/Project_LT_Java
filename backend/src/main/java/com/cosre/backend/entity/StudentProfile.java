@@ -5,7 +5,8 @@ import lombok.*;
 import java.time.LocalDate;
 
 @Embeddable
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

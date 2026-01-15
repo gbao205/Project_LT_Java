@@ -107,6 +107,12 @@ const studentService = {
         return api.post('/student/teams/leave', data);
     },
 
+    // lấy chi tiết 1 nhóm cụ thể
+    getTeamDetail: async (teamId: number) => {
+        const response = await api.get(`/student/teams/${teamId}`);
+        return response.data;
+    },
+
     // Xem Milestone của lớp
     getClassMilestones: async (classId: number): Promise<Milestone[]> => {
         const response = await api.get<Milestone[]>(`/student/classes/${classId}/milestones`);
