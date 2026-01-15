@@ -66,52 +66,56 @@ const ChatWrapper = () => {
 
 function App() {
   return (
-    <Router>
-      <ReportDialog />
-
-      {/* Sử dụng Wrapper ở đây */}
-      <ChatWrapper />
-
-      <Routes>
-        {/* Public & Auth */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/change-password" element={<ChangePassword />} />
-
-        {/* Admin Routes */}
-        <Route path="/admin/users" element={<UserManager />} />
-        <Route path="/admin/reports" element={<ReportManager />} />
-        <Route path="/admin/subjects" element={<SubjectManager />} />
-        <Route path="/admin/classes" element={<StaffClassManager />} />
-
-        {/* Staff Routes */}
-        <Route path="/staff/import" element={<ImportCenter />} />
-        <Route path="/staff/users" element={<UserStaff />} />
-        <Route path="/staff/reports" element={<ReportManager />} />
-        <Route path="/staff/subjects" element={<SubjectManager />} />
-        <Route path="/staff/classes" element={<ClassStaff />} />
-        <Route path="/staff/syllabus" element={<SyllabusStaff />} />
-
-        {/* Student Routes */}
-        <Route path="/student/workspace" element={<StudentWorkspace />} />
-        <Route path="/student/registration" element={<CourseRegistration />} />
-        <Route path="/student/classes" element={<MyClasses />} />
-        <Route path="/student/profile" element={<StudentProfile />} />
-        <Route path="/class/:id" element={<ClassDetail />} />
-        <Route path="student/my-teams" element={<MyTeams />} />
-
-        {/* Lecturer Routes */}
-        <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
-        <Route path="/lecturer/classes" element={<LecturerClassManager />} />
-        <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
-        <Route
-          path="/lecturer/schedule"
-          element={<DetailedTeachingSchedule />}
-        />
-        <Route path="/lecturer/proposals" element={<ProposalApproval />} />
-      </Routes>
-    </Router>
+    <SnackbarProvider>
+      <ConfirmProvider>
+        <Router>
+          <ReportDialog />
+    
+          {/* Sử dụng Wrapper ở đây */}
+          <ChatWrapper />
+    
+          <Routes>
+            {/* Public & Auth */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/change-password" element={<ChangePassword />} />
+    
+            {/* Admin Routes */}
+            <Route path="/admin/users" element={<UserManager />} />
+            <Route path="/admin/reports" element={<ReportManager />} />
+            <Route path="/admin/subjects" element={<SubjectManager />} />
+            <Route path="/admin/classes" element={<StaffClassManager />} />
+    
+            {/* Staff Routes */}
+            <Route path="/staff/import" element={<ImportCenter />} />
+            <Route path="/staff/users" element={<UserStaff />} />
+            <Route path="/staff/reports" element={<ReportManager />} />
+            <Route path="/staff/subjects" element={<SubjectManager />} />
+            <Route path="/staff/classes" element={<ClassStaff />} />
+            <Route path="/staff/syllabus" element={<SyllabusStaff />} />
+    
+            {/* Student Routes */}
+            <Route path="/student/workspace/:teamId" element={<StudentWorkspace />} />
+            <Route path="/student/registration" element={<CourseRegistration />} />
+            <Route path="/student/classes" element={<MyClasses />} />
+            <Route path="/student/profile" element={<StudentProfile />} />
+            <Route path="/class/:id" element={<ClassDetail />} />
+            <Route path="student/my-teams" element={<MyTeams />} />
+    
+            {/* Lecturer Routes */}
+            <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
+            <Route path="/lecturer/classes" element={<LecturerClassManager />} />
+            <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
+            <Route
+              path="/lecturer/schedule"
+              element={<DetailedTeachingSchedule />}
+            />
+            <Route path="/lecturer/proposals" element={<ProposalApproval />} />
+          </Routes>
+        </Router>
+      </ConfirmProvider>
+    </SnackbarProvider>
   );
 }
 
