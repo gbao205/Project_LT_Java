@@ -25,6 +25,6 @@ public interface IStaffService {
 
     SyllabusDetailDTO getSyllabusDetail(Long id);
 
-    Page<SubjectDTO> getSubjects(int page, int size, Long id, String subjectCode, String name, String specialization);
+    Page<SubjectDTO> getSubjects(int page, int size, String subjectCode, String name, String specialization);
     Page<ClassResponseDTO> getClasses(int page, int size, Long id, String classCode, String name, String semester, String subjectName, String lecturerName, Boolean isRegistrationOpen);
 }

@@ -5,7 +5,7 @@ import type { Subject } from '../types/Subject';
 export const getSubjects = async (): Promise<Subject[]> => {
     try {
         // Gọi thẳng api.get, nó sẽ tự nối với link Render
-        const response = await api.get('/subjects');
+        const response = await api.get('/subject');
         return response.data;
     } catch (error) {
         console.error("Lỗi gọi API:", error);
@@ -43,4 +43,30 @@ export const deleteSubject = async (id: number) => {
         console.error("Lỗi khi xóa môn học:", error);
         throw error;
     }
+};
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export const getStaffSubjects = async (
+  page: number = 0,
+  size: number = 10,
+  subjectCode?: string,
+  name?: string,
+  specialization?: string
+): Promise<PageResponse<Subject>> => {
+  try {
+    const response = await api.get('/staff/subject', {
+      params: { page, size,subjectCode, name,specialization },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi gọi API staff:", error);
+    throw error;
+  }
 };

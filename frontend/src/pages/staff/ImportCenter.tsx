@@ -178,7 +178,7 @@ const ImportCenter = () => {
                         Người dùng (Sinh viên/Giảng viên)
                       </MenuItem>
                       <MenuItem value="CLASS">Lớp học</MenuItem>
-                      <MenuItem value="SYLLABUS">Đề cương môn học</MenuItem>
+                      <MenuItem value="SYLLABUS">Chương trình môn học</MenuItem>
                       <MenuItem value="SUBJECT">Môn học</MenuItem>
                     </Select>
                   </FormControl>

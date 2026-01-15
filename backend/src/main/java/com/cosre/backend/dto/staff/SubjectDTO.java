@@ -5,7 +5,6 @@ import lombok.Data;
 @Data
 @Builder
 public class SubjectDTO {
-    private Long id;
     private String subjectCode;
     private String name;
     private String specialization;

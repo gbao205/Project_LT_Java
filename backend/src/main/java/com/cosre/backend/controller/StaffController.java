@@ -1,18 +1,11 @@
 package com.cosre.backend.controller;
 
-import com.cosre.backend.dto.ClassRequest;
 import com.cosre.backend.dto.staff.SubjectDTO;
 import com.cosre.backend.dto.staff.SyllabusDetailDTO;
 import com.cosre.backend.dto.staff.SyllabusListDTO;
-import com.cosre.backend.entity.ClassRoom;
 import com.cosre.backend.entity.Role;
-import com.cosre.backend.entity.Subject;
 import com.cosre.backend.entity.User;
-import com.cosre.backend.exception.AppException;
-import com.cosre.backend.service.ClassService;
 import com.cosre.backend.service.IStaffService;
-import com.cosre.backend.service.StaffService;
-import com.cosre.backend.service.SubjectService;
 import com.cosre.backend.service.import_system.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -101,7 +94,7 @@ public class StaffController {
     }
     //===================================Syllabus================================================
     @GetMapping("/syllabus")
-    public ResponseEntity<Page<SyllabusListDTO>> getSyllabusList( // Bọc trong ResponseEntity là chuẩn REST
+    public ResponseEntity<Page<SyllabusListDTO>> getSyllabusList(
                                                                   @RequestParam(defaultValue="0") int page,
                                                                   @RequestParam(defaultValue="10") int size,
                                                                   @RequestParam(required = false) Long id,
@@ -120,7 +113,6 @@ public class StaffController {
     public Page<SubjectDTO> getSubjects(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Long id,
             @RequestParam(required = false) String subjectCode,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String specialization
@@ -128,7 +120,6 @@ public class StaffController {
         return staffService.getSubjects(
                 page,
                 size,
-                id,
                 subjectCode,
                 name,
                 specialization

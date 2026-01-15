@@ -39,19 +39,18 @@ public class GlobalExceptionHandler {
         return buildResponse(ex.getStatus(), ex.getMessage(), request);
     }
 
-    // 4. Xử lý các lỗi Runtime (Logic lỗi, NullPointer, Database ngắt kết nối...)
+    // 4. Các lỗi Runtime khác (Lỗi logic, NullPointer...)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Object> handleRuntimeExceptions(RuntimeException ex, HttpServletRequest request) {
-        // Log lỗi để dễ debug
-        ex.printStackTrace(); 
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+        log.error("Runtime Exception: ", ex); // Log chi tiết lỗi để debug trên server
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Có lỗi hệ thống xảy ra", request);
     }
 
     // 5. Xử lý tất cả các lỗi còn lại
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralExceptions(Exception ex, HttpServletRequest request) {
-        ex.printStackTrace();
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + ex.getMessage(), request);
+        log.error("General Exception: ", ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống không xác định", request);
     }
 
     /**
@@ -75,4 +74,5 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(body, status);
     }
+
 }
