@@ -1,11 +1,7 @@
 package com.cosre.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -27,7 +23,10 @@ public class Report {
     private String content;
 
     private String reporterEmail; // Email người báo cáo
+
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    private boolean isResolved = false; // Trạng thái: false = Chờ xử lý, true = Đã xong
+    @Builder.Default
+    private boolean isResolved = false;
 }

@@ -1,13 +1,9 @@
 package com.cosre.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import java.time.LocalDate;
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
@@ -23,18 +19,33 @@ public class Project {
     private Long id;
 
     @Column(nullable = false)
-    private String name;
+    private String name; // Tên đề tài (Frontend: title)
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String description; // Mô tả
 
-    // Trạng thái duyệt đề tài: PENDING, APPROVED, REJECTED
+    private String technology; // Công nghệ (VD: Java, React)
+
+    @Builder.Default
+    private Integer maxStudents = 0; // Số sinh viên tối đa
+
+    @Column(name = "submitted_date")
+    private LocalDate submittedDate; // Ngày gửi đề tài
+
+    // Trạng thái: PENDING, APPROVED, REJECTED
     @Enumerated(EnumType.STRING)
     private ProjectStatus status;
 
-    // Mối quan hệ: Một đề tài có thể được chọn bởi nhiều nhóm
+    // Lý do từ chối (Nếu có)
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    // Người tạo đề tài (Giảng viên)
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
     @OneToMany(mappedBy = "project")
-    @JsonIgnore // Quan trọng: Ngắt vòng lặp JSON. Jackson sẽ bỏ qua field này khi trả về response.
-    //@ToString.Exclude // Ngắt vòng lặp toString của Lombok
+    @JsonIgnore
     private List<Team> teams;
 }
