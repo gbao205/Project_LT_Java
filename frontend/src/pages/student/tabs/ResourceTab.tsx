@@ -1,8 +1,8 @@
 // frontend/src/pages/student/tabs/ResourceTab.tsx
 import { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, IconButton, 
-    Button, List, ListItem, ListItemText, ListItemIcon, 
-    Tooltip, Dialog, DialogTitle, DialogContent
+import { Box, Typography, Grid, Card, CardContent, 
+    IconButton, Button, ListItemIcon, Tooltip, 
+    Dialog, DialogTitle, DialogContent
 } from '@mui/material';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -13,6 +13,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { workspaceService } from '../../../services/workspaceService';
 import { useConfirm } from '../../../context/ConfirmContext';
 import { useAppSnackbar } from '../../../hooks/useAppSnackbar';
+import { BASE_URL } from '../../../services/api';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -109,7 +110,7 @@ const ResourceTab = ({ teamId }: { teamId: number }) => {
 
             <Grid container spacing={2}>
                 {resources.map((res) => (
-                    <Grid item xs={12} sm={6} md={4} key={res.id}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={res.id}>
                         <Card variant="outlined" sx={{ '&:hover': { boxShadow: 2 } }}>
                             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
                                 <ListItemIcon><InsertDriveFileIcon color="primary" /></ListItemIcon>
@@ -125,7 +126,7 @@ const ResourceTab = ({ teamId }: { teamId: number }) => {
                                     {isPreviewable(res.fileType) && (
                                         <Tooltip title="Xem nhanh">
                                             <IconButton 
-                                                href={encodeURI(`http://localhost:8080${res.fileUrl}`)} 
+                                                href={encodeURI(`${BASE_URL}${res.fileUrl}`)} 
                                                 target="_blank">
                                                 <VisibilityIcon fontSize="small" />
                                             </IconButton>
@@ -136,7 +137,7 @@ const ResourceTab = ({ teamId }: { teamId: number }) => {
                                     {!isPreviewable(res.fileType) && (
                                         <Tooltip title="Tải xuống">
                                             <IconButton 
-                                                href={encodeURI(`http://localhost:8080${res.fileUrl}`)} 
+                                                href={encodeURI(`${BASE_URL}${res.fileUrl}`)} 
                                                 target="_blank" 
                                                 download
                                             >

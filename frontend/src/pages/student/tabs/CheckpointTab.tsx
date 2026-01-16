@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
-    Box, Typography, Button, Checkbox, FormControlLabel, Paper, TextField, Chip,
-    Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, IconButton, Tooltip, Avatar
+    Box, Typography, Button, Checkbox, Paper, TextField, Chip,
+    Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, 
+    IconButton, Tooltip, Avatar, CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -99,6 +100,12 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
         });
     };
 
+    if (loading) return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                <CircularProgress />
+            </Box>
+        );
+
     return (
         <Box>
             <Box display="flex" justifyContent="space-between" mb={2} alignItems="center">
@@ -111,7 +118,7 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
             {checkpoints.map((cp) => (
                 <Paper key={cp.id} sx={{ p: 2, mb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: cp.isDone ? '4px solid #4caf50' : '4px solid #ff9800' }}>
                     <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
-                        <Checkbox checked={cp.isDone} onChange={() => handleToggle(cp.id)} color="success" />
+                        <Checkbox checked={cp.done} onChange={() => handleToggle(cp.id)} color="success" />
                         <Box ml={1}>
                             <Typography sx={{ textDecoration: cp.isDone ? 'line-through' : 'none', fontWeight: '500', color: cp.isDone ? 'text.disabled' : 'text.primary' }}>
                                 {cp.title}

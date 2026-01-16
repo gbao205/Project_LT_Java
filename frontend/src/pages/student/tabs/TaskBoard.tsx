@@ -11,11 +11,13 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import EventIcon from '@mui/icons-material/Event';
 import PersonIcon from '@mui/icons-material/Person';
 import DeleteIcon from '@mui/icons-material/Delete';
+import FlagIcon from '@mui/icons-material/Flag';
 import { useForm } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
 
 import taskService from '../../../services/taskService';
 import studentService from '../../../services/studentService';
+import { workspaceService } from '../../../services/workspaceService';
 import { type Task, TaskStatus, type CreateTaskRequest } from '../../../types/Task';
 import AdminLayout from '../../../components/layout/AdminLayout';
 import { useConfirm } from '../../../context/ConfirmContext';
@@ -71,21 +73,18 @@ const TaskBoard = () => {
         try {
             setLoading(true);
             // 1. Chạy song song: Lấy danh sách Task và Chi tiết Nhóm (bao gồm members)
-            const [taskList, currentTeam] = await Promise.all([
+            const [taskList, currentTeam, milestoneRes] = await Promise.all([
                 taskService.getTasksByTeam(numericTeamId),
-                studentService.getTeamDetail(numericTeamId)
+                studentService.getTeamDetail(numericTeamId),
+                workspaceService.getMilestones(numericTeamId)
             ]);
 
             // Cập nhật Tasks
             setTasks(taskList);
+            setMilestones(milestoneRes.data);
 
             if (currentTeam?.members) {
                 setMembers(currentTeam.members);
-            }
-            
-            if (currentTeam?.classRoom?.id) {
-                const msList = await studentService.getClassMilestones(currentTeam.classRoom.id);
-                setMilestones(msList);
             }
 
         } catch (error) {
@@ -122,8 +121,19 @@ const TaskBoard = () => {
         }
     };
 
+    const isTaskLocked = (task: Task) => {
+        if (!task.milestone) return false;
+        const associatedMs = milestones.find(ms => ms.id === task.milestone?.id);
+        return !!associatedMs?.completed;
+    };
+
     // Xử lý chuyển trạng thái
     const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (task && isTaskLocked(task)) {
+            showError("Giai đoạn này đã kết thúc, không thể thay đổi trạng thái nhiệm vụ!");
+            return;
+        }
         try {
             await taskService.updateTaskStatus(taskId, newStatus);
             showSuccess(`Đã chuyển sang trạng thái ${newStatus}`);
@@ -164,9 +174,15 @@ const TaskBoard = () => {
     const handleAssignMember = async (studentId: number | null) => {
         if (!activeTask) return;
 
+        if (isTaskLocked(activeTask)) {
+            showError("Không thể thay đổi người thực hiện cho nhiệm vụ đã khóa!");
+            handleCloseAssigneeMenu();
+            return;
+        }
+
         try {
             await taskService.updateTask(activeTask.id, { 
-                assignedToId: studentId
+                assignedToId: studentId ?? undefined
             });
             showSuccess("Đã cập nhật người thực hiện");
             fetchData(); // Load lại dữ liệu
@@ -179,7 +195,21 @@ const TaskBoard = () => {
 
     // Render cột
     const renderColumn = (status: TaskStatus, title: string) => {
-        const tasksInCol = tasks.filter(t => t.status === status);
+        const tasksInCol = tasks.filter(t => {
+
+            const associatedMs = milestones.find(ms => ms.id === t.milestone?.id);
+            const isMilestoneDone = associatedMs?.completed;
+
+            if (isMilestoneDone && t.status === TaskStatus.DONE) {
+                return false;
+            }
+
+            const effectiveStatus = (isMilestoneDone && t.status !== TaskStatus.DONE)
+                ? TaskStatus.CANCELED
+                : t.status; 
+
+            return effectiveStatus === status;
+        });
 
         return (
             <Box  
@@ -224,78 +254,109 @@ const TaskBoard = () => {
                         <Chip label={tasksInCol.length} size="small" sx={{ ml: 1, height: 20 }} />
                     </Typography>
 
-                    {tasksInCol.map(task => (
-                        <Card key={task.id}  sx={{position: 'relative', mb: 2, '&:hover': { boxShadow: 3 } }}>
-                            <CardContent sx={{'&:last-child': { pb: 1 } }}>
-                                <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                                    <Typography variant="body1" fontWeight="600" gutterBottom sx={{ pr: 2 }}>
-                                        {task.title}
-                                    </Typography>
-                                    <IconButton size="small" color="error" onClick={() => handleDeleteTask(task)} sx={{ mt: -0.5, mr: -0.5 }}>
-                                        <DeleteIcon fontSize="inherit" />
-                                    </IconButton>
-                                </Box>
+                    {tasksInCol.map(task => {
+                        const isLocked = isTaskLocked(task);
 
-                                {task.description && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {task.description}
-                                    </Typography>
-                                )}
-
-                                <Box display="flex" flexDirection="column" gap={1} mb={2}>
-                                    <Box 
-                                        display="inline-flex"
-                                        alignItems="center" 
-                                        gap={1} 
-                                        sx={{ 
-                                            cursor: 'pointer', 
-                                            p: 0.5, 
-                                            borderRadius: 1,
-                                            '&:hover': { bgcolor: 'action.hover' },
-                                            color: 'text.secondary',
-                                            fontSize: '0.8rem'
-                                        }}
-                                        onClick={(e) => handleOpenAssigneeMenu(e, task)}
-                                    >
-                                        <PersonIcon fontSize="inherit" /> 
-                                        <Typography variant="caption" fontWeight="medium">
-                                            {task.assignedTo ? task.assignedTo.fullName : 'Chưa gán (Unassigned)'}
+                        return (
+                            <Card 
+                                key={task.id}  
+                                sx={{
+                                    position: 'relative', 
+                                    mb: 2, 
+                                    bgcolor: isLocked ? '#fcfcfc' : 'white',
+                                    opacity: isLocked ? 0.75 : 1,
+                                    border: isLocked ? '1px dashed #ccc' : '1px solid #e0e0e0',
+                                    '&:hover': { boxShadow: 3 } 
+                                }}
+                            >
+                                <CardContent sx={{'&:last-child': { pb: 1 } }}>
+                                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                                        <Typography variant="body1" fontWeight="600" gutterBottom sx={{ pr: 2 }}>
+                                            {task.title}
                                         </Typography>
+                                        <IconButton size="small" color="error" onClick={() => handleDeleteTask(task)} sx={{ mt: -0.5, mr: -0.5 }}>
+                                            <DeleteIcon fontSize="inherit" />
+                                        </IconButton>
                                     </Box>
-                                    
-                                    {task.dueDate && (
-                                        <Box display="flex" alignItems="center" gap={1} color="error.main" fontSize="0.8rem">
-                                            <EventIcon fontSize="inherit" /> {new Date(task.dueDate).toLocaleDateString()}
-                                        </Box>
-                                    )}
-                                </Box>
 
-                                <Box display="flex" flexWrap="wrap" gap={0.5}>
-                                    {VALID_TRANSITIONS[status]
-                                        ?.slice() // Tạo bản sao để tránh làm thay đổi mảng gốc
-                                        .sort((a, b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b)) // Sắp xếp theo thứ tự ưu tiên
-                                        .map(nextStatus => (
-                                            <Tooltip key={nextStatus} title={`Chuyển sang ${nextStatus}`}>
-                                                <Chip
-                                                    label={nextStatus.replace('_', ' ')}
-                                                    size="small"
-                                                    onClick={() => handleStatusChange(task.id, nextStatus)}
-                                                    color={STATUS_COLORS[nextStatus]}
-                                                    variant="outlined"
-                                                    clickable
-                                                    // Nếu trạng thái là "ngược lại" (về TO DO), có thể đổi icon thành ArrowBack
-                                                    icon={STATUS_ORDER.indexOf(nextStatus) < STATUS_ORDER.indexOf(status) 
-                                                        ? <ArrowBackIcon fontSize="small" style={{ fontSize: '0.7rem' }} /> 
-                                                        : <ArrowForwardIcon fontSize="small" style={{ fontSize: '0.7rem' }} />
-                                                    }
-                                                    sx={{ fontSize: '0.65rem', height: 22 }}
-                                                />
-                                            </Tooltip>
-                                        ))}
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                    {task.description && (
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {task.description}
+                                        </Typography>
+                                    )}
+
+                                    <Box display="flex" flexDirection="column" gap={1} mb={2}>
+                                        <Box 
+                                            display="inline-flex"
+                                            alignItems="center" 
+                                            gap={1} 
+                                            sx={{ 
+                                                cursor: 'pointer', 
+                                                p: 0.5, 
+                                                borderRadius: 1,
+                                                '&:hover': { bgcolor: 'action.hover' },
+                                                color: 'text.secondary',
+                                                fontSize: '0.8rem'
+                                            }}
+                                            onClick={(e) => !isLocked && handleOpenAssigneeMenu(e, task)}
+                                        >
+                                            <PersonIcon fontSize="inherit" /> 
+                                            <Typography variant="caption" fontWeight="medium">
+                                                {task.assignedTo ? task.assignedTo.fullName : 'Chưa gán (Unassigned)'}
+                                            </Typography>
+                                        </Box>
+
+                                        {task.milestone && (
+                                            <Box 
+                                                display="flex" 
+                                                gap={1} 
+                                                sx={{ 
+                                                    px: 0.5,
+                                                    color: 'primary.main', 
+                                                    fontSize: '0.8rem' 
+                                                }}
+                                            >
+                                                <FlagIcon fontSize="inherit" sx={{ fontSize: '0.9rem', mt: 0.5 }} />
+                                                <Typography variant="caption" fontWeight="bold">
+                                                    {task.milestone.title}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                        
+                                        {task.dueDate && (
+                                            <Box display="flex" alignItems="center" gap={1} color="error.main" fontSize="0.8rem">
+                                                <EventIcon fontSize="inherit" /> {new Date(task.dueDate).toLocaleDateString()}
+                                            </Box>
+                                        )}
+                                    </Box>
+
+                                    <Box display="flex" flexWrap="wrap" gap={0.5}>
+                                        {VALID_TRANSITIONS[status]
+                                            ?.slice() // Tạo bản sao để tránh làm thay đổi mảng gốc
+                                            .sort((a, b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b)) // Sắp xếp theo thứ tự ưu tiên
+                                            .map(nextStatus => (
+                                                <Tooltip key={nextStatus} title={`Chuyển sang ${nextStatus}`}>
+                                                    <Chip
+                                                        label={nextStatus.replace('_', ' ')}
+                                                        size="small"
+                                                        onClick={() => handleStatusChange(task.id, nextStatus)}
+                                                        color={STATUS_COLORS[nextStatus]}
+                                                        variant="outlined"
+                                                        clickable
+                                                        // Nếu trạng thái là "ngược lại" (về TO DO), có thể đổi icon thành ArrowBack
+                                                        icon={STATUS_ORDER.indexOf(nextStatus) < STATUS_ORDER.indexOf(status) 
+                                                            ? <ArrowBackIcon fontSize="small" style={{ fontSize: '0.7rem' }} /> 
+                                                            : <ArrowForwardIcon fontSize="small" style={{ fontSize: '0.7rem' }} />
+                                                        }
+                                                        sx={{ fontSize: '0.65rem', height: 22 }}
+                                                    />
+                                                </Tooltip>
+                                            ))}
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        )
+                    })}
 
                     {tasksInCol.length === 0 && (
                         <Typography variant="caption" color="text.disabled" fontStyle="italic" align="center" display="block" mt={4}>
@@ -355,11 +416,23 @@ const TaskBoard = () => {
                             <TextField label="Tiêu đề" fullWidth {...register("title", { required: true })} error={!!errors.title}/>
                             <TextField label="Mô tả" fullWidth multiline rows={3} {...register("description")} />
                             
-                            <TextField select label="Thuộc Cột mốc (Milestone)" fullWidth defaultValue="" inputProps={register("milestoneId")}>
+                            <TextField 
+                                select 
+                                label="Thuộc Cột mốc (Milestone)" 
+                                fullWidth 
+                                defaultValue="" 
+                                inputProps={register("milestoneId")}
+                            >
                                 <MenuItem value=""><em>-- Không bắt buộc --</em></MenuItem>
-                                {milestones?.map(ms => (
-                                    <MenuItem key={ms.id} value={ms.id}>{ms.title}</MenuItem>
-                                ))}
+                                {/* Lọc: Chỉ hiện những milestone chưa hoàn thành */}
+                                {milestones
+                                    ?.filter(ms => !ms.completed) 
+                                    .map(ms => (
+                                        <MenuItem key={ms.id} value={ms.id}>
+                                            {ms.title}
+                                        </MenuItem>
+                                    ))
+                                }
                             </TextField>
 
                             <TextField select label="Người thực hiện" fullWidth defaultValue="" inputProps={register("assignedToId")}>

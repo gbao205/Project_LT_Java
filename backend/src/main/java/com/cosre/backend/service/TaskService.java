@@ -5,6 +5,8 @@ import com.cosre.backend.entity.*;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +26,7 @@ public class TaskService {
     private final MilestoneRepository milestoneRepository;
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamMilestoneStatusRepository milestoneStatusRepository;
 
     // Lấy User hiện tại an toàn (tránh NullPointer)
     private User getCurrentUser() {
@@ -105,6 +108,21 @@ public class TaskService {
     public Task changeTaskStatus(Long taskId, TaskStatus newStatus) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new AppException("Không tìm thấy Task", HttpStatus.NOT_FOUND));
+
+        if (task.getMilestone() != null) {
+            // Tìm trạng thái của Milestone này đối với Team của Task
+            milestoneStatusRepository.findByTeamIdAndMilestoneId(
+                    task.getTeam().getId(), 
+                    task.getMilestone().getId()
+            ).ifPresent(status -> {
+                if (status.isCompleted()) {
+                    throw new AppException(
+                        "Giai đoạn '" + task.getMilestone().getTitle() + "' đã kết thúc. Bạn không thể thay đổi trạng thái nhiệm vụ này!", 
+                        HttpStatus.BAD_REQUEST
+                    );
+                }
+            });
+        }
 
         TaskStatus currentStatus = task.getStatus();
 
