@@ -135,6 +135,8 @@ public class WorkspaceService {
                     .dueDate(m.getDueDate())
                     .completed(status != null && status.isCompleted())
                     .answer(status != null ? status.getAnswer() : "")
+                    .feedback(status != null ? status.getFeedback() : null)
+                    .completedTaskIds(status != null ? status.getCompletedTaskIds() : null)
                     .completedAt(status != null ? status.getCompletedAt() : null)
                     .build();
         }).collect(Collectors.toList());

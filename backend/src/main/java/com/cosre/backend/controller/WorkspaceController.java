@@ -81,4 +81,13 @@ public class WorkspaceController {
         workspaceService.deleteResource(id, currentUser);
         return ResponseEntity.ok("Đã xóa tài liệu");
     }
+
+    @PutMapping("/teams/{teamId}/milestones/{milestoneId}/complete")
+    public ResponseEntity<?> markMilestoneComplete(
+            @PathVariable Long teamId, 
+            @PathVariable Long milestoneId) {
+        
+        workspaceService.markMilestoneAsComplete(teamId, milestoneId);
+        return ResponseEntity.ok("Xác nhận hoàn thành cột mốc thành công");
+    }
 }

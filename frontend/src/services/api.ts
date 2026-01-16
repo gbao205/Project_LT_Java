@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'https://collabsphere-backend-mk5g.onrender.com/api';
-//const API_URL = 'http://localhost:8080/api';
+export const BASE_URL = 'https://collabsphere-backend-mk5g.onrender.com';
+// export const BASE_URL = 'http://localhost:8080';
+
+const API_URL = `${BASE_URL}/api`;
 
 const api = axios.create({
     baseURL: API_URL,
