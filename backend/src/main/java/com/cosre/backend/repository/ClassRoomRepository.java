@@ -1,6 +1,7 @@
 package com.cosre.backend.repository;
 
 import com.cosre.backend.entity.ClassRoom;
+import com.cosre.backend.entity.User; // [MỚI] Thêm import User
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,10 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
 
     @Query("SELECT COUNT(c) FROM ClassRoom c WHERE c.lecturer.email = :email")
     long countByLecturerEmail(String email);
+
+    // Đếm số lớp do giảng viên này phụ trách
+    int countByLecturer(User lecturer);
+
     @Query("""
         SELECT c FROM ClassRoom c
         LEFT JOIN c.subject s
@@ -49,11 +54,11 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
     // "Lấy các lớp (c) có sinh viên này (s) NHƯNG ID lớp đó KHÔNG nằm trong 
     // danh sách các lớp mà sinh viên này đang ở trong một nhóm (tm.team.classRoom.id)"
     @Query("SELECT c FROM ClassRoom c " +
-           "JOIN c.students s " +
-           "WHERE s.id = :studentId " +
-           "AND c.id NOT IN (" +
-           "    SELECT tm.team.classRoom.id FROM TeamMember tm " +
-           "    WHERE tm.student.id = :studentId" +
-           ")")
+            "JOIN c.students s " +
+            "WHERE s.id = :studentId " +
+            "AND c.id NOT IN (" +
+            "    SELECT tm.team.classRoom.id FROM TeamMember tm " +
+            "    WHERE tm.student.id = :studentId" +
+            ")")
     List<ClassRoom> findClassesWithoutTeam(@Param("studentId") Long studentId);
 }

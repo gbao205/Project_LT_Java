@@ -40,7 +40,8 @@ import DetailedTeachingSchedule from "./pages/lecturer/DetailedTeachingSchedule"
 import UserStaff from "./pages/staff/UserStaff";
 import ClassStaff from "./pages/staff/ClassStaff";
 import SyllabusStaff from "./pages/staff/SyllabusStaff";
-
+import HeadProposalApproval from './pages/head/HeadProposalApproval';
+import HeadLecturerManager from "./pages/head/HeadLecturerManager";
 // --- COMPONENT BỌC CHAT ---
 // Tách ra một component con để có thể sử dụng hook useLocation()
 const ChatWrapper = () => {
@@ -112,6 +113,9 @@ function App() {
               element={<DetailedTeachingSchedule />}
             />
             <Route path="/lecturer/proposals" element={<ProposalApproval />} />
+            <Route path="/head/proposal-approval" element={<HeadProposalApproval />} />
+            <Route path="/head/lecturers" element={<HeadLecturerManager />} />
+
           </Routes>
         </Router>
       </ConfirmProvider>
