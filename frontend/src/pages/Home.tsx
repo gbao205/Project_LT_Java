@@ -9,7 +9,6 @@ import {
     Avatar,
     IconButton,
     Chip,
-    Stack,
     Divider,
     Paper,
     Button,
@@ -17,7 +16,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { logout } from "../services/authService";
 import api from "../services/api";
-import { getMyClasses } from "../services/classService";
 
 // --- IMPORT DASHBOARD CHO GIẢNG VIÊN ---
 import LecturerDashboard from "./lecturer/LecturerDashboard";
@@ -34,16 +32,10 @@ import UserManager from "./admin/UserManager";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SchoolIcon from "@mui/icons-material/School";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import GroupsIcon from "@mui/icons-material/Groups";
-import PersonIcon from "@mui/icons-material/Person";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import ClassIcon from "@mui/icons-material/Class";
 import SourceIcon from "@mui/icons-material/Source";
 import CastForEducationIcon from "@mui/icons-material/CastForEducation";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
-import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
@@ -51,6 +43,9 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 // [NEW] Icons cho Head
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+
+import StudentDashboard from "./student/StudentDashboard";
+import { StatCard, MenuCard } from "../components/common/DashboardCards";
 
 
 // ==========================================
@@ -76,50 +71,6 @@ interface StaffDashboardProps {
         totalProjects: number;
     };
 }
-
-// ==========================================
-// 2. CÁC COMPONENT DÙNG CHUNG
-// ==========================================
-
-const StatCard = ({ title, value, icon, color }: any) => (
-    <Card
-        elevation={0}
-        sx={{
-            height: "100%",
-            borderRadius: 3,
-            border: "1px solid #e0e0e0",
-            background: `linear-gradient(135deg, #ffffff 0%, ${color}08 100%)`,
-            transition: "all 0.3s ease",
-            "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: `0 10px 20px ${color}30`,
-                borderColor: color,
-            },
-        }}
-    >
-        <CardContent sx={{ display: "flex", alignItems: "center", p: 3 }}>
-            <Box
-                sx={{
-                    p: 2,
-                    borderRadius: "16px",
-                    bgcolor: `${color}15`,
-                    color: color,
-                    mr: 2,
-                }}
-            >
-                {icon}
-            </Box>
-            <Box>
-                <Typography variant="h4" fontWeight="bold" color="text.primary">
-                    {value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                    {title}
-                </Typography>
-            </Box>
-        </CardContent>
-    </Card>
-);
 
 const StaffStatCard = ({ title, value, icon, color }: StaffStatCardProps) => (
     <Card
@@ -175,67 +126,6 @@ const StaffStatCard = ({ title, value, icon, color }: StaffStatCardProps) => (
         >
             {icon}
         </Box>
-    </Card>
-);
-
-const MenuCard = ({ title, desc, icon, color, onClick }: any) => (
-    <Card
-        onClick={onClick}
-        elevation={0}
-        sx={{
-            height: "100%",
-            cursor: "pointer",
-            borderRadius: 3,
-            border: "1px solid #f0f0f0",
-            transition: "all 0.3s ease",
-            "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-                borderColor: color,
-                "& .icon-box": { bgcolor: color, color: "white" },
-            },
-        }}
-    >
-        <CardContent
-            sx={{
-                p: 3,
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-            }}
-        >
-            <Stack spacing={2}>
-                <Box
-                    className="icon-box"
-                    sx={{
-                        width: 50,
-                        height: 50,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "12px",
-                        bgcolor: `${color}15`,
-                        color: color,
-                        transition: "all 0.3s ease",
-                    }}
-                >
-                    {icon}
-                </Box>
-                <Box>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>
-                        {title}
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ minHeight: 40 }}
-                    >
-                        {desc}
-                    </Typography>
-                </Box>
-            </Stack>
-            <ArrowForwardIosIcon sx={{ fontSize: 16, color: "#e0e0e0", mt: 1 }} />
-        </CardContent>
     </Card>
 );
 
@@ -579,114 +469,6 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
     </Box>
 );
 
-// --- STUDENT DASHBOARD  ---
-const StudentDashboard = ({
-                              user,
-                              roleConfig,
-                              navigate,
-                              onLogout,
-                              myClassCount,
-                          }: any) => (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f1f8e9" }}>
-        <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-            <Box mb={5}>
-                <Typography
-                    variant="h4"
-                    fontWeight="800"
-                    gutterBottom
-                    sx={{ color: roleConfig.color }}
-                >
-                    Góc Học Tập
-                </Typography>
-                <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}>
-                        <StatCard
-                            title="Lớp Đang Học"
-                            value={myClassCount || 0}
-                            icon={<ClassIcon fontSize="large" />}
-                            color="#2e7d32"
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
-                        <StatCard
-                            title="Deadline Tuần Này"
-                            value="2"
-                            icon={<AccessTimeIcon fontSize="large" />}
-                            color="#ed6c02"
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
-                        <StatCard
-                            title="Điểm TB Tích Lũy"
-                            value="8.5"
-                            icon={<SchoolIcon fontSize="large" />}
-                            color="#1976d2"
-                        />
-                    </Grid>
-                </Grid>
-            </Box>
-            <Divider sx={{ mb: 5 }} />
-            <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Đăng Ký Môn Học"
-                        desc="Đăng ký các lớp tín chỉ."
-                        icon={<AppRegistrationIcon />}
-                        color="#7b1fa2"
-                        onClick={() => navigate("/student/registration")}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Lớp Học Của Tôi"
-                        desc="Truy cập tài liệu & Bài giảng."
-                        icon={<SchoolIcon />}
-                        color="#2e7d32"
-                        onClick={() => navigate("/student/classes")}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Đăng Ký Đề Tài"
-                        desc="Chọn đề tài đồ án/tiểu luận."
-                        icon={<AssignmentIcon />}
-                        color="#ef6c00"
-                        onClick={() => alert("Tính năng đang phát triển")}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Nhóm Của Tôi"
-                        desc="Trao đổi với thành viên nhóm."
-                        icon={<GroupsIcon />}
-                        color="#0288d1"
-                        onClick={() => navigate("/student/my-teams")}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Hồ Sơ Cá Nhân"
-                        desc="Xem điểm & Thông tin."
-                        icon={<PersonIcon />}
-                        color="#455a64"
-                        onClick={() => navigate("/student/profile")}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <MenuCard
-                        title="Đổi Mật Khẩu"
-                        desc="Bảo mật tài khoản."
-                        icon={<VpnKeyIcon />}
-                        color="#455a64"
-                        onClick={() => navigate("/change-password")}
-                    />
-                </Grid>
-            </Grid>
-        </Container>
-    </Box>
-);
-
 // ==========================================
 // 4. MAIN COMPONENT (HOME)
 // ==========================================
@@ -701,7 +483,6 @@ const Home = () => {
         totalSubjects: 0,
         totalProjects: 0,
     });
-    const [myClassCount, setMyClassCount] = useState(0);
 
     useEffect(() => {
         const userStr = localStorage.getItem("user");
@@ -713,11 +494,6 @@ const Home = () => {
                 api
                     .get("/dashboard/stats")
                     .then((res) => setStats(res.data))
-                    .catch(console.error);
-            }
-            if (role === "STUDENT") {
-                getMyClasses()
-                    .then((data) => setMyClassCount(data.length))
                     .catch(console.error);
             }
         } else {
@@ -756,7 +532,6 @@ const Home = () => {
         navigate,
         onLogout: handleLogout,
         stats,
-        myClassCount,
     };
 
     // --- PHÂN LUỒNG HIỂN THỊ ---
@@ -772,7 +547,7 @@ const Home = () => {
             case "LECTURER":
                 return <LecturerDashboard />; // Component có sẵn của bạn
             case "STUDENT":
-                return <StudentDashboard {...props} />;
+                return <StudentDashboard />;
             default:
                 return (
                     <Box
