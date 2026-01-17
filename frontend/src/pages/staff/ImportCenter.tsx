@@ -19,8 +19,7 @@ import {
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import axios from "axios";
-
+import { staffService } from "../../services/staffService";
 const ImportCenter = () => {
   // 1. Khởi tạo navigate để hết lỗi ESLint "defined but never used"
   const navigate = useNavigate();
@@ -50,51 +49,42 @@ const ImportCenter = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    let url = "";
-
-    // LOGIC ĐIỀU HƯỚNG API
-    switch (importType) {
-      case "USER":
-        url = "http://localhost:8080/api/staff/import-user";
-        formData.append("role", role);
-        if (role === "STUDENT" && admissionDate) {
-          formData.append("admissionDate", admissionDate);
-        }
-        break;
-      case "CLASS":
-        url = "http://localhost:8080/api/staff/import-classes";
-        break;
-      case "SUBJECT":
-        url = "http://localhost:8080/api/staff/import-subject";
-        break;
-      case "SYLLABUS":
-        url = "http://localhost:8080/api/staff/import-syllabus";
-        break;
-      default:
-        setLoading(false);
-        return;
-    }
-
     try {
-      const response = await axios.post(url, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setMessage({ type: "success", text: response.data.message });
-      setFile(null); // Reset file sau khi thành công
-    } catch (error: unknown) {
-      // Vì error là unknown, chúng ta cần kiểm tra xem nó có phải lỗi từ Axios không
-      if (axios.isAxiosError(error)) {
-        // Bây giờ TypeScript đã biết 'error' là AxiosError, con có thể truy cập data an toàn
-        const errorMsg =
-          error.response?.data?.message || "Lỗi hệ thống khi import";
-        setMessage({ type: "error", text: errorMsg });
-      } else {
-        // Trường hợp lỗi không phải từ API (lỗi code, lỗi mạng...)
-        setMessage({ type: "error", text: "Đã có lỗi xảy ra ngoài dự kiến" });
+      let response;
+      // GỌI SERVICE THAY VÌ GỌI AXIOS TRỰC TIẾP
+      switch (importType) {
+        case "USER":
+          formData.append("role", role);
+          if (role === "STUDENT" && admissionDate) {
+            formData.append("admissionDate", admissionDate);
+          }
+          response = await staffService.importUser(formData);
+          break;
+        case "CLASS":
+          response = await staffService.importClass(formData);
+          break;
+        case "SUBJECT":
+          response = await staffService.importSubject(formData);
+          break;
+        case "SYLLABUS":
+          response = await staffService.importSyllabus(formData);
+          break;
+        default:
+          setLoading(false);
+          return;
       }
+
+      // Response lúc này lấy từ data của service trả về
+      setMessage({
+        type: "success",
+        text: response.data?.message || "Import thành công!",
+      });
+      setFile(null);
+    } catch (error: any) {
+      // Xử lý lỗi lấy từ response của server thông qua interceptor của 'api'
+      const errorMsg =
+        error.response?.data?.message || "Lỗi hệ thống khi import";
+      setMessage({ type: "error", text: errorMsg });
     } finally {
       setLoading(false);
     }

@@ -31,22 +31,46 @@ public class ImportClass extends BaseImportParser<ClassImportDTO>{
             int rowNum = i + 2;
             if (isBlank(dto.getClassCode())) throw new RuntimeException("Dòng " + rowNum + ": Thiếu Mã lớp");
             if (isBlank(dto.getSubjectCode())) throw new RuntimeException("Dòng " + rowNum + ": Thiếu Mã môn");
-            if (isBlank(dto.getLecturerEmail())) throw new RuntimeException("Dòng " + rowNum + ": Thiếu Email giảng viên");
             if (classRoomRepository.existsByClassCode(dto.getClassCode())) {
                 throw new RuntimeException("Dòng " + rowNum + ": Mã lớp " + dto.getClassCode() + " đã tồn tại trong hệ thống!");
             }
         }
     }
+    private LocalDate parseDate(String value) {
+        if (isBlank(value)) return null;
+
+        String[] patterns = {
+                "dd/MM/yyyy",
+                "d/M/yyyy",
+                "yyyy/M/d",
+                "yyyy/MM/dd"
+        };
+
+        for (String pattern : patterns) {
+            try {
+                return LocalDate.parse(value, DateTimeFormatter.ofPattern(pattern));
+            } catch (Exception ignored) {}
+        }
+
+        throw new RuntimeException("Sai định dạng ngày: " + value);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     protected void saveToDb(List<ClassImportDTO> data, Object... params) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         for (ClassImportDTO dto : data) {
             Subject subject = subjectRepository.findBySubjectCode(dto.getSubjectCode())
                     .orElseThrow(() -> new RuntimeException("Môn học " + dto.getSubjectCode() + " không tồn tại"));
-            User lecturer = userRepository.findByEmail(dto.getLecturerEmail())
-                    .orElseThrow(() -> new RuntimeException("Giảng viên " + dto.getLecturerEmail() + " không tồn tại"));
+            User lecturer = null;
+
+            if (!isBlank(dto.getLecturerEmail())) {
+                lecturer = userRepository.findByEmail(dto.getLecturerEmail())
+                        .orElseThrow(() -> new RuntimeException(
+                                "Giảng viên " + dto.getLecturerEmail() + " không tồn tại"
+                        ));
+            }
+
 
             ClassRoom newClass = ClassRoom.builder()
                     .name(dto.getName())
@@ -54,8 +78,8 @@ public class ImportClass extends BaseImportParser<ClassImportDTO>{
                     .semester(dto.getSemester())
                     .subject(subject)
                     .lecturer(lecturer)
-                    .startDate(LocalDate.parse(dto.getStartDate(), formatter))
-                    .endDate(LocalDate.parse(dto.getEndDate(), formatter))
+                    .startDate(parseDate(dto.getStartDate()))
+                    .endDate(parseDate(dto.getEndDate()))
                     .isRegistrationOpen(false)
                     .build();
             classRoomRepository.save(newClass);
