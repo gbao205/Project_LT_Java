@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-    Container, Typography, Box, Paper, Table, TableBody, TableCell,
+    Typography, Box, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Button, Chip, CircularProgress
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import SchoolIcon from '@mui/icons-material/School';
 import { useNavigate } from 'react-router-dom';
+
+import StudentLayout from '../../components/layout/StudentLayout';
 import { getMyClasses } from '../../services/classService';
-import AdminLayout from '../../components/layout/AdminLayout';
 
 const MyClasses = () => {
     const [classes, setClasses] = useState<any[]>([]);
@@ -29,7 +28,7 @@ const MyClasses = () => {
     }, []);
 
     return (
-        <AdminLayout title="Lớp Học Của Tôi">
+        <StudentLayout title="Lớp Học Của Tôi">
 
             {loading ? (
                 <Box display="flex" justifyContent="center" mt={5}><CircularProgress color="success" /></Box>
@@ -38,12 +37,12 @@ const MyClasses = () => {
                     <Table>
                         <TableHead sx={{ bgcolor: '#e8f5e9' }}>
                             <TableRow>
-                                <TableCell fontWeight="bold">STT</TableCell>
-                                <TableCell fontWeight="bold">Tên Lớp</TableCell>
-                                <TableCell fontWeight="bold">Môn Học</TableCell>
-                                <TableCell fontWeight="bold">Giảng Viên</TableCell>
-                                <TableCell fontWeight="bold">Học Kỳ</TableCell>
-                                <TableCell align="center" fontWeight="bold">Trạng Thái</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>STT</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Tên Lớp</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Môn Học</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Giảng Viên</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Học Kỳ</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Trạng Thái</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -52,7 +51,7 @@ const MyClasses = () => {
                                     <TableRow key={cls.id} hover>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell
-                                            sx={{ fontWeight: 'bold', color: '#2e7d32', cursor: 'pointer', textDecoration: 'underline' }}
+                                            sx={{ fontWeight: 'bold', color: '#2e7d32', cursor: 'pointer' }}
                                             onClick={() => navigate(`/class/${cls.id}`)}
                                         >
                                             {cls.name}
@@ -82,7 +81,7 @@ const MyClasses = () => {
                     </Table>
                 </TableContainer>
             )}
-        </AdminLayout>
+        </StudentLayout>
     );
 };
 

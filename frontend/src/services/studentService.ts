@@ -77,7 +77,7 @@ const studentService = {
     },
 
     // Tạo nhóm mới
-    createTeam: async (data: { teamName: string, classId: number }) => {
+    createTeam: async (data: CreateTeamRequest) => {
         return api.post('/student/teams/create', data);
     },
 

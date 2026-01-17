@@ -1,12 +1,12 @@
 // File: frontend/src/pages/student/StudentWorkspace.tsx
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Tabs, Tab, Paper, Typography, CircularProgress } from '@mui/material';
+import { Box, Tabs, Tab, Paper, CircularProgress } from '@mui/material';
 import TaskBoard from './tabs/TaskBoard'; 
 import MilestoneTab from './tabs/MilestoneTab';
 import CheckpointTab from './tabs/CheckpointTab';
 import ResourceTab from './tabs/ResourceTab';
-import AdminLayout from '../../components/layout/AdminLayout';
+import StudentLayout from '../../components/layout/StudentLayout';
 import studentService from '../../services/studentService'; // Import service để lấy data
 
 const StudentWorkspace = () => {
@@ -35,23 +35,26 @@ const StudentWorkspace = () => {
         }
     }, [teamId]);
 
-    // Tạo chuỗi tiêu đề động
     const dynamicTitle = teamDetail 
         ? `Không gian làm việc: ${teamDetail.teamName} - ${teamDetail.classRoom?.name || 'Lớp học'}` 
         : "Không gian làm việc nhóm";
 
     if (loading) {
         return (
-            <AdminLayout title="Đang tải...">
+            <StudentLayout title="Đang tải...">
                 <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
                     <CircularProgress />
                 </Box>
-            </AdminLayout>
+            </StudentLayout>
         );
     }
 
+    const breadcrumbs = [
+        { label: 'Danh sách nhóm', path: '/student/my-teams' }
+    ];
+
     return (
-        <AdminLayout title={dynamicTitle} showBack={true} backPath="/student/my-teams">
+        <StudentLayout title={dynamicTitle} breadcrumbs={breadcrumbs}>
             <Paper sx={{ mb: 2, borderRadius: 2 }}>
                 <Tabs 
                     value={tabIndex} 
@@ -74,7 +77,7 @@ const StudentWorkspace = () => {
                 {tabIndex === 2 && <CheckpointTab teamId={Number(teamId)} />}
                 {tabIndex === 3 && <ResourceTab teamId={Number(teamId)} />}
             </Box>
-        </AdminLayout>
+        </StudentLayout>
     );
 };
 
