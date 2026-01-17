@@ -1,24 +1,21 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-    Container, Typography, Box, Table, TableBody, TableCell,
-    TableContainer, TableHead, TableRow, Paper, Button, Chip,
-    Alert, CircularProgress, Divider, Grid
+    Typography, Box, Table, TableBody, TableCell,
+    TableContainer, TableHead, TableRow, Paper, 
+    Button, Chip, Alert, CircularProgress
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ClassIcon from '@mui/icons-material/Class';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
-import { useNavigate } from 'react-router-dom';
+
+import StudentLayout from '../../components/layout/StudentLayout';
 import { getRegistrationClasses, enrollClass, cancelClass } from '../../services/classService';
-import AdminLayout from '../../components/layout/AdminLayout';
 
 const CourseRegistration = () => {
     const [classes, setClasses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState<{ type: 'success' | 'error', content: string } | null>(null);
-    const navigate = useNavigate();
 
     const fetchData = async () => {
         try {
@@ -101,7 +98,7 @@ const CourseRegistration = () => {
     );
 
     return (
-        <AdminLayout title="Đăng Ký Môn Học">
+        <StudentLayout title="Đăng Ký Môn Học">
             
             {msg && <Alert severity={msg.type} sx={{ mb: 3 }}>{msg.content}</Alert>}
 
@@ -122,12 +119,12 @@ const CourseRegistration = () => {
                             <Table stickyHeader>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f5f5f5'}}>Mã Lớp</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f5f5f5'}}>Môn Học</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f5f5f5'}}>Giảng Viên</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f5f5f5'}}>Học Kỳ</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f5f5f5'}}>Sĩ Số</TableCell>
-                                        <TableCell align="center" fontWeight="bold" sx={{bgcolor: '#f5f5f5'}}>Thao Tác</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Mã Lớp</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Môn Học</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Giảng Viên</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Học Kỳ</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Sĩ Số</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Thao Tác</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -157,12 +154,12 @@ const CourseRegistration = () => {
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f1f8e9'}}>Mã Lớp</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f1f8e9'}}>Môn Học</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f1f8e9'}}>Giảng Viên</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f1f8e9'}}>Học Kỳ</TableCell>
-                                        <TableCell fontWeight="bold" sx={{bgcolor: '#f1f8e9'}}>Sĩ Số</TableCell>
-                                        <TableCell align="center" fontWeight="bold" sx={{bgcolor: '#f1f8e9'}}>Thao Tác</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Mã Lớp</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Môn Học</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Giảng Viên</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Học Kỳ</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Sĩ Số</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Thao Tác</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -182,7 +179,7 @@ const CourseRegistration = () => {
 
                 </Box>
             )}
-        </AdminLayout>
+        </StudentLayout>
     );
 };
 

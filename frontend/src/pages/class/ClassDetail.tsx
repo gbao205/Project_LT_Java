@@ -6,7 +6,8 @@ import {
     Dialog, DialogTitle, DialogContent, TextField, DialogActions, Chip,
     CircularProgress, Grid, Card, CardContent, CardActions, FormControl,
     RadioGroup, FormControlLabel, Radio, Avatar, Tooltip, FormLabel,
-    FormGroup, Checkbox, InputAdornment, Snackbar, Alert, DialogContentText
+    FormGroup, Checkbox, InputAdornment, Snackbar, Alert, DialogContentText,
+    Skeleton
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -14,15 +15,15 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
 import GroupsIcon from '@mui/icons-material/Groups';
-import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
-import studentService from '../../services/studentService';
-import { getClassDetails, createMaterial, createAssignment, submitAssignment } from '../../services/classService';
-import AdminLayout from '../../components/layout/AdminLayout';
 import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from '@mui/icons-material/Warning';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+
+import StudentLayout from '../../components/layout/StudentLayout';
+import studentService from '../../services/studentService';
+import { getClassDetails, createMaterial, createAssignment, submitAssignment } from '../../services/classService';
 
 const ClassDetail = () => {
     const { id } = useParams();
@@ -58,6 +59,8 @@ const ClassDetail = () => {
     const [projectForm, setProjectForm] = useState({ projectName: '', description: ''});
     const [isLeader, setIsLeader] = useState(false);
 
+    const [teamLoading, setTeamLoading] = useState(false);
+
     // --- STATE CHO UI MỚI (SNACKBAR & CONFIRM) ---
     const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' | 'warning' }>({
         open: false,
@@ -71,7 +74,6 @@ const ClassDetail = () => {
         content: '',
         onConfirm: () => { }
     });
-    // ---------------------------------------------
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -94,6 +96,7 @@ const ClassDetail = () => {
     const fetchTeamData = async () => {
         if (!id || !user) return;
         try {
+            setTeamLoading(true);
             const team = await studentService.getMyTeam(id);
             const teams = await studentService.getTeamsInClass(id);
             setAvailableTeams(teams);
@@ -105,12 +108,11 @@ const ClassDetail = () => {
             } else {
                 setMyTeam(null);
                 setIsLeader(false);
-                // Nếu chưa có nhóm, tải danh sách nhóm có sẵn
-                const teams = await studentService.getTeamsInClass(id);
-                setAvailableTeams(teams);
             }
         } catch (error) {
             console.error("Lỗi tải thông tin nhóm:", error);
+        } finally {
+            setTeamLoading(false); 
         }
     };
 
@@ -231,7 +233,10 @@ const ClassDetail = () => {
 
     const handleRegisterProject = async () => {
         try {
-            await studentService.registerProject({...projectForm, classId: Number(id)});
+            await studentService.registerProject({ 
+                projectName: projectForm.projectName, 
+                description: projectForm.description 
+            });
             showSnackbar("Đăng ký đề tài thành công! Chờ giảng viên duyệt.");
             setOpenRegisterProject(false);
             fetchTeamData();
@@ -240,7 +245,7 @@ const ClassDetail = () => {
         }
     };
 
-    const handleJoinTeam = (teamId: number) => {
+    const handleJoinTeam = (team: any) => {
         // Thay thế confirm mặc định bằng Dialog
         setConfirmDialog({
             open: true,
@@ -248,7 +253,7 @@ const ClassDetail = () => {
             content: "Bạn có chắc chắn muốn tham gia nhóm này không?",
             onConfirm: async () => {
                 try {
-                    await studentService.joinTeam({ teamId });
+                    await studentService.joinTeam(team.joinCode);
                     showSnackbar("Tham gia thành công!");
                     fetchTeamData();
                 } catch (error: any) {
@@ -317,12 +322,35 @@ const ClassDetail = () => {
         }
     };
 
+    const TeamSkeleton = () => (
+        <Box>
+            {/* Skeleton cho Nhóm của bạn */}
+            <Skeleton variant="rounded" height={200} sx={{ mb: 4, borderRadius: 2 }} />
+            
+            {/* Skeleton cho tiêu đề danh sách */}
+            <Skeleton variant="text" width="40%" height={40} sx={{ mb: 3 }} />
+            
+            {/* Skeleton cho Grid danh sách nhóm */}
+            <Grid container spacing={3}>
+                {[1, 2, 3, 4].map((i) => (
+                    <Grid size={{ xs: 12, md: 6, lg: 3 }} key={i}>
+                        <Skeleton variant="rounded" height={180} sx={{ borderRadius: 2 }} />
+                    </Grid>
+                ))}
+            </Grid>
+        </Box>
+    );
+
     const pageTitle = loading || !classData
         ? "Chi Tiết Lớp Học"
         : `Lớp Học: ${classData.classInfo.name}`;
 
+    const breadcrumbs = [
+        { label: 'Lớp Học Của Tôi', path: '/student/classes' }
+    ];
+
     return (
-        <AdminLayout title={pageTitle} showBack={true} backPath="/student/classes">
+        <StudentLayout title={pageTitle} breadcrumbs={breadcrumbs}>
 
             {loading ? (
                 <Box display="flex" justifyContent="center" mt={5}>
@@ -446,301 +474,309 @@ const ClassDetail = () => {
                     {/* TAB 3: HOẠT ĐỘNG NHÓM */}
                     {tabIndex === 2 && (
                         <Box mt={3}>
-                            {myTeam && (
-                                <Paper elevation={3} sx={{ p: 3, mb: 4, bgcolor: '#e3f2fd', border: '1px solid #90caf9' }}>
-                                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                                        <Box>
-                                            <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom>
-                                                🏡 Nhóm Của Bạn: {myTeam.teamName || myTeam.name}
-                                            </Typography>
-                                            <Chip
-                                                label={`Mã tham gia: ${myTeam.joinCode}`}
-                                                color="info"
-                                                variant="outlined"
-                                                size="small"
-                                                sx={{ fontWeight: 'bold' }}
-                                            />
-                                        </Box>
-                                        <Button
-                                            variant="outlined"
-                                            color="error"
-                                            startIcon={<LogoutIcon />}
-                                            onClick={handleLeaveTeamProcess}
-                                        >
-                                            Rời nhóm
-                                        </Button>
-                                    </Box>
-
-                                    <Divider sx={{ my: 2 }} />
-
-                                    <Grid container spacing={3}>
-                                        <Grid item xs={12} md={6}>
-                                            <Grid item xs={12} md={8}>
-                                                <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-                                                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                                                        <FactCheckIcon color="secondary" />
-                                                        <Typography variant="h6" fontWeight="bold">Thông Tin Đề Tài</Typography>
-                                                    </Box>
-                                                    <Divider sx={{ mb: 2 }} />
-
-                                                    {myTeam.project ? (
-                                                        /* Đã có đề tài */
-                                                        <Box>
-                                                            <Typography variant="h5" color="secondary.main" fontWeight="bold" gutterBottom>
-                                                                {myTeam.project.name}
-                                                            </Typography>
-                                                            <Chip 
-                                                                label={myTeam.project.status === 'APPROVED' ? "Đã Duyệt" : "Đang Chờ Duyệt"} 
-                                                                color={myTeam.project.status === 'APPROVED' ? "success" : "warning"} 
-                                                                variant="outlined" 
-                                                                sx={{ mb: 2 }}
-                                                            />
-                                                            <Typography variant="body1" paragraph>
-                                                                {myTeam.project.description}
-                                                            </Typography>
-                                                        </Box>
-                                                    ) : (
-                                                        /* Chưa có đề tài */
-                                                        <Box textAlign="center" py={4}>
-                                                            <Typography variant="body1" color="textSecondary" paragraph>
-                                                                Nhóm chưa đăng ký đề tài nào.
-                                                            </Typography>
-                                                            {isLeader ? (
-                                                                <Button variant="contained" color="secondary" onClick={() => setOpenRegisterProject(true)}>
-                                                                    Đăng Ký Đề Tài Ngay
-                                                                </Button>
-                                                            ) : (
-                                                                <Alert severity="warning">Vui lòng nhắc Nhóm trưởng đăng ký đề tài.</Alert>
-                                                            )}
-                                                        </Box>
-                                                    )}
-                                                </Paper>
-                                            </Grid>
-                                        </Grid>
-
-                                        <Grid item xs={12} md={6}>
-                                            <Grid item xs={12} md={8}>
-                                                <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-                                                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                                                        <GroupsIcon color="action"/>
-                                                        <Typography variant="h6" fontWeight="bold">
-                                                            Thành viên ({myTeam.members?.length || 0})
-                                                        </Typography>
-                                                    </Box>
-                                                    <Divider sx={{ mb: 2 }} />
-                                                    <List dense sx={{ bgcolor: '#fff'}}>
-                                                    <Chip label={isLeader ? "Bạn là Nhóm Trưởng" : "Thành viên"} color={isLeader ? "error" : "default"} size="small" sx={{mb: 2}} />
-                                                        {myTeam.members
-                                                            ?.sort((a: any, b: any) => (a.role === 'LEADER' ? -1 : b.role === 'LEADER' ? 1 : 0))
-                                                            .map((mem: any) => (
-                                                                <ListItem key={mem.id}>
-                                                                    <ListItemIcon sx={{ minWidth: 40 }}>
-                                                                        <Avatar sx={{ width: 32, height: 32, bgcolor: mem.role === 'LEADER' ? '#ff9800' : '#bdbdbd' }}>
-                                                                            {mem.student?.fullName?.charAt(0)}
-                                                                        </Avatar>
-                                                                    </ListItemIcon>
-                                                                    <ListItemText
-                                                                        primary={
-                                                                            <Box display="flex" alignItems="center" gap={1}>
-                                                                                <Typography variant="body1" fontWeight={mem.student?.id === user?.id ? 'bold' : 'normal'}>
-                                                                                    {mem.student?.fullName}
-                                                                                </Typography>
-                                                                                {mem.role === 'LEADER' && (
-                                                                                    <Tooltip title="Nhóm trưởng">
-                                                                                        <StarIcon fontSize="small" sx={{ color: '#ff9800' }} />
-                                                                                    </Tooltip>
-                                                                                )}
-                                                                            </Box>
-                                                                        }
-                                                                        secondary={mem.student?.email}
-                                                                    />
-                                                                </ListItem>
-                                                            ))}
-                                                    </List>
-                                                </Paper>
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                </Paper>
-                            )}
-
-                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                                <Typography variant="h5" fontWeight="bold" sx={{ borderLeft: '5px solid #1976d2', pl: 2 }}>
-                                    Danh Sách Các Nhóm Trong Lớp
-                                </Typography>
-
-                                {!myTeam && (
-                                    <Box>
-                                        <Alert severity="info" sx={{ mb: 2 }}>Bạn chưa tham gia nhóm nào. Hãy chọn nhóm hoặc tạo mới.</Alert>
-                                        <Box display="flex" justifyContent="flex-end" mb={2}>
-                                            <Box display="flex" gap={2}>
-                                                <Button variant="outlined" color="primary" startIcon={<LoginIcon />} onClick={() => setOpenJoinDialog(true)}>
-                                                    Tham Gia Bằng Mã
-                                                </Button>
-                                                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreateTeam}>
-                                                    Tạo Nhóm Mới
+                            {teamLoading ? (
+                                <TeamSkeleton />
+                            ): (
+                                <>
+                                    {myTeam && (
+                                        <Paper elevation={3} sx={{ p: 3, mb: 4, bgcolor: '#e3f2fd', border: '1px solid #90caf9' }}>
+                                            <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                                                <Box>
+                                                    <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom>
+                                                        🏡 Nhóm Của Bạn: {myTeam.teamName || myTeam.name}
+                                                    </Typography>
+                                                    <Chip
+                                                        label={`Mã tham gia: ${myTeam.joinCode}`}
+                                                        color="info"
+                                                        variant="outlined"
+                                                        size="small"
+                                                        sx={{ fontWeight: 'bold' }}
+                                                    />
+                                                </Box>
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
+                                                    startIcon={<LogoutIcon />}
+                                                    onClick={handleLeaveTeamProcess}
+                                                >
+                                                    Rời nhóm
                                                 </Button>
                                             </Box>
-                                        </Box>
-                                    </Box>
-                                )}
-                            </Box>
-
-                            <Grid container spacing={3}>
-                                {(!availableTeams || availableTeams.length === 0) && (
-                                    <Grid item xs={12}>
-                                        <Typography align="center" color="textSecondary" py={5}>
-                                            Lớp học chưa có nhóm nào được tạo.
-                                        </Typography>
-                                    </Grid>
-                                )}
-
-                                {Array.isArray(availableTeams) && availableTeams
-                                    .sort((a, b) => {
-                                        if (myTeam && a.id === myTeam.id) return -1;
-                                        if (myTeam && b.id === myTeam.id) return 1;
-                                        return 0;
-                                    })
-                                    .map((team) => {
-                                        const isMyTeamCard = myTeam && myTeam.id === team.id;
-                                        return (
-                                            <Grid item xs={12} md={6} lg={4} key={team.id}>
-                                                <Card
-                                                    elevation={3}
-                                                    sx={{
-                                                        width: 270,
-                                                        height: '100%',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        border: isMyTeamCard ? '2px solid #2196f3' : 'none',
-                                                        position: 'relative'
-                                                    }}
-                                                >
-                                                    {isMyTeamCard && (
-                                                        <Chip label="Nhóm của bạn" color="primary" size="small" sx={{ position: 'absolute', top: 10, right: 10 }} />
-                                                    )}
-
-                                                    <CardContent sx={{ flexGrow: 1 }}>
-                                                        <Tooltip title={team.teamName || team.name} placement="top" arrow>
-                                                            <Typography
-                                                                variant="h6"
-                                                                fontWeight="bold"
-                                                                color="primary"
-                                                                gutterBottom
-                                                                sx={{
-                                                                    pr: isMyTeamCard ? 12 : 0,
-                                                                    minHeight: '32px',
-                                                                    lineHeight: '1.5',
-                                                                    wordBreak: 'break-word',
-                                                                }}
-                                                                style={{
-                                                                    display: '-webkit-box',
-                                                                    WebkitLineClamp: 2,
-                                                                    WebkitBoxOrient: 'vertical',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis',
-                                                                }}
-                                                            >
-                                                                {team.teamName || team.name}
-                                                            </Typography>
-                                                            <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase">
-                                                                Mã tham gia: {team.joinCode || "null"}
-                                                            </Typography>
-                                                        </Tooltip>
-
-                                                        <Divider sx={{ my: 1.5 }} />
-
-                                                        <Box sx={{mb: 1}}>
-                                                            <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase">
-                                                                Đề tài
-                                                            </Typography>
-                                                            {team.project ? (
+        
+                                            <Divider sx={{ my: 2 }} />
+        
+                                            <Grid container spacing={3}>
+                                                <Grid size={{ xs: 12, md: 6 }}>
+                                                    <Grid size={{ xs: 12, md: 8 }}>
+                                                        <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                                                            <Box display="flex" alignItems="center" gap={1} mb={2}>
+                                                                <FactCheckIcon color="secondary" />
+                                                                <Typography variant="h6" fontWeight="bold">Thông Tin Đề Tài</Typography>
+                                                            </Box>
+                                                            <Divider sx={{ mb: 2 }} />
+        
+                                                            {myTeam.project ? (
+                                                                /* Đã có đề tài */
                                                                 <Box>
-                                                                    <Typography variant="body2" fontWeight="bold" sx={{ color: '#2e7d32', mt: 0.5 }}>
-                                                                        {team.project.name}
-                                                                        {team.project?.status !== "APPROVED" && (
-                                                                            <Chip label="Chưa duyệt" color="error" size="small" sx={{mt: 1}} />
-                                                                        )}
+                                                                    <Typography variant="h5" color="secondary.main" fontWeight="bold" gutterBottom>
+                                                                        {myTeam.project.name}
+                                                                    </Typography>
+                                                                    <Chip 
+                                                                        label={myTeam.project.status === 'APPROVED' ? "Đã Duyệt" : "Đang Chờ Duyệt"} 
+                                                                        color={myTeam.project.status === 'APPROVED' ? "success" : "warning"} 
+                                                                        variant="outlined" 
+                                                                        sx={{ mb: 2 }}
+                                                                    />
+                                                                    <Typography variant="body1" paragraph>
+                                                                        {myTeam.project.description}
                                                                     </Typography>
                                                                 </Box>
                                                             ) : (
-                                                                <Typography variant="body2" color="text.disabled" fontStyle="italic">
-                                                                    (Chưa đăng ký)
-                                                                </Typography>
+                                                                /* Chưa có đề tài */
+                                                                <Box textAlign="center" py={4}>
+                                                                    <Typography variant="body1" color="textSecondary" paragraph>
+                                                                        Nhóm chưa đăng ký đề tài nào.
+                                                                    </Typography>
+                                                                    {isLeader ? (
+                                                                        <Button variant="contained" color="secondary" onClick={() => setOpenRegisterProject(true)}>
+                                                                            Đăng Ký Đề Tài Ngay
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Alert severity="warning">Vui lòng nhắc Nhóm trưởng đăng ký đề tài.</Alert>
+                                                                    )}
+                                                                </Box>
                                                             )}
-                                                        </Box>
-
-                                                        <Box>
-                                                            <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase" gutterBottom>
-                                                                Thành viên ({team.members?.length || 0})
-                                                            </Typography>
-
-                                                            <List dense disablePadding sx={{ mt: 1 }}>
-                                                                {team.members
+                                                        </Paper>
+                                                    </Grid>
+                                                </Grid>
+        
+                                                <Grid size={{ xs: 12, md: 6 }}>
+                                                    <Grid size={{ xs: 12, md: 8 }}>
+                                                        <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                                                            <Box display="flex" alignItems="center" gap={1} mb={2}>
+                                                                <GroupsIcon color="action"/>
+                                                                <Typography variant="h6" fontWeight="bold">
+                                                                    Thành viên ({myTeam.members?.length || 0})
+                                                                </Typography>
+                                                            </Box>
+                                                            <Divider sx={{ mb: 2 }} />
+                                                            <List dense sx={{ bgcolor: '#fff'}}>
+                                                            <Chip label={isLeader ? "Bạn là Nhóm Trưởng" : "Thành viên"} color={isLeader ? "error" : "default"} size="small" sx={{mb: 2}} />
+                                                                {myTeam.members
                                                                     ?.sort((a: any, b: any) => (a.role === 'LEADER' ? -1 : b.role === 'LEADER' ? 1 : 0))
                                                                     .map((mem: any) => (
-                                                                        <ListItem
-                                                                            key={mem.id}
-                                                                            disablePadding
-                                                                            sx={{ mb: 1 }}
-                                                                        >
+                                                                        <ListItem key={mem.id}>
                                                                             <ListItemIcon sx={{ minWidth: 40 }}>
-                                                                                <Avatar
-                                                                                    sx={{
-                                                                                        width: 30,
-                                                                                        height: 30,
-                                                                                        bgcolor: mem.role === 'LEADER' ? '#ff9800' : '#e0e0e0',
-                                                                                        color: mem.role === 'LEADER' ? '#fff' : '#757575',
-                                                                                        fontSize: '0.875rem',
-                                                                                        fontWeight: 'bold'
-                                                                                    }}
-                                                                                >
+                                                                                <Avatar sx={{ width: 32, height: 32, bgcolor: mem.role === 'LEADER' ? '#ff9800' : '#bdbdbd' }}>
                                                                                     {mem.student?.fullName?.charAt(0)}
                                                                                 </Avatar>
                                                                             </ListItemIcon>
-
                                                                             <ListItemText
                                                                                 primary={
-                                                                                    <Box display="flex" alignItems="center" gap={0.5}>
-                                                                                        <Typography variant="body2" fontWeight={mem.role === 'LEADER' ? 'bold' : 'normal'}>
+                                                                                    <Box display="flex" alignItems="center" gap={1}>
+                                                                                        <Typography variant="body1" fontWeight={mem.student?.id === user?.id ? 'bold' : 'normal'}>
                                                                                             {mem.student?.fullName}
                                                                                         </Typography>
                                                                                         {mem.role === 'LEADER' && (
                                                                                             <Tooltip title="Nhóm trưởng">
-                                                                                                <StarIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                                                                                                <StarIcon fontSize="small" sx={{ color: '#ff9800' }} />
                                                                                             </Tooltip>
                                                                                         )}
                                                                                     </Box>
                                                                                 }
-                                                                                secondary={
-                                                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1 }}>
-                                                                                        {mem.student?.email}
-                                                                                    </Typography>
-                                                                                }
+                                                                                secondary={mem.student?.email}
                                                                             />
                                                                         </ListItem>
                                                                     ))}
                                                             </List>
-                                                        </Box>
-                                                    </CardContent>
-
-                                                    {!myTeam && (
-                                                        <CardActions sx={{ bgcolor: '#f5f5f5', justifyContent: 'center' }}>
-                                                            <Button
-                                                                size="small"
-                                                                variant="contained"
-                                                                onClick={() => handleJoinTeam(team.id)}
-                                                                fullWidth
-                                                            >
-                                                                Tham Gia Nhóm
-                                                            </Button>
-                                                        </CardActions>
-                                                    )}
-                                                </Card>
+                                                        </Paper>
+                                                    </Grid>
+                                                </Grid>
                                             </Grid>
-                                        );
-                                    })}
-                            </Grid>
+                                        </Paper>
+                                    )}
+        
+                                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                                        <Typography variant="h5" fontWeight="bold" sx={{ borderLeft: '5px solid #1976d2', pl: 2 }}>
+                                            Danh Sách Các Nhóm Trong Lớp
+                                        </Typography>
+        
+                                        {!myTeam && (
+                                            <Box>
+                                                <Alert severity="info" sx={{ mb: 2 }}>Bạn chưa tham gia nhóm nào. Hãy chọn nhóm hoặc tạo mới.</Alert>
+                                                <Box display="flex" justifyContent="flex-end" mb={2}>
+                                                    <Box display="flex" gap={2}>
+                                                        <Button variant="outlined" color="primary" startIcon={<LoginIcon />} onClick={() => setOpenJoinDialog(true)}>
+                                                            Tham Gia Bằng Mã
+                                                        </Button>
+                                                        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreateTeam}>
+                                                            Tạo Nhóm Mới
+                                                        </Button>
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+                                        )}
+                                    </Box>
+        
+                                    <Grid container spacing={3}>
+                                        {(!availableTeams || availableTeams.length === 0) && (
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography align="center" color="textSecondary" py={5}>
+                                                    Lớp học chưa có nhóm nào được tạo.
+                                                </Typography>
+                                            </Grid>
+                                        )}
+        
+                                        {Array.isArray(availableTeams) && availableTeams
+                                            .sort((a, b) => {
+                                                if (myTeam && a.id === myTeam.id) return -1;
+                                                if (myTeam && b.id === myTeam.id) return 1;
+                                                return 0;
+                                            })
+                                            .map((team) => {
+                                                const isMyTeamCard = myTeam && myTeam.id === team.id;
+                                                return (
+                                                    <Grid size={{ xs: 12, md: 6, lg: 3 }} key={team.id}>
+                                                        <Card
+                                                            elevation={3}
+                                                            sx={{
+                                                                width: 270,
+                                                                height: '100%',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                border: isMyTeamCard ? '2px solid #2196f3' : 'none',
+                                                                position: 'relative'
+                                                            }}
+                                                        >
+                                                            {isMyTeamCard && (
+                                                                <Chip label="Nhóm của bạn" color="primary" size="small" sx={{ position: 'absolute', top: 10, right: 10 }} />
+                                                            )}
+        
+                                                            <CardContent sx={{ flexGrow: 1 }}>
+                                                                <Tooltip title={team.teamName || team.name} placement="top" arrow>
+                                                                    <Box>
+                                                                        <Typography
+                                                                            variant="h6"
+                                                                            fontWeight="bold"
+                                                                            color="primary"
+                                                                            gutterBottom
+                                                                            sx={{
+                                                                                pr: isMyTeamCard ? 12 : 0,
+                                                                                minHeight: '32px',
+                                                                                lineHeight: '1.5',
+                                                                                wordBreak: 'break-word',
+                                                                            }}
+                                                                            style={{
+                                                                                display: '-webkit-box',
+                                                                                WebkitLineClamp: 2,
+                                                                                WebkitBoxOrient: 'vertical',
+                                                                                overflow: 'hidden',
+                                                                                textOverflow: 'ellipsis',
+                                                                            }}
+                                                                        >
+                                                                            {team.teamName || team.name}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase">
+                                                                            Mã tham gia: {team.joinCode || "null"}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </Tooltip>
+        
+                                                                <Divider sx={{ my: 1.5 }} />
+        
+                                                                <Box sx={{mb: 1}}>
+                                                                    <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase">
+                                                                        Đề tài
+                                                                    </Typography>
+                                                                    {team.project ? (
+                                                                        <Box>
+                                                                            <Typography variant="body2" fontWeight="bold" sx={{ color: '#2e7d32', mt: 0.5 }}>
+                                                                                {team.project.name}
+                                                                                {team.project?.status !== "APPROVED" && (
+                                                                                    <Chip label="Chưa duyệt" color="error" size="small" sx={{mt: 1}} />
+                                                                                )}
+                                                                            </Typography>
+                                                                        </Box>
+                                                                    ) : (
+                                                                        <Typography variant="body2" color="text.disabled" fontStyle="italic">
+                                                                            (Chưa đăng ký)
+                                                                        </Typography>
+                                                                    )}
+                                                                </Box>
+        
+                                                                <Box>
+                                                                    <Typography variant="caption" fontWeight="bold" color="text.secondary" textTransform="uppercase" gutterBottom>
+                                                                        Thành viên ({team.members?.length || 0})
+                                                                    </Typography>
+        
+                                                                    <List dense disablePadding sx={{ mt: 1 }}>
+                                                                        {team.members
+                                                                            ?.sort((a: any, b: any) => (a.role === 'LEADER' ? -1 : b.role === 'LEADER' ? 1 : 0))
+                                                                            .map((mem: any) => (
+                                                                                <ListItem
+                                                                                    key={mem.id}
+                                                                                    disablePadding
+                                                                                    sx={{ mb: 1 }}
+                                                                                >
+                                                                                    <ListItemIcon sx={{ minWidth: 40 }}>
+                                                                                        <Avatar
+                                                                                            sx={{
+                                                                                                width: 30,
+                                                                                                height: 30,
+                                                                                                bgcolor: mem.role === 'LEADER' ? '#ff9800' : '#e0e0e0',
+                                                                                                color: mem.role === 'LEADER' ? '#fff' : '#757575',
+                                                                                                fontSize: '0.875rem',
+                                                                                                fontWeight: 'bold'
+                                                                                            }}
+                                                                                        >
+                                                                                            {mem.student?.fullName?.charAt(0)}
+                                                                                        </Avatar>
+                                                                                    </ListItemIcon>
+        
+                                                                                    <ListItemText
+                                                                                        primary={
+                                                                                            <Box display="flex" alignItems="center" gap={0.5}>
+                                                                                                <Typography variant="body2" fontWeight={mem.role === 'LEADER' ? 'bold' : 'normal'}>
+                                                                                                    {mem.student?.fullName}
+                                                                                                </Typography>
+                                                                                                {mem.role === 'LEADER' && (
+                                                                                                    <Tooltip title="Nhóm trưởng">
+                                                                                                        <StarIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                                                                                                    </Tooltip>
+                                                                                                )}
+                                                                                            </Box>
+                                                                                        }
+                                                                                        secondary={
+                                                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1 }}>
+                                                                                                {mem.student?.email}
+                                                                                            </Typography>
+                                                                                        }
+                                                                                    />
+                                                                                </ListItem>
+                                                                            ))}
+                                                                    </List>
+                                                                </Box>
+                                                            </CardContent>
+        
+                                                            {!myTeam && (
+                                                                <CardActions sx={{ bgcolor: '#f5f5f5', justifyContent: 'center' }}>
+                                                                    <Button
+                                                                        size="small"
+                                                                        variant="contained"
+                                                                        onClick={() => handleJoinTeam(team.id)}
+                                                                        fullWidth
+                                                                    >
+                                                                        Tham Gia Nhóm
+                                                                    </Button>
+                                                                </CardActions>
+                                                            )}
+                                                        </Card>
+                                                    </Grid>
+                                                );
+                                            })}
+                                    </Grid>
+                                </>
+                            )}
                         </Box>
                     )}
                 </Box>
@@ -989,7 +1025,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
-        </AdminLayout>
+        </StudentLayout>
     );
 };
 

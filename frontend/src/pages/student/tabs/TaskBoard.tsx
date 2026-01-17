@@ -13,7 +13,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FlagIcon from '@mui/icons-material/Flag';
 import { useForm } from 'react-hook-form';
-import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 import taskService from '../../../services/taskService';
 import studentService from '../../../services/studentService';
@@ -47,14 +47,13 @@ const STATUS_ORDER = [
     TaskStatus.CANCELED
 ];
 
-const TaskBoard = () => {
+const TaskBoard = ({ teamId }: { teamId: number }) => {
     const navigate = useNavigate();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [members, setMembers] = useState<any[]>([]);
     const [milestones, setMilestones] = useState<any[]>([]);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(true);
-    const { teamId } = useParams<{ teamId: string }>();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
 
