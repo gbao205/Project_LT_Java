@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { 
     Box, Typography, Grid, Card, CardContent, 
     CardActions, Button, Chip, CircularProgress, 
-    Divider, Avatar, Tooltip, Snackbar, Alert, DialogActions,
+    Divider, Tooltip, Snackbar, Alert, DialogActions,
     Dialog, DialogTitle, DialogContent, TextField,
     FormLabel, FormControl, InputLabel, Select, MenuItem,
     InputAdornment, Paper, FormGroup, FormControlLabel, Checkbox
@@ -15,10 +15,10 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
-
-import AdminLayout from '../../components/layout/AdminLayout';
-import studentService from '../../services/studentService';
 import { useNavigate } from 'react-router-dom';
+
+import studentService from '../../services/studentService';
+import StudentLayout from '../../components/layout/StudentLayout';
 
 const MyTeams = () => {
     const userStr = localStorage.getItem('user');
@@ -189,7 +189,7 @@ const MyTeams = () => {
     };
 
     return (
-        <AdminLayout title="Nhóm Của Tôi">
+        <StudentLayout title="Nhóm Của Tôi">
             {loading ? (
                 <Box display="flex" justifyContent="center" mt={5}>
                     <CircularProgress />
@@ -228,12 +228,13 @@ const MyTeams = () => {
                     ) : (
                         <Grid container spacing={3}>
                             {teams.map((team) => (
-                                <Grid item xs={12} md={6} lg={4} key={team.id}>
+                                <Grid size={{ xs: 12, md: 6, lg: 3 }} key={team.id}>
                                     <Card 
                                         elevation={3} 
                                         sx={{ 
                                             height: '100%', 
                                             display: 'flex', 
+                                            cursor: 'default',
                                             flexDirection: 'column',
                                             borderRadius: 2,
                                             transition: '0.3s',
@@ -270,7 +271,7 @@ const MyTeams = () => {
                                                     label={`${team.members?.length || 0} thành viên`} 
                                                     size="small" 
                                                     color="info" 
-                                                    variant="soft" 
+                                                    variant="outlined"
                                                 />
                                             </Box>
 
@@ -408,7 +409,7 @@ const MyTeams = () => {
                     </Dialog>
                 </Box>
             )}
-        </AdminLayout>
+        </StudentLayout>
     );
 };
 
