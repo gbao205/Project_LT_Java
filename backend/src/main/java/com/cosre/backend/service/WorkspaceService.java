@@ -28,7 +28,7 @@ public class WorkspaceService {
     private final UserRepository userRepository;
     private final TeamResourceRepository resourceRepository;
     private final TeamMemberRepository teamMemberRepository;
-    private final TaskRepository taskRepository;
+    private final NotificationService notificationService;
     private final String uploadDir = "uploads/"; // Thư mục lưu file trên server
 
     // --- Xử lý Checkpoints ---
@@ -55,6 +55,17 @@ public class WorkspaceService {
             User assignee = userRepository.findById(req.getAssignedToId())
                     .orElseThrow(() -> new AppException("Người phụ trách không tồn tại", HttpStatus.NOT_FOUND));
             cp.setAssignedTo(assignee);
+
+            // GỬI THÔNG BÁO: Nếu creator gán checkpoint cho thành viên khác
+            if (!assignee.getId().equals(creator.getId())) {
+                notificationService.createAndSend(
+                    assignee,
+                    "Lời nhắc mới (Checkpoint)",
+                    creator.getFullName() + " đã gán một nhắc nhở cho bạn: " + cp.getTitle(),
+                    NotificationType.CHECKPOINT,
+                    "/student/workspace/" + teamId
+                );
+            }
         }
 
         return checkpointRepository.save(cp);

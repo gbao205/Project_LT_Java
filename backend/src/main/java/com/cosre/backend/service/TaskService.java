@@ -5,8 +5,6 @@ import com.cosre.backend.entity.*;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.*;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +25,7 @@ public class TaskService {
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TeamMilestoneStatusRepository milestoneStatusRepository;
+    private final NotificationService notificationService;
 
     // Lấy User hiện tại an toàn (tránh NullPointer)
     private User getCurrentUser() {
@@ -100,7 +99,20 @@ public class TaskService {
                 .milestone(milestone)
                 .build();
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);  
+
+        // GỬI THÔNG BÁO: Nếu gán cho người khác
+        if (assignedTo != null && !assignedTo.getId().equals(currentUser.getId())) {
+            notificationService.createAndSend(
+                assignedTo,
+                "Nhiệm vụ mới",
+                currentUser.getFullName() + " đã gán nhiệm vụ '" + task.getTitle() + "' cho bạn.",
+                NotificationType.TASK,
+                "/student/workspace/" + team.getId() // Điều hướng về workspace của nhóm
+            );
+        }
+
+        return savedTask;
     }
 
     // 4. Chuyển đổi trạng thái Task (áp dụng FSM)
@@ -164,12 +176,17 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new AppException("Nhiệm vụ không tồn tại", HttpStatus.NOT_FOUND));
 
+        User currentUser = getCurrentUser();
+
         // 2. Xử lý gán người thực hiện (AssignedTo)
         if (request.getAssignedToId() != null) {
             User newAssignee = userRepository.findById(request.getAssignedToId())
                     .orElseThrow(() -> new AppException("Thành viên không tồn tại", HttpStatus.NOT_FOUND));
 
-            // Logic quan trọng: Kiểm tra người được gán có thuộc Team của Task này không
+            // Kiểm tra nếu thay đổi người phụ trách và không phải tự gán cho mình
+            boolean isChanged = task.getAssignedTo() == null || !task.getAssignedTo().getId().equals(newAssignee.getId());        
+
+            // Kiểm tra người được gán có thuộc Team của Task này không
             boolean isMember = teamMemberRepository.existsByTeam_IdAndStudent_Id(
                     task.getTeam().getId(), 
                     newAssignee.getId()
@@ -179,6 +196,16 @@ public class TaskService {
                 throw new AppException("Thành viên này không thuộc nhóm của nhiệm vụ", HttpStatus.BAD_REQUEST);
             }
             task.setAssignedTo(newAssignee);
+
+            if (isChanged && !newAssignee.getId().equals(currentUser.getId())) {
+                notificationService.createAndSend(
+                    newAssignee,
+                    "Cập nhật nhiệm vụ",
+                    currentUser.getFullName() + " đã gán bạn phụ trách nhiệm vụ: " + task.getTitle(),
+                    NotificationType.TASK,
+                    "/student/workspace/" + task.getTeam().getId()
+                );
+            }
         } else {
             // Nếu assignedToId là null thì gỡ bỏ người thực hiện (Unassigned)
             task.setAssignedTo(null);

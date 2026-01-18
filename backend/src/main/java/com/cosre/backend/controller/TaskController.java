@@ -5,8 +5,6 @@ import com.cosre.backend.dto.StatusChangeRequest;
 import com.cosre.backend.entity.Task;
 import com.cosre.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;

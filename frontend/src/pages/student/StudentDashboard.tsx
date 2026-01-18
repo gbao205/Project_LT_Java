@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { 
     Container, Typography, Box, Grid, Divider, Paper, 
-    Avatar, Button, IconButton
+    Avatar, Button, IconButton, List, ListItem, ListItemText, 
+    ListItemAvatar, Badge
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SchoolIcon from "@mui/icons-material/School";
@@ -18,23 +19,42 @@ import EventIcon from '@mui/icons-material/Event';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LeftIcon from '@mui/icons-material/ChevronLeft';
 import RightIcon from '@mui/icons-material/ChevronRight';
+import { Client } from '@stomp/stompjs';
+import SockJS from "sockjs-client";
 
 import Header from "../../components/layout/Header";
 import { StatCard, MenuCard } from "../../components/common/DashboardCards";
 import { getMyClasses } from "../../services/classService";
 import studentService from "../../services/studentService";
+import { getNotifications } from "../../services/notificationService";
+import { BASE_URL } from '../../services/api';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
     const [profile, setProfile] = useState<any>(null);
     const [myClassCount, setMyClassCount] = useState(0);
     const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
+    const [notifications, setNotifications] = useState<any[]>([]);
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
     const monthNames = ["tháng 1", "tháng 2", "tháng 3", "tháng 4", "tháng 5", "tháng 6",
                         "tháng 7", "tháng 8", "tháng 9", "tháng 10", "tháng 11", "tháng 12"];
+
+    useEffect(() => {
+        const loadNotifications = async () => {
+            if (profile?.user?.id) {
+                try {
+                    const res = await getNotifications();
+                    setNotifications(res.data);
+                } catch (error) {
+                    console.error("Lỗi tải thông báo:", error);
+                }
+            }
+        };
+        loadNotifications();
+    }, [profile?.user?.id]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -52,6 +72,28 @@ const StudentDashboard = () => {
         };
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (profile?.user?.id) {
+            const client = new Client({
+                brokerURL: `${BASE_URL.replace('http', 'ws')}/ws`,
+                webSocketFactory: () => new SockJS(`${BASE_URL}/ws`),
+                onConnect: () => {
+                    console.log("Kết nối thành công!");
+                    client.subscribe(`/topic/notifications/${profile.user.id}`, (msg) => {
+                        const newNotify = JSON.parse(msg.body);
+                        setNotifications(prev => [newNotify, ...prev]);
+                    });
+                },
+            });
+
+            client.activate(); 
+
+            return () => {
+                client.deactivate();
+            };
+        }
+    }, [profile?.user?.id]);
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f1f8e9" }}>
@@ -121,13 +163,21 @@ const StudentDashboard = () => {
                                     height: '100%', 
                                 }}>
                                     <Box sx={{ position: "relative", zIndex: 1 }}>
-                                        <Typography variant="subtitle2" fontWeight="bold">Nhắc nhở</Typography>
-                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>0</Typography>
+                                        <Typography variant="subtitle2" fontWeight="bold">Thông báo mới</Typography>
+                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{notifications.length}</Typography>
                                         <Button onClick={() => navigate('/notedetail')} sx={{ color: "red", p: 0, textTransform: 'none' }}>
                                             Xem chi tiết
                                         </Button>
                                     </Box>
-                                    <NotificationsIcon sx={{ position: "absolute", right: 16, bottom: 58, fontSize: 28, color: "#2e7d32" }} />
+                                    <NotificationsIcon sx={{ 
+                                            position: "absolute", 
+                                            right: 16, 
+                                            bottom: 58, 
+                                            fontSize: 28, 
+                                            color: notifications.length ? "red" : "#2e7d32",
+                                            transition: 'color 0.3s ease'
+                                        }}
+                                    />
                                 </Paper>
                             </Grid>
 

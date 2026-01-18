@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "checkpoints")
@@ -33,11 +34,11 @@ public class Checkpoint {
 
     @ManyToOne
     @JoinColumn(name = "assigned_to_id")
-    @JsonIgnore
+    @JsonIgnoreProperties({"password", "roles", "hibernateLazyInitializer", "handler"})
     private User assignedTo;
 
     @ManyToOne
     @JoinColumn(name = "created_by_id")
-    @JsonIgnore
+    @JsonIgnoreProperties({"password", "roles", "hibernateLazyInitializer", "handler"})
     private User createdBy;
 }

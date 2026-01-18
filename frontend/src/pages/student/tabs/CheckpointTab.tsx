@@ -120,8 +120,41 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
                     <Box display="flex" alignItems="center" sx={{ flexGrow: 1 }}>
                         <Checkbox checked={cp.done} onChange={() => handleToggle(cp.id)} color="success" />
                         <Box ml={1}>
-                            <Typography sx={{ textDecoration: cp.isDone ? 'line-through' : 'none', fontWeight: '500', color: cp.isDone ? 'text.disabled' : 'text.primary' }}>
-                                {cp.title}
+                            <Typography 
+                                component="div" 
+                                sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 1.5, 
+                                    textDecoration: cp.isDone ? 'line-through' : 'none', 
+                                    fontWeight: '500', 
+                                    color: cp.isDone ? 'text.disabled' : 'text.primary',
+                                    cursor: 'default' 
+                                }}
+                            >
+                                <span>{cp.title}</span>
+                                
+                                {cp.assignedTo && (
+                                    <Tooltip title={`Người phụ trách: ${cp.assignedTo.fullName}`}>
+                                        <Chip 
+                                            size="small" 
+                                            avatar={
+                                                <Avatar 
+                                                    src={cp.assignedTo.avatar} 
+                                                    sx={{ width: 16, height: 16, fontSize: '0.6rem' }}
+                                                >
+                                                    {cp.assignedTo.fullName[0]}
+                                                </Avatar>
+                                            } 
+                                            label={cp.assignedTo.fullName} 
+                                            sx={{ 
+                                                height: 22, 
+                                                fontSize: '0.7rem',
+                                                bgcolor: 'rgba(0, 0, 0, 0.05)'
+                                            }}
+                                        />
+                                    </Tooltip>
+                                )}
                             </Typography>
                             <Box display="flex" gap={2} alignItems="center">
                                 <Typography variant="caption" color="textSecondary">{cp.content}</Typography>
@@ -130,16 +163,7 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
                                         <EventIcon sx={{ fontSize: 12 }} /> {new Date(cp.dueDate).toLocaleDateString()}
                                     </Typography>
                                 )}
-                                {cp.assignedTo && (
-                                    <Tooltip title={`Người phụ trách: ${cp.assignedTo.fullName}`}>
-                                        <Chip 
-                                            size="small" 
-                                            avatar={<Avatar src={cp.assignedTo.avatar}>{cp.assignedTo.fullName[0]}</Avatar>} 
-                                            label={cp.assignedTo.fullName} 
-                                            sx={{ height: 20, fontSize: '0.65rem' }}
-                                        />
-                                    </Tooltip>
-                                )}
+                                
                             </Box>
                         </Box>
                     </Box>
