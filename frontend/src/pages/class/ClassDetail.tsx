@@ -233,7 +233,8 @@ const ClassDetail = () => {
 
     const handleRegisterProject = async () => {
         try {
-            await studentService.registerProject({ 
+            await studentService.registerProject({
+                classId: Number(id),
                 projectName: projectForm.projectName, 
                 description: projectForm.description 
             });
@@ -693,7 +694,7 @@ const ClassDetail = () => {
                                                                             <Typography variant="body2" fontWeight="bold" sx={{ color: '#2e7d32', mt: 0.5 }}>
                                                                                 {team.project.name}
                                                                                 {team.project?.status !== "APPROVED" && (
-                                                                                    <Chip label="Chưa duyệt" color="error" size="small" sx={{mt: 1}} />
+                                                                                    <Chip label="Chưa duyệt" color="error" size="small" sx={{ml: 1}} />
                                                                                 )}
                                                                             </Typography>
                                                                         </Box>

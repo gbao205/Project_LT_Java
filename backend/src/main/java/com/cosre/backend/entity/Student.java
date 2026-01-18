@@ -12,15 +12,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class Student {
-//    @JsonFormat(pattern = "dd/MM/yyyy")
-//    private LocalDate dob;           // Sẽ hiển thị: 20/12/2025
-//
-//    @JsonFormat(pattern = "dd/MM/yyyy")
-//    private LocalDate admissionDate;
-//
-//    @JsonFormat(pattern = "dd/MM/yyyy")
-//    private LocalDate unionDate;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
