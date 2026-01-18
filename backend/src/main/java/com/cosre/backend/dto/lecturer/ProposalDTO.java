@@ -15,13 +15,10 @@ public class ProposalDTO {
     private String groupName;
     private List<String> students;
     private String title;
-
-    // --- THÊM DÒNG NÀY ĐỂ HẾT BÁO ĐỎ ---
     private String titleEn;
-    // -----------------------------------
-
     private String description;
     private String technology;
     private String status;
     private String submittedDate;
+    private Integer maxStudents;
 }

@@ -12,6 +12,7 @@ import {
     Divider,
     Paper,
     Button,
+    CircularProgress, // [MỚI] Thêm icon loading
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../services/authService";
@@ -407,67 +408,103 @@ const StaffDashboard = ({
     </Box>
 );
 
-// --- [UPDATED] HEAD DEPARTMENT DASHBOARD (TRƯỞNG BỘ MÔN) ---
-// Đã xóa phần "Lớp Phụ Trách", "Lớp Của Tôi", "Đề Tài Của Tôi"
-const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#fff7ed" }}>
-        <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-            <Box mb={5}>
-                <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
-                    Tổng Quan Bộ Môn
+// --- HEAD DEPARTMENT DASHBOARD (TRƯỞNG BỘ MÔN) ---
+const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
+    // --- STATE ĐỂ LƯU DỮ LIỆU THẬT ---
+    const [stats, setStats] = useState({ pendingProposals: 0, totalLecturers: 0 });
+    const [loading, setLoading] = useState(true);
+
+    // --- GỌI API LẤY THỐNG KÊ ---
+    useEffect(() => {
+        const fetchHeadStats = async () => {
+            try {
+                // Endpoint /head/stats đã được tạo ở HeadController
+                const response = await api.get('/head/stats');
+                setStats(response.data);
+            } catch (error) {
+                console.error("Lỗi lấy thống kê Head Dept:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchHeadStats();
+    }, []);
+
+    return (
+        <Box sx={{ minHeight: "100vh", bgcolor: "#fff7ed" }}>
+            <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
+            <Container maxWidth="xl" sx={{ py: 4 }}>
+                <Box mb={5}>
+                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: roleConfig.color }}>
+                        Tổng Quan Bộ Môn
+                    </Typography>
+                    <Grid container spacing={3}>
+                        {/* THẺ 1: ĐỀ TÀI CẦN DUYỆT */}
+                        <Grid item xs={12} sm={6} md={6}>
+                            <StatCard
+                                title="Cần Duyệt Gấp"
+                                // Nếu đang tải hiện icon xoay, xong hiện số thật
+                                value={loading ? <CircularProgress size={24} color="inherit"/> : stats.pendingProposals}
+                                icon={<FactCheckIcon fontSize="large" />}
+                                color="#ed6c02"
+                                onClick={() => navigate("/head/proposal-approval")} // Thêm click để chuyển trang
+                            />
+                        </Grid>
+                        {/* THẺ 2: TỔNG SỐ GIẢNG VIÊN */}
+                        <Grid item xs={12} sm={6} md={6}>
+                            <StatCard
+                                title="Giảng Viên"
+                                value={loading ? <CircularProgress size={24} color="inherit"/> : stats.totalLecturers}
+                                icon={<SupervisorAccountIcon fontSize="large" />}
+                                color="#0288d1"
+                                onClick={() => navigate("/head/lecturers")} // Thêm click để chuyển trang
+                            />
+                        </Grid>
+                    </Grid>
+                </Box>
+
+                <Divider sx={{ mb: 5 }} />
+
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
+                    Chức Năng Quản Lý
                 </Typography>
+
                 <Grid container spacing={3}>
-                    {/* Cân đối lại lưới 2 cột cho đẹp */}
-                    <Grid item xs={12} sm={6} md={6}>
-                        <StatCard title="Cần Duyệt Gấp" value="3" icon={<FactCheckIcon fontSize="large" />} color="#ed6c02" />
+                    <Grid item xs={12} md={4}>
+                        <MenuCard
+                            title="Duyệt Đề Tài & Đồ Án"
+                            desc="Xem xét và phê duyệt các đề tài do giảng viên/sinh viên đề xuất."
+                            icon={<FactCheckIcon />}
+                            color="#ed6c02" // Màu Cam chủ đạo
+                            onClick={() => navigate("/head/proposal-approval")}
+                        />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={6}>
-                        <StatCard title="Giảng Viên" value="12" icon={<SupervisorAccountIcon fontSize="large" />} color="#0288d1" />
+
+                    <Grid item xs={12} md={4}>
+                        <MenuCard
+                            title="Quản Lý Giảng Viên"
+                            desc="Xem danh sách và thống kê hoạt động giảng dạy."
+                            icon={<SupervisorAccountIcon />}
+                            color="#9c27b0"
+                            onClick={() => navigate("/head/lecturers")}
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                        <MenuCard
+                            title="Đổi Mật Khẩu"
+                            desc="Bảo mật tài khoản."
+                            icon={<VpnKeyIcon />}
+                            color="#455a64"
+                            onClick={() => navigate("/change-password")}
+                        />
                     </Grid>
                 </Grid>
-            </Box>
-
-            <Divider sx={{ mb: 5 }} />
-
-            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
-                Chức Năng Quản Lý
-            </Typography>
-
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
-                    <MenuCard
-                        title="Duyệt Đề Tài & Đồ Án"
-                        desc="Xem xét và phê duyệt các đề tài do giảng viên/sinh viên đề xuất."
-                        icon={<FactCheckIcon />}
-                        color="#ed6c02" // Màu Cam chủ đạo
-                        onClick={() => navigate("/head/proposal-approval")}
-                    />
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                    <MenuCard
-                        title="Quản Lý Giảng Viên"
-                        desc="Xem danh sách và thống kê hoạt động giảng dạy."
-                        icon={<SupervisorAccountIcon />}
-                        color="#9c27b0"
-                        onClick={() => navigate("/head/lecturers")}
-                    />
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                    <MenuCard
-                        title="Đổi Mật Khẩu"
-                        desc="Bảo mật tài khoản."
-                        icon={<VpnKeyIcon />}
-                        color="#455a64"
-                        onClick={() => navigate("/change-password")}
-                    />
-                </Grid>
-            </Grid>
-        </Container>
-    </Box>
-);
+            </Container>
+        </Box>
+    );
+};
 
 // ==========================================
 // 4. MAIN COMPONENT (HOME)

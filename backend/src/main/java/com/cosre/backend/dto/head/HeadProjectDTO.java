@@ -11,7 +11,8 @@ public class HeadProjectDTO {
     private String title;
     private String description;
     private String technology;
-    private Integer maxStudents;
+    private int maxStudents;
     private LocalDate submittedDate;
     private String status;
+    private String reviewerName;
 }

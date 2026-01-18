@@ -19,33 +19,42 @@ public class Project {
     private Long id;
 
     @Column(nullable = false)
-    private String name; // Tên đề tài (Frontend: title)
+    private String name;
 
     @Column(columnDefinition = "TEXT")
-    private String description; // Mô tả
+    private String description;
 
-    private String technology; // Công nghệ (VD: Java, React)
+    // --- CÁC TRƯỜNG MỚI BỔ SUNG CHO HEAD DEPARTMENT ---
+
+    private String technology; // Công nghệ sử dụng
 
     @Builder.Default
-    private Integer maxStudents = 0; // Số sinh viên tối đa
+    private Integer maxStudents = 0; // Số lượng sinh viên tối đa
 
     @Column(name = "submitted_date")
-    private LocalDate submittedDate; // Ngày gửi đề tài
+    private LocalDate submittedDate; // Ngày giảng viên gửi đề tài
 
-    // Trạng thái: PENDING, APPROVED, REJECTED
-    @Enumerated(EnumType.STRING)
-    private ProjectStatus status;
-
-    // Lý do từ chối (Nếu có)
     @Column(columnDefinition = "TEXT")
-    private String rejectionReason;
+    private String rejectionReason; // Lý do từ chối (nếu có)
 
-    // Người tạo đề tài (Giảng viên)
+    // Quan hệ với Giảng viên (Người tạo đề tài)
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
 
+    // --------------------------------------------------
+
+    // Trạng thái duyệt: PENDING, APPROVED, REJECTED
+    @Enumerated(EnumType.STRING)
+    private ProjectStatus status;
+
+    // Mối quan hệ: Một đề tài có thể được chọn bởi nhiều nhóm
     @OneToMany(mappedBy = "project")
     @JsonIgnore
     private List<Team> teams;
+
+    // --- [MỚI] Người phản biện (Reviewer) - Do Head chỉ định ---
+    @ManyToOne
+    @JoinColumn(name = "reviewer_id")
+    private User reviewer;
 }

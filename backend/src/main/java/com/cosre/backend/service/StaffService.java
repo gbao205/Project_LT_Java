@@ -6,10 +6,7 @@ import com.cosre.backend.dto.staff.SyllabusDetailDTO;
 import com.cosre.backend.dto.staff.SyllabusListDTO;
 import com.cosre.backend.entity.*;
 import com.cosre.backend.exception.AppException;
-import com.cosre.backend.repository.ClassRoomRepository;
-import com.cosre.backend.repository.SubjectRepository;
-import com.cosre.backend.repository.SyllabusRepository;
-import com.cosre.backend.repository.UserRepository;
+import com.cosre.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -142,6 +139,22 @@ public class StaffService implements IStaffService {
                 .maxCapacity(c.getMaxCapacity())
                 .build()
         );
+    }
+    @Override
+    @Transactional
+    public void assignLecturer(Long cId,Long lId)
+    {
+        ClassRoom c=classRoomRepository.findById(cId).orElseThrow(() -> new AppException("Classroom not found",HttpStatus.NOT_FOUND));
+        User l = userRepository.findById(lId)
+                .filter(u -> u.getRole() == Role.LECTURER)
+                .orElseThrow(() -> new AppException("Giảng viên không hợp lệ", HttpStatus.NOT_FOUND));
+        c.setLecturer(l);
+        classRoomRepository.save(c);
+    }
+    public List<User> getListLecturer() {
+        return userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.LECTURER)
+                .collect(Collectors.toList());
     }
 
 }

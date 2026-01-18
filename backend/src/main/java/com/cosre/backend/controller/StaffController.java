@@ -151,6 +151,12 @@ public class StaffController {
                 isRegistrationOpen
         );
     }
-
-
+    //===================================assign================================================
+    @PutMapping("/classes/{classId}/assign-lecturer/{lecturerId}")
+    public ResponseEntity<String> assignLecturer(
+            @PathVariable Long classId,
+            @PathVariable Long lecturerId) {
+        staffService.assignLecturer(classId, lecturerId);
+        return ResponseEntity.ok("Phân công giảng viên thành công");
+    }
 }

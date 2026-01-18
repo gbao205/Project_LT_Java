@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { useAppSnackbar } from '../../hooks/useAppSnackbar'; // Import hook thông báo
+import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 
 // --- Material UI Components ---
 import {
@@ -29,7 +29,10 @@ import {
     InputAdornment,
     Tooltip,
     CircularProgress,
-    Avatar
+    Avatar,
+    FormControl,
+    InputLabel,
+    Select
 } from '@mui/material';
 
 // --- Icons ---
@@ -43,6 +46,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import PersonIcon from '@mui/icons-material/Person';
 import SchoolIcon from '@mui/icons-material/School';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PersonAddIcon from '@mui/icons-material/PersonAdd'; // [MỚI] Icon phân công
 
 // --- INTERFACES ---
 interface Proposal {
@@ -53,6 +57,7 @@ interface Proposal {
     maxStudents: number;
     submittedDate: string;
     status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+    reviewerName?: string; // [MỚI] Tên GV phản biện
 }
 
 interface LecturerSubmission {
@@ -63,11 +68,19 @@ interface LecturerSubmission {
     proposals: Proposal[];
 }
 
+// [MỚI] Interface cho danh sách giảng viên để chọn
+interface Lecturer {
+    id: number;
+    fullName: string;
+    email: string;
+}
+
 const HeadProposalApproval = () => {
     const navigate = useNavigate();
-    const { showSuccess, showError } = useAppSnackbar(); // Sử dụng Snackbar
+    const { showSuccess, showError } = useAppSnackbar();
 
     const [lecturerList, setLecturerList] = useState<LecturerSubmission[]>([]);
+    const [allLecturers, setAllLecturers] = useState<Lecturer[]>([]); // [MỚI] List giảng viên
     const [loading, setLoading] = useState(true);
 
     // --- State UI ---
@@ -78,6 +91,11 @@ const HeadProposalApproval = () => {
     // --- State Modal ---
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
+
+    // [MỚI] State Modal Phân công
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [selectedReviewerId, setSelectedReviewerId] = useState<number | string>('');
+
     const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
     const [rejectReason, setRejectReason] = useState('');
 
@@ -85,12 +103,18 @@ const HeadProposalApproval = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Gọi API Backend lấy danh sách
-            const response = await api.get('/head/proposals');
-            setLecturerList(response.data);
+            // [CẬP NHẬT] Lấy cả danh sách đề tài VÀ danh sách giảng viên
+            const [resProposals, resLecturers] = await Promise.all([
+                api.get('/head/proposals'),
+                api.get('/head/lecturers')
+            ]);
+
+            setLecturerList(resProposals.data);
+            setAllLecturers(resLecturers.data);
+
         } catch (error) {
             console.error("Lỗi tải dữ liệu", error);
-            showError("Không thể tải danh sách đề tài. Vui lòng thử lại!");
+            showError("Không thể tải dữ liệu. Vui lòng thử lại!");
         } finally {
             setLoading(false);
         }
@@ -114,7 +138,6 @@ const HeadProposalApproval = () => {
 
             showSuccess("Đã duyệt đề tài thành công!");
 
-            // Cập nhật giao diện ngay lập tức (Optimistic Update)
             setLecturerList(prevList => prevList.map(lec => {
                 if (lec.lecturerId === lecturerId) {
                     return {
@@ -143,7 +166,6 @@ const HeadProposalApproval = () => {
 
             showSuccess("Đã từ chối đề tài.");
 
-            // Cập nhật giao diện
             const targetLecturerId = lecturerList.find(l => l.proposals.some(p => p.id === selectedProposal.id))?.lecturerId;
 
             if (targetLecturerId) {
@@ -167,6 +189,35 @@ const HeadProposalApproval = () => {
         }
     };
 
+    // [MỚI] Xử lý mở Modal phân công
+    const handleOpenAssignModal = (proposal: Proposal) => {
+        setSelectedProposal(proposal);
+        setSelectedReviewerId(''); // Reset selection
+        setShowAssignModal(true);
+    };
+
+    // [MỚI] Xử lý gọi API phân công
+    const handleAssignReviewer = async () => {
+        if (!selectedProposal || !selectedReviewerId) {
+            showError("Vui lòng chọn giảng viên!");
+            return;
+        }
+
+        try {
+            await api.post('/head/assign-reviewer', {
+                projectId: selectedProposal.id,
+                reviewerId: selectedReviewerId
+            });
+
+            showSuccess("Phân công phản biện thành công!");
+            setShowAssignModal(false);
+            fetchData(); // Load lại để cập nhật tên reviewer trong bảng
+        } catch (error: any) {
+            console.error("Lỗi phân công:", error);
+            showError(error.response?.data?.message || "Lỗi khi phân công phản biện.");
+        }
+    };
+
     const getStatusChip = (status: string) => {
         switch (status) {
             case 'PENDING': return <Chip label="Chờ duyệt" color="warning" size="small" variant="outlined" sx={{fontWeight: 'bold'}} />;
@@ -175,6 +226,11 @@ const HeadProposalApproval = () => {
             default: return <Chip label={status} size="small" />;
         }
     };
+
+    // Helper: Tìm Owner ID của proposal đang chọn (để disable trong dropdown)
+    const currentOwnerId = selectedProposal
+        ? lecturerList.find(l => l.proposals.some(p => p.id === selectedProposal.id))?.lecturerId
+        : null;
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', pb: 4 }}>
@@ -273,10 +329,12 @@ const HeadProposalApproval = () => {
                                 <Table size="small">
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell width="35%" sx={{ fontWeight: 'bold', color: '#64748b' }}>TÊN ĐỀ TÀI</TableCell>
-                                            <TableCell width="25%" sx={{ fontWeight: 'bold', color: '#64748b' }}>CÔNG NGHỆ</TableCell>
-                                            <TableCell width="15%" sx={{ fontWeight: 'bold', color: '#64748b' }}>SỐ SV</TableCell>
+                                            <TableCell width="30%" sx={{ fontWeight: 'bold', color: '#64748b' }}>TÊN ĐỀ TÀI</TableCell>
+                                            <TableCell width="15%" sx={{ fontWeight: 'bold', color: '#64748b' }}>CÔNG NGHỆ</TableCell>
+                                            <TableCell width="10%" sx={{ fontWeight: 'bold', color: '#64748b' }}>SỐ SV</TableCell>
                                             <TableCell width="15%" align="center" sx={{ fontWeight: 'bold', color: '#64748b' }}>TRẠNG THÁI</TableCell>
+                                            {/* [MỚI] Cột Phản Biện */}
+                                            <TableCell width="20%" sx={{ fontWeight: 'bold', color: '#64748b' }}>GV PHẢN BIỆN</TableCell>
                                             <TableCell width="10%" align="center" sx={{ fontWeight: 'bold', color: '#64748b' }}>THAO TÁC</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -300,6 +358,30 @@ const HeadProposalApproval = () => {
                                                     </Box>
                                                 </TableCell>
                                                 <TableCell align="center">{getStatusChip(prop.status)}</TableCell>
+
+                                                {/* [MỚI] Hiển thị GV Phản Biện */}
+                                                <TableCell>
+                                                    {prop.status === 'APPROVED' ? (
+                                                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                                                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                                                {prop.reviewerName && prop.reviewerName !== "Chưa phân công"
+                                                                    ? prop.reviewerName
+                                                                    : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>Chưa có</span>
+                                                                }
+                                                            </Typography>
+                                                            <Tooltip title="Phân công phản biện">
+                                                                <IconButton size="small" onClick={() => handleOpenAssignModal(prop)} sx={{ color: '#0288d1' }}>
+                                                                    <PersonAddIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Box>
+                                                    ) : (
+                                                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                                            Cần duyệt trước
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+
                                                 <TableCell align="center">
                                                     <Box display="flex" justifyContent="center">
                                                         <Tooltip title="Xem chi tiết">
@@ -400,6 +482,49 @@ const HeadProposalApproval = () => {
                     <Button onClick={handleReject} variant="contained" color="error">Xác nhận</Button>
                 </DialogActions>
             </Dialog>
+
+            {/* MODAL PHÂN CÔNG PHẢN BIỆN */}
+            <Dialog open={showAssignModal} onClose={() => setShowAssignModal(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ bgcolor: '#fff7ed', borderBottom: '1px solid #fed7aa', color: '#c2410c' }}>
+                    Phân Công Phản Biện
+                </DialogTitle>
+                <DialogContent sx={{ pt: 3 }}>
+                    <Typography variant="body2" gutterBottom>
+                        Chọn giảng viên phản biện cho đề tài: <strong>{selectedProposal?.title}</strong>
+                    </Typography>
+
+                    <FormControl fullWidth margin="normal">
+                        <InputLabel>Chọn Giảng Viên</InputLabel>
+                        <Select
+                            value={selectedReviewerId}
+                            label="Chọn Giảng Viên"
+                            onChange={(e) => setSelectedReviewerId(e.target.value)}
+                        >
+                            {allLecturers.map((lec) => (
+                                <MenuItem
+                                    key={lec.id}
+                                    value={lec.id}
+                                    // Disable chính giảng viên hướng dẫn (không thể tự phản biện)
+                                    disabled={lec.id === currentOwnerId}
+                                    sx={{
+                                        opacity: lec.id === currentOwnerId ? 0.5 : 1,
+                                        fontStyle: lec.id === currentOwnerId ? 'italic' : 'normal'
+                                    }}
+                                >
+                                    {lec.fullName} ({lec.email}) {lec.id === currentOwnerId ? '(GV Hướng dẫn)' : ''}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setShowAssignModal(false)} color="inherit">Hủy</Button>
+                    <Button onClick={handleAssignReviewer} variant="contained" color="warning">
+                        Lưu Phân Công
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
         </Box>
     );
 };

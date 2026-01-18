@@ -23,6 +23,7 @@ import ReportManager from "./pages/admin/ReportManager";
 import SubjectManager from "./pages/staff/SubjectManager";
 import StaffClassManager from "./pages/staff/ClassStaff";
 import ImportCenter from "./pages/staff/ImportCenter";
+
 // Các trang sinh viên...
 import StudentWorkspace from "./pages/student/StudentWorkspace";
 import CourseRegistration from "./pages/student/CourseRegistration";
@@ -38,31 +39,35 @@ import LecturerClassManager from "./pages/lecturer/ClassManager";
 import TeamDetail from "./pages/lecturer/TeamDetail";
 import ProposalApproval from "./pages/lecturer/ProposalApproval";
 import DetailedTeachingSchedule from "./pages/lecturer/DetailedTeachingSchedule";
+import ReviewProjects from "./pages/lecturer/ReviewProjects";
+import LecturerProposalManager from "./pages/lecturer/LecturerProposalManager";
+// Các trang Staff...
 import UserStaff from "./pages/staff/UserStaff";
 import ClassStaff from "./pages/staff/ClassStaff";
 import SyllabusStaff from "./pages/staff/SyllabusStaff";
+
+// ---  Các trang Trưởng bộ môn (Head) ---
 import HeadProposalApproval from './pages/head/HeadProposalApproval';
 import HeadLecturerManager from "./pages/head/HeadLecturerManager";
+import HeadDashboard from "./pages/head/HeadDashboard";
+
 // --- COMPONENT BỌC CHAT ---
-// Tách ra một component con để có thể sử dụng hook useLocation()
 const ChatWrapper = () => {
   const location = useLocation();
   const token = localStorage.getItem("token");
 
-  // Danh sách các trang KHÔNG muốn hiện Chat (Login, Root, v.v.)
   const hiddenPaths = ["/login", "/"];
   const isHidden = hiddenPaths.includes(location.pathname);
 
-  // Chỉ hiện Chat khi: Đã đăng nhập (có token) VÀ không phải trang login
   if (!token || isHidden) {
     return null;
   }
 
   return (
-    <>
-      <ChatWidget />
-      <AIChat />
-    </>
+      <>
+        <ChatWidget />
+        <AIChat />
+      </>
   );
 };
 
@@ -110,12 +115,14 @@ function App() {
             <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
             <Route path="/lecturer/classes" element={<LecturerClassManager />} />
             <Route path="/lecturer/teams/:teamId" element={<TeamDetail />} />
-            <Route
-              path="/lecturer/schedule"
-              element={<DetailedTeachingSchedule />}
-            />
+            <Route path="/lecturer/schedule" element={<DetailedTeachingSchedule />} />
             <Route path="/lecturer/proposals" element={<ProposalApproval />} />
-            <Route path="/head/proposal-approval" element={<HeadProposalApproval />} />
+            <Route path="/lecturer/reviews" element={<ReviewProjects />} />
+            <Route path="/lecturer/manage-proposals" element={<LecturerProposalManager />} />
+            {/* ---  HEAD DEPARTMENT ROUTES --- */}
+            <Route path="/head/dashboard" element={<HeadDashboard />} /> {/* <--- Route Tổng quan */}
+            <Route path="/head/approval" element={<HeadProposalApproval />} /> {/* Sửa lại path cho ngắn gọn khớp với dashboard */}
+            <Route path="/head/proposal-approval" element={<HeadProposalApproval />} /> {/* Giữ cả path cũ để tránh lỗi */}
             <Route path="/head/lecturers" element={<HeadLecturerManager />} />
 
           </Routes>
