@@ -102,7 +102,7 @@ const MyTeams = () => {
         } else {
             setStudentsNoTeam([]);
         }
-        setSelectedMemberIds([]); // Reset user đã chọn khi đổi lớp
+        setSelectedMemberIds([]); 
     }, [selectedClassId]);
 
     // Hàm hiển thị thông báo

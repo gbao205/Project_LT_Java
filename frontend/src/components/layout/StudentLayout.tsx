@@ -26,7 +26,7 @@ const StudentLayout = ({
     const navigate = useNavigate();
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#e8f5e9' }}>
             <Header />
 
             <Container maxWidth="lg" sx={{ mt: 3, mb: 4 }}>
@@ -34,8 +34,7 @@ const StudentLayout = ({
                     sx={{ 
                         position: 'sticky', 
                         top: '72px',
-                        zIndex: 99,   
-                        bgcolor: '#f8f9fa', 
+                        zIndex: 99,
                         pt: 1,        
                         pb: 2,        
                         mb: 1         
@@ -61,7 +60,7 @@ const StudentLayout = ({
                                 gap: 0.5,
                                 fontSize: '0.85rem',
                                 transition: 'color 0.2s',
-                                '&:hover': { color: 'primary.main' }
+                                '&:hover': { color: '#2e7d32' }
                             }} 
                             onClick={() => navigate('/home')}
                         >
@@ -78,7 +77,7 @@ const StudentLayout = ({
                                     cursor: 'pointer',
                                     fontSize: '0.85rem',
                                     transition: 'color 0.2s',
-                                    '&:hover': { color: 'primary.main' }
+                                    '&:hover': { color: '#2e7d32' }
                                 }}
                                 onClick={() => navigate(item.path)}
                             >
@@ -91,7 +90,7 @@ const StudentLayout = ({
                                 cursor: 'default',
                                 fontWeight: 700,           
                                 fontSize: '1.1rem',       
-                                color: 'primary.main',    
+                                color: '#2e7d32',    
                                 letterSpacing: '-0.01em',
                                 lineHeight: 1.2
                             }}

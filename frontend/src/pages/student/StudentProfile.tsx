@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     Container, Paper, Typography, Box, Grid, TextField,
-    Button, Avatar, Divider, Chip, Alert, Stack, type AlertColor, MenuItem
+    Button, Avatar, Divider, Chip, Alert, Stack, type AlertColor, 
+    MenuItem, Skeleton
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
-import AdminLayout from '../../components/layout/AdminLayout';
-// Import studentService mới
+
+import StudentLayout from '../../components/layout/StudentLayout';
 import studentService, {type Student, type StudentProfileData } from '../../services/studentService';
 
 interface ApiError {
@@ -47,16 +48,20 @@ const StudentProfile: React.FC = () => {
         text: ''
     });
     const hasChanges = student && formData ? !isEqual(student, formData) : false;
+    const [loading, setLoading] = useState<boolean>(true);
 
     // Tải dữ liệu từ Backend khi vào trang
     useEffect(() => {
         const fetchProfile = async () => {
             try {
+                setLoading(true);
                 const data = await studentService.getProfile();
                 setStudent(data);
                 setFormData(data);
             } catch (error: unknown) {
-                console.error("Lỗi tải hồ sơ:", error);
+                console.error("Lỗi tải hồ sơ:", error); 
+            } finally {
+                setLoading(false);
             }
         };
         fetchProfile();
@@ -180,92 +185,171 @@ const StudentProfile: React.FC = () => {
         );
     };
 
-    if (!student) return null;
+    const ProfileSkeleton = () => (
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+                {/* Skeleton cho phần Header */}
+                <Box display="flex" alignItems="center" mb={4}>
+                    <Skeleton variant="circular" width={100} height={100} sx={{ mr: 3 }} />
+                    <Box sx={{ width: '100%' }}>
+                        <Skeleton variant="text" width="40%" height={40} />
+                        <Skeleton variant="text" width="20%" height={25} />
+                        <Skeleton variant="rounded" width={80} height={32} sx={{ mt: 1 }} />
+                    </Box>
+                </Box>
+
+                {/* Skeleton cho PHẦN 1: THÔNG TIN HỌC VẤN */}
+                <Skeleton variant="text" width="20%" height={35} sx={{ mt: 4, mb: 1 }} />
+                <Divider sx={{ mb: 3 }} />
+                <Grid container spacing={3}>
+                    {Array.from({ length: 9 }).map((_, index) => (
+                        <Grid size={{ xs: 12, md: 4 }}  key={index}>
+                            <Box sx={{ p: 2 }}>
+                                <Skeleton variant="text" width="60%" />
+                                <Skeleton variant="text" width="90%" height={30} />
+                            </Box>
+                        </Grid>
+                    ))}
+                </Grid>
+
+                {/* Skeleton cho PHẦN 2: THÔNG TIN CÁ NHÂN */}
+                <Skeleton variant="text" width="20%" height={35} sx={{ mt: 6, mb: 1 }} />
+                <Divider sx={{ mb: 3 }} />
+                <Grid container spacing={3}>
+                    {Array.from({ length: 18 }).map((_, index) => (
+                        <Grid size={{ xs: 12, md: 4 }} key={index}>
+                            <Box sx={{ p: 2 }}>
+                                <Skeleton variant="text" width="60%" />
+                                <Skeleton variant="text" width="90%" height={30} />
+                            </Box>
+                        </Grid>
+                    ))}
+                </Grid>
+
+                {/* Skeleton cho Nút bấm */}
+                <Box mt={6} display="flex" justifyContent="center">
+                    <Skeleton variant="rounded" width={160} height={40} />
+                </Box>
+            </Paper>
+        </Container>
+    );
 
     return (
-        <AdminLayout title="Hồ Sơ Cá Nhân">
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-                    {message.text && <Alert severity={message.type} sx={{ mb: 3 }}>{message.text}</Alert>}
+        <StudentLayout title="Hồ Sơ Cá Nhân">
+            {loading ? (
+                <ProfileSkeleton />
+            ) : (
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                    <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+                        {message.text && <Alert severity={message.type} sx={{ mb: 3 }}>{message.text}</Alert>}
 
-                    <Box display="flex" alignItems="center" mb={4}>
-                        <Avatar sx={{ width: 100, height: 100, bgcolor: '#1976d2', fontSize: '2.5rem', mr: 3 }}>
-                            {student.user.fullName?.charAt(0)}
-                        </Avatar>
-                        <Box>
-                            <Typography variant="h4" fontWeight="bold">{student.user.fullName}</Typography>
-                            {/* Sử dụng mã sinh viên từ thực thể Student */}
-                            <Typography color="textSecondary">MSSV: {student.studentId || 'Chưa cập nhật'}</Typography>
-                            <Chip label="Sinh Viên" color="primary" sx={{ mt: 1 }} />
+                        <Box display="flex" alignItems="center" mb={4}>
+                            <Avatar sx={{ width: 100, height: 100, bgcolor: '#2e7d32', fontSize: '2.5rem', mr: 3 }}>
+                                {student?.user.fullName?.charAt(0)}
+                            </Avatar>
+                            <Box>
+                                <Typography variant="h4" fontWeight="bold">{student?.user.fullName}</Typography>
+                                {/* Sử dụng mã sinh viên từ thực thể Student */}
+                                <Typography color="textSecondary">MSSV: {student?.studentId || 'Chưa cập nhật'}</Typography>
+                                <Chip label="Sinh Viên" sx={{ mt: 1, bgcolor: "#2e7d32", color: "#ffffff", }} />
+                            </Box>
                         </Box>
-                    </Box>
 
-                    {/* PHẦN 1: THÔNG TIN HỌC VẤN */}
-                    <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 4 }}>
-                        THÔNG TIN HỌC VẤN
-                    </Typography>
-                    <Divider sx={{ mb: 3 }} />
-                    <Grid container columnSpacing={4} rowSpacing={2}>
-                        {renderField('Email sinh viên', 'email', 'text', true)}
-                        {renderField('Khóa học', 'batch', 'text', true)}
-                        {renderField('Ngày nhập học', 'admissionDate', 'date', true)}
-                        {renderField('Bậc đào tạo', 'eduLevel', 'text', true)}
-                        {renderField('Loại hình đào tạo', 'trainingType', 'text', true)}
-                        {renderField('Trạng thái sinh viên', 'studentStatus', 'text', true)}
-                        {renderField('Khoa', 'faculty', 'text', true)}
-                        {renderField('Ngành', 'major', 'text', true)}
-                        {renderField('Chuyên ngành', 'specialization','text', true)}
-                    </Grid>
+                        {/* PHẦN 1: THÔNG TIN HỌC VẤN */}
+                        <Typography variant="h6" color="#2e7d32" gutterBottom sx={{ mt: 4 }}>
+                            THÔNG TIN HỌC VẤN
+                        </Typography>
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container columnSpacing={4} rowSpacing={2}>
+                            {renderField('Email sinh viên', 'email', 'text', true)}
+                            {renderField('Khóa học', 'batch', 'text', true)}
+                            {renderField('Ngày nhập học', 'admissionDate', 'date', true)}
+                            {renderField('Bậc đào tạo', 'eduLevel', 'text', true)}
+                            {renderField('Loại hình đào tạo', 'trainingType', 'text', true)}
+                            {renderField('Trạng thái sinh viên', 'studentStatus', 'text', true)}
+                            {renderField('Khoa', 'faculty', 'text', true)}
+                            {renderField('Ngành', 'major', 'text', true)}
+                            {renderField('Chuyên ngành', 'specialization','text', true)}
+                        </Grid>
 
-                    {/* PHẦN 2: THÔNG TIN CÁ NHÂN */}
-                    <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 6 }}>
-                        THÔNG TIN CÁ NHÂN
-                    </Typography>
-                    <Divider sx={{ mb: 3 }} />
-                    <Grid container spacing={3}>
-                        {renderField('Ngày sinh', 'dob', 'date')}
-                        {renderField('Giới tính', 'gender')}
-                        {renderField('Nguyên quán', 'nativePlace')}
-                        {renderField('Dân tộc', 'ethnicity')}
-                        {renderField('Tôn giáo', 'religion')}
-                        {renderField('Quốc tịch', 'nationality')}
-                        {renderField('Ngày vào Đoàn', 'unionDate', 'date')}
-                        {renderField('Ngày vào Đảng', 'partyDate', 'date')}
-                        {renderField('Số điện thoại', 'phoneNumber')}
-                        {renderField('Số CCCD', 'idCardNumber')}
-                        {renderField('Ngày cấp', 'idCardIssueDate', 'date')}
-                        {renderField('Ngày hết hạn', 'idCardExpiryDate', 'date')}
-                        {renderField('Nơi cấp', 'idCardIssuePlace')}
-                        {renderField('Mã BHXH/BHYT', 'insuranceCode')}
-                        {renderField('Nơi sinh', 'placeOfBirth')}
-                        {renderField('Quê quán', 'homeTown')}
-                        {renderField('Địa chỉ thường trú', 'permanentAddress')}
-                        {renderField('Địa chỉ tạm trú', 'temporaryAddress')}
-                    </Grid>
+                        {/* PHẦN 2: THÔNG TIN CÁ NHÂN */}
+                        <Typography variant="h6" color="#2e7d32" gutterBottom sx={{ mt: 6 }}>
+                            THÔNG TIN CÁ NHÂN
+                        </Typography>
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                            {renderField('Ngày sinh', 'dob', 'date')}
+                            {renderField('Giới tính', 'gender')}
+                            {renderField('Nguyên quán', 'nativePlace')}
+                            {renderField('Dân tộc', 'ethnicity')}
+                            {renderField('Tôn giáo', 'religion')}
+                            {renderField('Quốc tịch', 'nationality')}
+                            {renderField('Ngày vào Đoàn', 'unionDate', 'date')}
+                            {renderField('Ngày vào Đảng', 'partyDate', 'date')}
+                            {renderField('Số điện thoại', 'phoneNumber')}
+                            {renderField('Số CCCD', 'idCardNumber')}
+                            {renderField('Ngày cấp', 'idCardIssueDate', 'date')}
+                            {renderField('Ngày hết hạn', 'idCardExpiryDate', 'date')}
+                            {renderField('Nơi cấp', 'idCardIssuePlace')}
+                            {renderField('Mã BHXH/BHYT', 'insuranceCode')}
+                            {renderField('Nơi sinh', 'placeOfBirth')}
+                            {renderField('Quê quán', 'homeTown')}
+                            {renderField('Địa chỉ thường trú', 'permanentAddress')}
+                            {renderField('Địa chỉ tạm trú', 'temporaryAddress')}
+                        </Grid>
 
-                    <Box mt={6} display="flex" justifyContent="center">
-                        {isEditing ? (
-                            <Stack direction="row" spacing={2}>
-                                <Button
-                                    variant="outlined"
-                                    color="error"
-                                    startIcon={<CloseIcon />}
-                                    onClick={() => {
-                                        setIsEditing(false);
-                                        setFormData(student);
-                                    }}
+                        <Box mt={6} display="flex" justifyContent="center">
+                            {isEditing ? (
+                                <Stack direction="row" spacing={2}>
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        startIcon={<CloseIcon />}
+                                        onClick={() => {
+                                            setIsEditing(false);
+                                            setFormData(student);
+                                        }}
+                                    >
+                                        Hủy bỏ
+                                    </Button>
+                                    <Button variant="contained" 
+                                        sx={{ 
+                                            bgcolor: "#2e7d32", 
+                                            "&:hover": { 
+                                                bgcolor: "#1b5e20" 
+                                            },
+                                            "&.Mui-disabled": {
+                                                bgcolor: "rgba(0, 0, 0, 0.12)"
+                                            }
+                                        }} 
+                                        startIcon={<SaveIcon />} 
+                                        onClick={handleSave} disabled={!hasChanges}
+                                    >
+                                        Lưu thay đổi
+                                    </Button>
+                                </Stack>
+                            ) : (
+                                <Button variant="contained" 
+                                    startIcon={<EditIcon />} 
+                                    onClick={() => setIsEditing(true)}
+                                    sx={{ 
+                                        bgcolor: "#2e7d32", 
+                                        "&:hover": { 
+                                            bgcolor: "#1b5e20" 
+                                        },
+                                        "&.Mui-disabled": {
+                                            bgcolor: "rgba(0, 0, 0, 0.12)"
+                                        }
+                                    }} 
                                 >
-                                    Hủy bỏ
+                                    Cập nhật hồ sơ
                                 </Button>
-                                <Button variant="contained" color="primary" startIcon={<SaveIcon />} onClick={handleSave} disabled={!hasChanges}>Lưu thay đổi</Button>
-                            </Stack>
-                        ) : (
-                            <Button variant="contained" startIcon={<EditIcon />} onClick={() => setIsEditing(true)}>Cập nhật hồ sơ</Button>
-                        )}
-                    </Box>
-                </Paper>
-            </Container>
-        </AdminLayout>
+                            )}
+                        </Box>
+                    </Paper>
+                </Container>
+            )}
+        </StudentLayout>
     );
 };
 

@@ -8,6 +8,7 @@ export interface CreateTeamRequest {
 }
 
 export interface ProjectRegistrationRequest {
+    classId: number,
     projectName: string;
     description: string;
     existingProjectId?: number | null;
