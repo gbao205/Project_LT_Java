@@ -1,6 +1,6 @@
 package com.cosre.backend.controller;
 
-import com.cosre.backend.dto.head.HeadDashboardStats; // [MỚI] Import DTO thống kê
+import com.cosre.backend.dto.head.HeadDashboardStats;
 import com.cosre.backend.dto.head.HeadLecturerDTO;
 import com.cosre.backend.dto.head.LecturerSubmissionDTO;
 import com.cosre.backend.service.HeadService;
@@ -32,7 +32,7 @@ public class HeadController {
         return ResponseEntity.ok(headService.getAllLecturers());
     }
 
-    // [MỚI] API Lấy thống kê cho Dashboard (Số đề tài chờ duyệt & Số giảng viên)
+    // API Lấy thống kê cho Dashboard
     @GetMapping("/stats")
     @PreAuthorize("hasRole('HEAD_DEPARTMENT')")
     public ResponseEntity<HeadDashboardStats> getStats() {
@@ -54,5 +54,21 @@ public class HeadController {
         String reason = body.get("reason");
         headService.rejectProposal(id, reason);
         return ResponseEntity.ok(Map.of("message", "Đã từ chối đề tài"));
+    }
+
+    // --- PHÂN CÔNG PHẢN BIỆN  ---
+
+    @PostMapping("/assign-reviewer")
+    @PreAuthorize("hasRole('HEAD_DEPARTMENT')")
+    public ResponseEntity<?> assignReviewer(@RequestBody AssignReviewerRequest request) {
+        headService.assignReviewer(request.getProjectId(), request.getReviewerId());
+        return ResponseEntity.ok(Map.of("message", "Phân công phản biện thành công!"));
+    }
+
+    // DTO hứng request
+    @lombok.Data
+    static class AssignReviewerRequest {
+        private Long projectId;
+        private Long reviewerId;
     }
 }

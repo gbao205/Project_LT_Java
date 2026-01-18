@@ -1,5 +1,6 @@
 package com.cosre.backend.controller;
 
+import com.cosre.backend.dto.lecturer.ProposalDTO;
 import com.cosre.backend.service.LecturerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -9,36 +10,54 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/lecturer") // ✅ Đã sửa lại đường dẫn chuẩn
+@RequestMapping("/api/lecturer")
 public class LecturerController {
 
     @Autowired
     private LecturerService lecturerService;
 
-    // 1. API lấy danh sách lớp đang dạy (Cũ)
+    // 1. API lấy danh sách lớp đang dạy
     @GetMapping("/classes")
     public ResponseEntity<?> getMyClasses() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(lecturerService.getMyClasses(email));
     }
 
-    // 2. API lấy danh sách đề tài cần duyệt (MỚI)
-    // Gọi từ: ProposalApproval.tsx (fetchData)
+    // 2. API lấy danh sách đề tài cần duyệt (Sinh viên gửi)
     @GetMapping("/proposals")
     public ResponseEntity<?> getProposals() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(lecturerService.getProposalsByLecturer(email));
     }
 
-    // 3. API cập nhật trạng thái đề tài (Duyệt / Từ chối) (MỚI)
-    // Gọi từ: handleApprove / handleReject
+    // 3. API cập nhật trạng thái đề tài (Duyệt/Từ chối)
     @PostMapping("/proposals/{projectId}/status")
     public ResponseEntity<?> updateProposalStatus(@PathVariable Long projectId, @RequestBody Map<String, String> body) {
-        String status = body.get("status"); // "APPROVED" hoặc "REJECTED"
-        String reason = body.get("reason"); // Lý do (nếu từ chối)
-
+        String status = body.get("status");
+        String reason = body.get("reason");
         lecturerService.updateProjectStatus(projectId, status, reason);
-
         return ResponseEntity.ok("Cập nhật trạng thái thành công");
+    }
+
+    // 4. API xem danh sách đề tài cần phản biện
+    @GetMapping("/reviews")
+    public ResponseEntity<?> getReviewProjects() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(lecturerService.getAssignedReviewProjects(email));
+    }
+
+    // 5. API TẠO ĐỀ TÀI MỚI
+    @PostMapping("/submit-proposal")
+    public ResponseEntity<?> createProposal(@RequestBody ProposalDTO proposalDTO) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        lecturerService.createProposal(proposalDTO, email);
+        return ResponseEntity.ok(Map.of("message", "Gửi đề tài thành công!"));
+    }
+
+    // 6. API LẤY DANH SÁCH ĐỀ TÀI CỦA TÔI
+    @GetMapping("/my-proposals")
+    public ResponseEntity<?> getMyCreatedProposals() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(lecturerService.getMyCreatedProposals(email));
     }
 }
