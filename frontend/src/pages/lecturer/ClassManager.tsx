@@ -57,24 +57,60 @@ export default function ClassManager() {
   const [newTaskType, setNewTaskType] = useState<'class' | 'group'>('class');
   const [newTaskDeadline, setNewTaskDeadline] = useState('');
 
-  // Form States (Score) - Dùng state thay vì getElementById
+  // Form States (Score)
   const [scoreInput, setScoreInput] = useState<string>('');
 
-  // --- FETCH DATA ---
   const fetchClasses = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/classes/my-classes');
+      const response = await api.get('/lecturer/classes');
+      console.log("🔥 Dữ liệu Backend:", response.data);
 
-      // Mapping dữ liệu để an toàn với frontend
-      const mappedClasses = response.data.map((cls: any) => ({
-        id: cls.id,
-        subjectCode: cls.subject ? cls.subject.subjectCode : 'N/A',
-        subjectName: cls.subject ? cls.subject.name : cls.name,
-        totalMembers: cls.studentCount || 0,
-        groups: cls.groups || [],
-        assignments: cls.assignments || []
-      }));
+      const mappedClasses = response.data.map((cls: any) => {
+        // Kiểm tra xem backend trả về 'teams' (DTO mới) hay 'groups' (nếu có)
+        // Nếu backend trả về Entity gốc thì teams sẽ bị mất do @JsonIgnore -> Cần sửa Backend ở bước trên
+        const rawTeams = cls.teams || [];
+
+        const groupsMapped: GroupDTO[] = rawTeams.map((t: any) => ({
+          id: t.id,
+          name: t.name || `Nhóm ${t.id}`,
+          maxMembers: t.maxMembers || 5,
+          groupScore: t.teamScore || 0, // Backend dùng teamScore
+
+          // Map sinh viên
+          students: t.members ? t.members.map((m: any) => ({
+            id: m.id,
+            // Kiểm tra kỹ cấu trúc m (DTO phẳng hay Entity lồng)
+            fullName: m.fullName || (m.student ? m.student.fullName : "Chưa cập nhật"),
+            code: m.code || (m.student ? m.student.code : "N/A"),
+            score: typeof m.score === 'number' ? m.score : (m.finalGrade || 0)
+          })) : []
+        }));
+
+        const totalStudents = groupsMapped.reduce((sum, g) => sum + g.students.length, 0);
+
+        return {
+          id: cls.id,
+          // ✅ SỬA LỖI HIỂN THỊ TÊN:
+          // Ưu tiên 'classCode' (như trong ảnh console của bạn là 'JV1702')
+          // Nếu không có thì tìm 'subjectCode', cuối cùng fallback về tên lớp
+          subjectCode: cls.classCode || cls.subjectCode || cls.name || "MÃ LỚP",
+
+          subjectName: cls.subjectName || cls.name || "Tên Lớp",
+
+          name: cls.name, // Giữ tên gốc
+
+          totalMembers: cls.studentCount || totalStudents,
+          groups: groupsMapped,
+          assignments: cls.assignments ? cls.assignments.map((asm: any) => ({
+            id: asm.id,
+            title: asm.title,
+            type: asm.type === 'CLASS_ASSIGNMENT' ? 'class' : 'group',
+            deadline: asm.dueDate ? new Date(asm.dueDate).toLocaleDateString('vi-VN') : '...',
+            status: asm.status === 'ACTIVE' ? 'active' : 'closed'
+          })) : []
+        };
+      });
 
       setClasses(mappedClasses);
     } catch (error) {
@@ -97,12 +133,12 @@ export default function ClassManager() {
 
   // --- HANDLERS ---
 
-  // 1. Thêm thành viên vào nhóm
   const addMemberToGroup = async (groupId: number) => {
     const studentCode = prompt("Nhập mã số sinh viên cần thêm:");
     if (!studentCode) return;
 
     try {
+      // Lưu ý: Endpoint này cần backend hỗ trợ
       await api.post(`/teams/${groupId}/members`, { studentCode });
       alert("Thêm thành viên thành công!");
       await fetchClasses();
@@ -111,7 +147,6 @@ export default function ClassManager() {
     }
   };
 
-  // 2. Xóa thành viên khỏi nhóm
   const removeMemberFromGroup = async (groupId: number, studentId: number) => {
     if (!window.confirm("Bạn có chắc muốn xóa sinh viên này khỏi nhóm?")) return;
 
@@ -125,12 +160,10 @@ export default function ClassManager() {
     }
   };
 
-  // 3. Cập nhật điểm cá nhân (Sử dụng State thay vì DOM)
   const handleUpdateScore = async () => {
     if (!selectedStudent || !selectedGroupId) return;
 
     const scoreVal = parseFloat(scoreInput);
-
     if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
       alert("Điểm không hợp lệ (0-10)");
       return;
@@ -154,7 +187,6 @@ export default function ClassManager() {
     }
   };
 
-  // 4. Cập nhật điểm nhóm
   const updateGroupScore = async (groupId: number, newScore: string) => {
     const scoreVal = parseFloat(newScore);
     if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
@@ -170,7 +202,6 @@ export default function ClassManager() {
     }
   };
 
-  // 5. Giao bài tập
   const handleCreateAssignment = async () => {
     if (!selectedClassId || !newTaskName || !newTaskDeadline) {
       alert("Vui lòng nhập đủ thông tin.");
@@ -265,9 +296,9 @@ export default function ClassManager() {
                               <div className="flex items-center space-x-3 mb-1">
                                 <h3 className="text-xl font-bold text-gray-900">{classItem.subjectName}</h3>
                                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium flex items-center">
-                            <Hash className="w-3 h-3 mr-1" />
+                                                        <Hash className="w-3 h-3 mr-1" />
                                   {classItem.subjectCode}
-                          </span>
+                                                    </span>
                               </div>
                               <div className="flex items-center text-gray-600">
                                 <Users className="w-4 h-4 mr-2" />
@@ -278,8 +309,7 @@ export default function ClassManager() {
                             </div>
                           </div>
                           <ChevronRight
-                              className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${
-                                  expandedClass === classItem.id ? 'rotate-90' : ''
+                              className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${expandedClass === classItem.id ? 'rotate-90' : ''
                               }`}
                           />
                         </div>
@@ -317,19 +347,18 @@ export default function ClassManager() {
                                             <div>
                                               <h5 className="font-semibold text-gray-900">{assignment.title}</h5>
                                               <div className="flex items-center space-x-3 mt-1">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${
-                                        assignment.type === 'class'
-                                            ? 'bg-purple-100 text-purple-700'
-                                            : 'bg-green-100 text-green-700'
-                                    }`}>
-                                      {assignment.type === 'class' ? 'Toàn lớp' : `Nhóm cụ thể`}
-                                    </span>
+                                                                        <span className={`text-xs px-2 py-1 rounded-full ${assignment.type === 'class'
+                                                                            ? 'bg-purple-100 text-purple-700'
+                                                                            : 'bg-green-100 text-green-700'
+                                                                        }`}>
+                                                                            {assignment.type === 'class' ? 'Toàn lớp' : `Nhóm cụ thể`}
+                                                                        </span>
                                                 <span className="text-xs text-gray-500">Hạn: {assignment.deadline}</span>
                                               </div>
                                             </div>
                                             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                  {assignment.status === 'active' ? 'Đang mở' : 'Đã đóng'}
-                                </span>
+                                                                    {assignment.status === 'active' ? 'Đang mở' : 'Đã đóng'}
+                                                                </span>
                                           </div>
                                         </div>
                                     ))}
@@ -353,8 +382,8 @@ export default function ClassManager() {
                                       <div className="flex items-center space-x-3">
                                         <h5 className="font-semibold text-gray-900">{group.name}</h5>
                                         <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
-                                {group.students?.length || 0}/{group.maxMembers} thành viên
-                              </span>
+                                                                {group.students?.length || 0}/{group.maxMembers} thành viên
+                                                            </span>
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         <button
@@ -382,9 +411,9 @@ export default function ClassManager() {
                                           <div key={student.id || idx} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
                                             <div className="flex items-center text-sm text-gray-700">
                                               <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center mr-3">
-                                    <span className="text-white text-xs font-medium">
-                                      {student.fullName ? student.fullName.charAt(0) : '?'}
-                                    </span>
+                                                                        <span className="text-white text-xs font-medium">
+                                                                            {student.fullName ? student.fullName.charAt(0) : '?'}
+                                                                        </span>
                                               </div>
                                               <div>
                                                 <p className="font-medium">{student.fullName}</p>
