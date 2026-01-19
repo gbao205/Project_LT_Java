@@ -68,5 +68,10 @@ public class ClassRoom {
 
     public boolean canRegister() {
         return isRegistrationOpen && (students.size() < maxCapacity);
+
     }
+
+    @OneToMany(mappedBy = "classRoom", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<TimeTable> timeTables = new HashSet<>();
 }
