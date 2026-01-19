@@ -151,7 +151,10 @@ public class StaffController {
                 isRegistrationOpen
         );
     }
-    //===================================assign================================================
+    @PatchMapping("/classes/{id}/status")
+    public ResponseEntity<ClassResponseDTO> updateStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(staffService.status(id));
+    }    //===================================assign================================================
     @PutMapping("/classes/{classId}/assign-lecturer/{lecturerId}")
     public ResponseEntity<String> assignLecturer(
             @PathVariable Long classId,

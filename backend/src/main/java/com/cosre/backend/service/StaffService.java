@@ -156,5 +156,27 @@ public class StaffService implements IStaffService {
                 .filter(u -> u.getRole() == Role.LECTURER)
                 .collect(Collectors.toList());
     }
+    @Transactional
+    @Override
+    public ClassResponseDTO status(Long classId) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new AppException("Lớp không tồn tại", HttpStatus.NOT_FOUND));
+
+        classRoom.setRegistrationOpen(!classRoom.isRegistrationOpen());
+
+        classRoomRepository.save(classRoom);
+
+        return ClassResponseDTO.builder()
+                .id(classRoom.getId())
+                .name(classRoom.getName())
+                .classCode(classRoom.getClassCode())
+                .semester(classRoom.getSemester())
+                .subjectName(classRoom.getSubject() != null ? classRoom.getSubject().getName() : "N/A")
+                .lecturerName(classRoom.getLecturer() != null ? classRoom.getLecturer().getFullName() : "N/A")
+                .isRegistrationOpen(classRoom.isRegistrationOpen())
+                .studentCount(classRoom.getStudents() != null ? classRoom.getStudents().size() : 0)
+                .maxCapacity(classRoom.getMaxCapacity())
+                .build();
+    }
 
 }

@@ -2,8 +2,8 @@ import api from './api';
 
 export const staffService = {
     getAllClasses: () => api.get('/staff/classes'),
-    toggleRegistration: (classId: number) => 
-        api.patch(`/staff/classes/${classId}/toggle-registration`),
+    status: (classId: number) => 
+        api.patch(`/staff/classes/${classId}/status`),
     importUser: (formData: FormData) => 
         api.post('/staff/import-user', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -25,4 +25,15 @@ export const staffService = {
         }),  
     searchUsers: (search?: string) => 
         api.get('/staff/search-user', { params: { search } }),
+    getClasses: (params: {
+        page: number;
+        size: number;
+        id?: number;
+        classCode?: string;
+        name?: string;
+        semester?: string;
+        subjectName?: string;
+        lecturerName?: string;
+        isRegistrationOpen?: boolean;
+    }) => api.get('/staff/classes', { params }),
 };
