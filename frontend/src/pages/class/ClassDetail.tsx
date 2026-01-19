@@ -6,7 +6,7 @@ import {
     Dialog, DialogTitle, DialogContent, TextField, DialogActions, Chip,
     CircularProgress, Grid, Card, CardContent, CardActions, FormControl,
     RadioGroup, FormControlLabel, Radio, Avatar, Tooltip, FormLabel,
-    FormGroup, Checkbox, InputAdornment, Snackbar, Alert, DialogContentText,
+    FormGroup, Checkbox, InputAdornment, Alert, DialogContentText,
     Skeleton
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
@@ -22,6 +22,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 
 import StudentLayout from '../../components/layout/StudentLayout';
+import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 import studentService from '../../services/studentService';
 import { getClassDetails, createMaterial, createAssignment, submitAssignment } from '../../services/classService';
 
@@ -33,6 +34,7 @@ const ClassDetail = () => {
     const [loading, setLoading] = useState(true);
     const [tabIndex, setTabIndex] = useState(0);
     const [user, setUser] = useState<any>(null);
+    const { showSuccess, showError, showWarning } = useAppSnackbar();
 
     // State Dialog nhập liệu
     const [openMaterial, setOpenMaterial] = useState(false);
@@ -60,13 +62,6 @@ const ClassDetail = () => {
     const [isLeader, setIsLeader] = useState(false);
 
     const [teamLoading, setTeamLoading] = useState(false);
-
-    // --- STATE CHO UI MỚI (SNACKBAR & CONFIRM) ---
-    const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' | 'warning' }>({
-        open: false,
-        message: '',
-        severity: 'success'
-    });
 
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean, title: string, content: string, onConfirm: () => void }>({
         open: false,
@@ -122,39 +117,29 @@ const ClassDetail = () => {
 
     const isLecturer = user?.role === 'LECTURER';
 
-    // --- HELPER FUNCTION UI ---
-    const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' = 'success') => {
-        setSnackbar({ open: true, message, severity });
-    };
-
-    const handleCloseSnackbar = () => {
-        setSnackbar(prev => ({ ...prev, open: false }));
-    };
-    // --------------------------
-
     // --- CÁC HÀM XỬ LÝ ---
     const handleCreateMaterial = async () => {
         await createMaterial(id!, { title: formData.title, description: formData.description, fileUrl: formData.url });
         setOpenMaterial(false);
         fetchData();
-        showSnackbar("Tạo tài liệu thành công!");
+        showSuccess("Tạo tài liệu thành công!");
     };
 
     const handleCreateAssignment = async () => {
         await createAssignment(id!, { title: formData.title, description: formData.description, deadline: formData.deadline });
         setOpenAssignment(false);
         fetchData();
-        showSnackbar("Giao bài tập thành công!");
+        showSuccess("Giao bài tập thành công!");
     };
 
     const handleSubmitAssignment = async () => {
         if (!selectedAssignmentId) return;
         try {
             await submitAssignment(selectedAssignmentId, { fileUrl: formData.url, comment: formData.description });
-            showSnackbar("Nộp bài thành công!");
+            showSuccess("Nộp bài thành công!");
             setOpenSubmit(false);
         } catch (error) {
-            showSnackbar("Lỗi nộp bài", "error");
+            showError("Lỗi nộp bài");
         }
     };
 
@@ -191,7 +176,7 @@ const ClassDetail = () => {
 
     const handleCreateTeam = async () => {
         if (!teamName.trim()) {
-            showSnackbar("Vui lòng nhập tên nhóm!", "warning");
+            showWarning("Vui lòng nhập tên nhóm!");
             return;
         }
         try {
@@ -200,34 +185,30 @@ const ClassDetail = () => {
                 classId: Number(id),
                 memberIds: selectedMemberIds
             });
-            showSnackbar("Tạo nhóm thành công!");
+            showSuccess("Tạo nhóm thành công!");
             setOpenCreateTeam(false);
             setTeamName("");
             setSelectedMemberIds([]);
             fetchTeamData();
         } catch (error: any) {
-            showSnackbar(error.response?.data?.message || "Lỗi tạo nhóm", "error");
+            showError(error.response?.data?.message || "Lỗi tạo nhóm");
         }
     };
 
     const handleJoinByCode = async () => {
         if (!joinCode.trim()) {
-            setSnackbar({ open: true, message: "Vui lòng nhập mã nhóm!", severity: 'error' });
+            showWarning("Vui lòng nhập mã nhóm!");
             return;
         }
         try {
             await studentService.joinTeam(joinCode.trim());
-            setSnackbar({ open: true, message: "Tham gia nhóm thành công!", severity: 'success' });
+            showSuccess("Tham gia nhóm thành công!");
             setOpenJoinDialog(false);
             setJoinCode("");
             fetchData();
             fetchTeamData();
         } catch (error: any) {
-            setSnackbar({ 
-                open: true, 
-                message: error.response?.data?.message || "Lỗi tham gia nhóm", 
-                severity: 'error' 
-            });
+            showError(error.response?.data?.message || "Lỗi tham gia nhóm");
         }
     };
 
@@ -238,11 +219,11 @@ const ClassDetail = () => {
                 projectName: projectForm.projectName, 
                 description: projectForm.description 
             });
-            showSnackbar("Đăng ký đề tài thành công! Chờ giảng viên duyệt.");
+            showSuccess("Đăng ký đề tài thành công! Chờ giảng viên duyệt.");
             setOpenRegisterProject(false);
             fetchTeamData();
         } catch (error: any) {
-            showSnackbar(error.response?.data?.message || "Lỗi đăng ký đề tài", "error");
+            showError(error.response?.data?.message || "Lỗi đăng ký đề tài");
         }
     };
 
@@ -255,10 +236,10 @@ const ClassDetail = () => {
             onConfirm: async () => {
                 try {
                     await studentService.joinTeam(team.joinCode);
-                    showSnackbar("Tham gia thành công!");
+                    showSuccess("Tham gia thành công!");
                     fetchTeamData();
                 } catch (error: any) {
-                    showSnackbar(error.response?.data?.message || "Lỗi tham gia", "error");
+                    showError(error.response?.data?.message || "Lỗi tham gia");
                 }
             }
         });
@@ -270,7 +251,7 @@ const ClassDetail = () => {
         const myMemberInfo = myTeam.members.find((m: any) => m.student?.id == currentUserId);
 
         if (!myMemberInfo) {
-            showSnackbar(`Không tìm thấy thông tin thành viên! (ID: ${currentUserId})`, "error");
+            showError(`Không tìm thấy thông tin thành viên! (ID: ${currentUserId})`);
             return;
         }
 
@@ -301,25 +282,25 @@ const ClassDetail = () => {
     const executeLeaveTeam = async () => {
         try {
             await studentService.leaveTeam({ teamId: myTeam.id });
-            showSnackbar("Đã rời nhóm thành công!");
+            showSuccess("Đã rời nhóm thành công!");
             setMyTeam(null);
             fetchTeamData();
             setOpenLeaderDialog(false);
         } catch (error: any) {
-            showSnackbar(error.response?.data?.message || "Lỗi khi rời nhóm", "error");
+            showError(error.response?.data?.message || "Lỗi khi rời nhóm");
         }
     };
 
     const handleConfirmTransferAndLeave = async () => {
         if (!selectedNewLeaderId) {
-            showSnackbar("Vui lòng chọn thành viên kế nhiệm!", "warning");
+            showWarning("Vui lòng chọn thành viên kế nhiệm!");
             return;
         }
         try {
             await studentService.assignLeader({ teamId: myTeam.id, newLeaderId: selectedNewLeaderId });
             await executeLeaveTeam();
         } catch (error: any) {
-            showSnackbar(error.response?.data?.message || "Lỗi khi chuyển quyền", "error");
+            showError(error.response?.data?.message || "Lỗi khi chuyển quyền");
         }
     };
 
@@ -986,18 +967,6 @@ const ClassDetail = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            {/* 2. Snackbar thông báo */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000} // Tự đóng sau 4 giây
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }} variant="filled">
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
 
             {/* --- MODAL ĐĂNG KÝ ĐỀ TÀI --- */}
             <Dialog open={openRegisterProject} onClose={() => setOpenRegisterProject(false)} fullWidth maxWidth="sm">

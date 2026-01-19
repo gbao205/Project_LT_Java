@@ -8,6 +8,7 @@ import {
 
 import { SnackbarProvider } from './context/SnackbarContext';
 import { ConfirmProvider } from './context/ConfirmContext';
+import ScrollToTop from "./components/common/ScrollToTop";
 
 // Components & Auth
 import Login from "./pages/auth/Login";
@@ -77,6 +78,9 @@ function App() {
     <SnackbarProvider>
       <ConfirmProvider>
         <Router>
+
+          <ScrollToTop />
+
           <ReportDialog />
     
           {/* Sử dụng Wrapper ở đây */}

@@ -9,6 +9,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 
 import StudentLayout from '../../components/layout/StudentLayout';
+import { useAppSnackbar } from '../../hooks/useAppSnackbar';
+import { useConfirm } from '../../context/ConfirmContext';
 import studentService, {type Student, type StudentProfileData } from '../../services/studentService';
 
 interface ApiError {
@@ -43,12 +45,10 @@ const StudentProfile: React.FC = () => {
     const [student, setStudent] = useState<Student | null>(null);
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [formData, setFormData] = useState<Student | null>(null);
-    const [message, setMessage] = useState<{ type: AlertColor | undefined, text: string }>({
-        type: undefined,
-        text: ''
-    });
     const hasChanges = student && formData ? !isEqual(student, formData) : false;
     const [loading, setLoading] = useState<boolean>(true);
+    const { showSuccess, showError } = useAppSnackbar();
+    const { confirm } = useConfirm();
 
     // Tải dữ liệu từ Backend khi vào trang
     useEffect(() => {
@@ -100,11 +100,26 @@ const StudentProfile: React.FC = () => {
             setStudent(updatedData);
             setFormData(updatedData);
             setIsEditing(false);
-            setMessage({ type: 'success', text: 'Cập nhật hồ sơ thành công!' });
+            showSuccess('Cập nhật hồ sơ thành công!');
         } catch (error: unknown) {
             const err = error as ApiError;
             const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra';
-            setMessage({ type: 'error', text: errorMessage });
+            showError(errorMessage);
+        }
+    };
+
+    const handleCancel = () => {
+        if (hasChanges) {
+            confirm({
+                title: "Xác nhận hủy",
+                message: "Bạn có những thay đổi chưa lưu. Bạn có chắc chắn muốn hủy bỏ không?",
+                onConfirm: () => {
+                    setIsEditing(false);
+                    setFormData(student);
+                }
+            });
+        } else {
+            setIsEditing(false);
         }
     };
 
@@ -241,7 +256,6 @@ const StudentProfile: React.FC = () => {
             ) : (
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                     <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-                        {message.text && <Alert severity={message.type} sx={{ mb: 3 }}>{message.text}</Alert>}
 
                         <Box display="flex" alignItems="center" mb={4}>
                             <Avatar sx={{ width: 100, height: 100, bgcolor: '#2e7d32', fontSize: '2.5rem', mr: 3 }}>
@@ -305,10 +319,7 @@ const StudentProfile: React.FC = () => {
                                         variant="outlined"
                                         color="error"
                                         startIcon={<CloseIcon />}
-                                        onClick={() => {
-                                            setIsEditing(false);
-                                            setFormData(student);
-                                        }}
+                                        onClick={handleCancel}
                                     >
                                         Hủy bỏ
                                     </Button>
