@@ -3,7 +3,13 @@ import api from './api';
 export interface ClassRoom {
     id: number;
     name: string;
+    classCode: string;
     semester: string;
+    startDate: string;
+    endDate: string;
+    maxCapacity: number;
+    currentEnrollment?: number;
+    isRegistered?: boolean;
     subject: {
         id: number;
         name: string;

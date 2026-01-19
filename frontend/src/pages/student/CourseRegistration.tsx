@@ -2,20 +2,31 @@ import { useEffect, useState, useMemo } from 'react';
 import {
     Typography, Box, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Paper, 
-    Button, Chip, Alert, CircularProgress
+    Button, Chip, CircularProgress, Grid, Divider,
+    Dialog, DialogTitle, DialogContent, DialogActions, 
 } from '@mui/material';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ClassIcon from '@mui/icons-material/Class';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import InfoIcon from '@mui/icons-material/Info';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 import StudentLayout from '../../components/layout/StudentLayout';
-import { getRegistrationClasses, enrollClass, cancelClass } from '../../services/classService';
+import { useConfirm } from '../../context/ConfirmContext';
+import { useAppSnackbar } from '../../hooks/useAppSnackbar';
+import { getRegistrationClasses, enrollClass, cancelClass, type ClassRoom } from '../../services/classService';
 
 const CourseRegistration = () => {
     const [classes, setClasses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [msg, setMsg] = useState<{ type: 'success' | 'error', content: string } | null>(null);
+    const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+    const [selectedClass, setSelectedClass] = useState<ClassRoom | null>(null);
+    const [openDetail, setOpenDetail] = useState(false);
+
+    const { confirm } = useConfirm();
+    const { showSuccess, showError } = useAppSnackbar();
 
     const fetchData = async () => {
         try {
@@ -32,6 +43,16 @@ const CourseRegistration = () => {
         fetchData();
     }, []);
 
+    const handleOpenDetail = (cls: ClassRoom) => {
+        setSelectedClass(cls);
+        setOpenDetail(true);
+    };
+
+    const handleCloseDetail = () => {
+        setOpenDetail(false);
+        setSelectedClass(null);
+    };
+
     // Tách danh sách thành 2 phần: Đã đăng ký & Chưa đăng ký
     const { availableList, registeredList } = useMemo(() => {
         const available = classes.filter(c => !c.isRegistered);
@@ -40,67 +61,84 @@ const CourseRegistration = () => {
     }, [classes]);
 
     const handleAction = async (classId: number, isRegistered: boolean) => {
-        setMsg(null);
         try {
             if (isRegistered) {
-                if (!confirm("Bạn có chắc muốn hủy lớp này không?")) return;
-                await cancelClass(classId);
-                setMsg({ type: 'success', content: 'Đã hủy đăng ký thành công!' });
+                confirm({
+                    title: "Xác nhận hủy",
+                    message: "Bạn có chắc muốn hủy đăng ký lớp học này không?",
+                    onConfirm: async () => {
+                        try {
+                            setActionLoadingId(classId);
+                            await cancelClass(classId);
+                            showSuccess('Đã hủy đăng ký thành công!');
+                            await fetchData();
+                            if (openDetail) setOpenDetail(false);
+                        } catch (error: any) {
+                            showError(error.response?.data?.message || "Lỗi thao tác!");
+                        } finally {
+                            setActionLoadingId(null);
+                        }
+                    }
+                });
             } else {
-                await enrollClass(classId);
-                setMsg({ type: 'success', content: 'Đăng ký môn học thành công!' });
+                try {
+                    setActionLoadingId(classId);
+                    await enrollClass(classId);
+                    showSuccess('Đăng ký môn học thành công!');
+                    await fetchData();
+                    if (openDetail) setOpenDetail(false);
+                } catch (error: any) {
+                    showError(error.response?.data?.message || "Lỗi thao tác!");
+                } finally {
+                    setActionLoadingId(null); 
+                }
             }
-            fetchData(); // Reload lại cả 2 bảng
         } catch (error: any) {
-            setMsg({ type: 'error', content: error.response?.data?.message || "Lỗi thao tác!" });
+            showError(error.response?.data?.message || "Lỗi thao tác!");
         }
     };
 
     // Component con để render từng dòng (tránh lặp code)
-    const ClassRow = ({ row, isRegisteredTable }: { row: any, isRegisteredTable: boolean }) => (
-        <TableRow hover>
-            <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>{row.name}</TableCell>
-            <TableCell>
-                <Typography variant="body2" fontWeight="bold">{row.subject?.name}</Typography>
-                <Typography variant="caption" color="textSecondary">{row.subject?.subjectCode}</Typography>
-            </TableCell>
-            <TableCell>{row.lecturer?.fullName}</TableCell>
-            <TableCell>{row.semester}</TableCell>
-            <TableCell>
-                <Chip
-                    label={`${row.currentEnrollment} / ${row.maxCapacity}`}
-                    color={row.currentEnrollment >= row.maxCapacity ? "error" : "default"}
-                    variant="outlined"
-                    size="small"
-                />
-            </TableCell>
-            <TableCell align="center">
-                {isRegisteredTable ? (
+    const ClassRow = ({ row, isRegisteredTable }: { row: any, isRegisteredTable: boolean }) => {
+        const isCurrentLoading = actionLoadingId === row.id;
+        return (
+            <TableRow hover onClick={() => handleOpenDetail(row)} sx={{ cursor: 'pointer' }}>
+                <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>{row.name}</TableCell>
+                <TableCell>
+                    <Typography variant="body2" fontWeight="bold">{row.subject?.name}</Typography>
+                    <Typography variant="caption" color="textSecondary">{row.subject?.subjectCode}</Typography>
+                </TableCell>
+                <TableCell>{row.lecturer?.fullName}</TableCell>
+                <TableCell>{row.semester}</TableCell>
+                <TableCell>
+                    <Chip
+                        label={`${row.currentEnrollment} / ${row.maxCapacity}`}
+                        color={row.currentEnrollment >= row.maxCapacity ? "error" : "default"}
+                        variant="outlined"
+                        size="small"
+                    />
+                </TableCell>
+                <TableCell align="center">
                     <Button
-                        variant="outlined" color="error" size="small"
-                        startIcon={<CancelIcon />}
-                        onClick={() => handleAction(row.id, true)}
+                        variant={isRegisteredTable ? "outlined" : "contained"}
+                        color={isRegisteredTable ? "error" : "primary"}
+                        size="small"
+                        disabled={isCurrentLoading || (!isRegisteredTable && (row.currentEnrollment || 0) >= row.maxCapacity)}
+                        startIcon={isCurrentLoading ? <CircularProgress size={16} color="inherit" /> : (isRegisteredTable ? <CancelIcon /> : <AddCircleOutlineIcon />)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction(row.id, isRegisteredTable);
+                        }}
                     >
-                        Hủy Đăng Ký
+                        {isCurrentLoading ? "Đang xử lý..." : (isRegisteredTable ? "Hủy Đăng Ký" : ((row.currentEnrollment || 0) >= row.maxCapacity ? "Hết Chỗ" : "Đăng Ký"))}
                     </Button>
-                ) : (
-                    <Button
-                        variant="contained" color="primary" size="small"
-                        startIcon={<AddCircleOutlineIcon />}
-                        disabled={row.currentEnrollment >= row.maxCapacity}
-                        onClick={() => handleAction(row.id, false)}
-                    >
-                        {row.currentEnrollment >= row.maxCapacity ? "Hết Chỗ" : "Đăng Ký"}
-                    </Button>
-                )}
-            </TableCell>
-        </TableRow>
-    );
+                </TableCell>
+            </TableRow>
+        )
+    };
 
     return (
         <StudentLayout title="Đăng Ký Môn Học">
-            
-            {msg && <Alert severity={msg.type} sx={{ mb: 3 }}>{msg.content}</Alert>}
 
             {loading ? (
                 <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>
@@ -179,6 +217,101 @@ const CourseRegistration = () => {
 
                 </Box>
             )}
+
+            {/* DIALOG HIỂN THỊ CHI TIẾT LỚP HỌC */}
+            <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="sm" fullWidth sx={{ cursor: 'default' }}>
+                {selectedClass && (
+                    <>
+                        <DialogTitle sx={{ bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <InfoIcon color="primary" />
+                            <Typography variant="h6" fontWeight="bold">Thông Tin Chi Tiết Lớp Học</Typography>
+                        </DialogTitle>
+                        <DialogContent dividers>
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle2" color="textSecondary">Tên lớp & Mã lớp</Typography>
+                                    <Typography variant="body1" fontWeight="bold">
+                                        {selectedClass.name} - {selectedClass.classCode || 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                
+                                <Grid size={{ xs: 12 }}>
+                                    <Divider />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle2" color="textSecondary">Môn học</Typography>
+                                    <Typography variant="body1">
+                                        {selectedClass.subject?.name} ({selectedClass.subject?.subjectCode})
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 6 }}>
+                                    <Typography variant="subtitle2" color="textSecondary">Học kỳ</Typography>
+                                    <Typography variant="body1">{selectedClass.semester}</Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 6 }}>
+                                    <Typography variant="subtitle2" color="textSecondary">Giảng viên</Typography>
+                                    <Typography variant="body1">{selectedClass.lecturer?.fullName || 'Chưa phân công'}</Typography>
+                                    <Typography variant="caption">{selectedClass.lecturer?.email}</Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <Divider />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                                        <CalendarTodayIcon fontSize="small" color="action" />
+                                        <Typography variant="subtitle1" fontWeight="bold">Thời gian học</Typography>
+                                    </Box>
+                                    <Box display="flex" justifyContent="space-between" bgcolor="#fafafa" p={2} borderRadius={1}>
+                                        <Box>
+                                            <Typography variant="caption" display="block" color="textSecondary">Ngày bắt đầu</Typography>
+                                            <Typography variant="body2" fontWeight="bold">{selectedClass.startDate || 'Chưa xác định'}</Typography>
+                                        </Box>
+                                        <Box textAlign="right">
+                                            <Typography variant="caption" display="block" color="textSecondary">Ngày kết thúc</Typography>
+                                            <Typography variant="body2" fontWeight="bold">{selectedClass.endDate || 'Chưa xác định'}</Typography>
+                                        </Box>
+                                    </Box>
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle2" color="textSecondary">Tình trạng sĩ số</Typography>
+                                    <Typography variant="body1">
+                                        Đã đăng ký: <strong>{selectedClass.currentEnrollment}</strong> / {selectedClass.maxCapacity} sinh viên
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </DialogContent>
+                        <DialogActions sx={{ p: 2 }}>
+                            <Button 
+                                onClick={handleCloseDetail} 
+                                color="inherit" 
+                            >
+                                Đóng
+                            </Button>
+                            {selectedClass && (
+                                <Button 
+                                    variant="contained" 
+                                    color={selectedClass.isRegistered ? "error" : "primary"}
+                                    // Chỉ hiển thị load nếu ID trùng với lớp đang được mở trong Dialog
+                                    disabled={actionLoadingId === selectedClass.id || (!selectedClass.isRegistered && (selectedClass.currentEnrollment || 0) >= selectedClass.maxCapacity)}
+                                    startIcon={actionLoadingId === selectedClass.id ? <CircularProgress size={16} color="inherit" /> : null}
+                                    onClick={() => handleAction(selectedClass.id, selectedClass.isRegistered || false)}
+                                >
+                                    {actionLoadingId === selectedClass.id 
+                                        ? "Đang xử lý..." 
+                                        : (selectedClass.isRegistered ? "Hủy Đăng Ký" : "Đăng Ký Ngay")
+                                    }
+                                </Button>
+                            )}
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
         </StudentLayout>
     );
 };

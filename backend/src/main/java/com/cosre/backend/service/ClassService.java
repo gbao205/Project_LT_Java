@@ -75,7 +75,10 @@ public class ClassService {
             Map<String, Object> map = new HashMap<>();
             map.put("id", clazz.getId());
             map.put("name", clazz.getName());
+            map.put("classCode", clazz.getClassCode());
             map.put("semester", clazz.getSemester());
+            map.put("startDate", clazz.getStartDate());
+            map.put("endDate", clazz.getEndDate());
             map.put("subject", clazz.getSubject());
             map.put("lecturer", clazz.getLecturer());
             map.put("maxCapacity", clazz.getMaxCapacity());

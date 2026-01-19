@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { 
     Box, Typography, Grid, Card, CardContent, 
     CardActions, Button, Chip, CircularProgress, 
-    Divider, Tooltip, Snackbar, Alert, DialogActions,
+    Divider, Tooltip, DialogActions,
     Dialog, DialogTitle, DialogContent, TextField,
     FormLabel, FormControl, InputLabel, Select, MenuItem,
     InputAdornment, Paper, FormGroup, FormControlLabel, Checkbox
@@ -17,8 +17,9 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 
-import studentService from '../../services/studentService';
 import StudentLayout from '../../components/layout/StudentLayout';
+import { useAppSnackbar } from '../../hooks/useAppSnackbar';
+import studentService from '../../services/studentService';
 
 const MyTeams = () => {
     const userStr = localStorage.getItem('user');
@@ -27,6 +28,7 @@ const MyTeams = () => {
 
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const { showSuccess, showError } = useAppSnackbar();
     
     // --- State cho chức năng Tạo/Tham gia nhóm ---
     const [availableClasses, setAvailableClasses] = useState<any[]>([]);
@@ -44,12 +46,6 @@ const MyTeams = () => {
     const [joinCode, setJoinCode] = useState("");
     
     const navigate = useNavigate();
-    // State cho Snackbar thông báo
-    const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'info' | 'error' }>({
-        open: false,
-        message: '',
-        severity: 'success'
-    });
 
     useEffect(() => {
         fetchTeams();
@@ -72,7 +68,6 @@ const MyTeams = () => {
             setAvailableClasses(data);
         } catch (error) {
             console.error("Lỗi tải danh sách lớp:", error);
-            showSnackbar("Không thể tải danh sách lớp học", "error");
         }
     };
 
@@ -105,24 +100,15 @@ const MyTeams = () => {
         setSelectedMemberIds([]); 
     }, [selectedClassId]);
 
-    // Hàm hiển thị thông báo
-    const showSnackbar = (message: string, severity: 'success' | 'info' | 'error' = 'success') => {
-        setSnackbar({ open: true, message, severity });
-    };
-
-    const handleCloseSnackbar = () => {
-        setSnackbar({ ...snackbar, open: false });
-    };
-
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
-        showSnackbar(`Đã sao chép mã nhóm: ${text}`, 'success');
+        showSuccess(`Đã sao chép mã nhóm: ${text}`);
     };
 
     // Xử lý tạo nhóm
     const handleCreateTeam = async () => {
         if (!teamName.trim() || !selectedClassId) {
-            showSnackbar("Vui lòng chọn lớp và nhập tên nhóm!", "error");
+            showError("Vui lòng chọn lớp và nhập tên nhóm!");
             return;
         }
         try {
@@ -131,14 +117,14 @@ const MyTeams = () => {
                 classId: Number(selectedClassId),
                 memberIds: selectedMemberIds
             });
-            showSnackbar("Tạo nhóm thành công!");
+            showSuccess("Tạo nhóm thành công!");
             setOpenCreate(false);
             setTeamName("");
             setSelectedClassId("");
             setSelectedMemberIds([]);
             fetchTeams(); // Reload lại danh sách nhóm
         } catch (error: any) {
-            showSnackbar(error.response?.data?.message || "Lỗi tạo nhóm", "error");
+            showError(error.response?.data?.message || "Lỗi tạo nhóm");
         }
     };
 
@@ -146,7 +132,7 @@ const MyTeams = () => {
     const handleJoinTeam = async () => {
         // 1. Kiểm tra đầu vào
         if (!joinCode.trim()) {
-            showSnackbar("Vui lòng nhập mã nhóm!", "error");
+            showError("Vui lòng nhập mã nhóm!");
             return;
         }
 
@@ -155,7 +141,7 @@ const MyTeams = () => {
             await studentService.joinTeam(joinCode.trim());
             
             // 3. Thành công: Thông báo & Cập nhật giao diện
-            showSnackbar("Tham gia nhóm thành công!");
+            showSuccess("Tham gia nhóm thành công!");
             setOpenJoin(false);     // Đóng hộp thoại
             setJoinCode("");        // Reset ô nhập
             fetchTeams();           // Tải lại danh sách nhóm để hiện nhóm mới
@@ -164,7 +150,7 @@ const MyTeams = () => {
             // 4. Thất bại: Hiện thông báo lỗi từ Backend (VD: "Mã nhóm sai", "Đã có nhóm rồi")
             console.error("Lỗi tham gia nhóm:", error);
             const errorMessage = error.response?.data?.message || "Lỗi tham gia nhóm. Vui lòng thử lại.";
-            showSnackbar(errorMessage, "error");
+            showError(errorMessage);
         }
     };
 
@@ -306,18 +292,6 @@ const MyTeams = () => {
                             ))}
                         </Grid>
                     )}
-                    <Snackbar
-                        open={snackbar.open}
-                        autoHideDuration={3000}
-                        onClose={handleCloseSnackbar}
-                        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    >
-                        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
-                            {snackbar.message}
-                        </Alert>
-                    </Snackbar>
-
-
                     {/* --- DIALOG TẠO NHÓM MỚI --- */}
                     <Dialog open={openCreate} onClose={() => setOpenCreate(false)} fullWidth maxWidth="sm">
                         <DialogTitle>Tạo Nhóm Mới</DialogTitle>

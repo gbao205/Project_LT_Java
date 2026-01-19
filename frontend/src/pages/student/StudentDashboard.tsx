@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { 
     Container, Typography, Box, Grid, Divider, Paper, 
-    Avatar, Button, IconButton, List, ListItem, ListItemText, 
-    ListItemAvatar, Badge
+    Avatar, Button, IconButton
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SchoolIcon from "@mui/icons-material/School";
