@@ -1,12 +1,15 @@
 package com.cosre.backend.controller;
 
 import com.cosre.backend.dto.lecturer.ProposalDTO;
+
+import com.cosre.backend.dto.lecturer.LecturerClassDetailDTO;
 import com.cosre.backend.service.LecturerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List; 
 import java.util.Map;
 
 @RestController
@@ -17,8 +20,13 @@ public class LecturerController {
     private LecturerService lecturerService;
 
     // 1. API lấy danh sách lớp đang dạy
+    // CẬP NHẬT: Trả về List<LecturerClassDetailDTO> thay vì <?> chung chung
+    // Điều này giúp Frontend nhận được cấu trúc có "teams" và "students"
     @GetMapping("/classes")
-    public ResponseEntity<?> getMyClasses() {
+    public ResponseEntity<List<LecturerClassDetailDTO>> getMyClasses() {
+        // In ra dòng này để kiểm chứng
+        System.out.println(">>> ĐÂY LÀ PHIÊN BẢN MỚI 2024 - ĐÃ UPDATE DTO <<<");
+
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(lecturerService.getMyClasses(email));
     }

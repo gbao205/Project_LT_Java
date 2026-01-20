@@ -34,6 +34,6 @@ public class TeamMember {
     private TeamRole role;
 
     // Điểm tổng kết cuối cùng sau khi giảng viên chốt
-    @Column(precision = 4, scale = 2)
+    @Column(name = "final_grade", precision = 4, scale = 2)
     private BigDecimal finalGrade;
 }

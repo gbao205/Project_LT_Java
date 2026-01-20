@@ -1,20 +1,19 @@
 package com.cosre.backend.service;
 
 import com.cosre.backend.dto.DashboardStats;
-import com.cosre.backend.dto.lecturer.ClassProposalDTO;
-import com.cosre.backend.dto.lecturer.ProposalDTO;
+import com.cosre.backend.dto.lecturer.*;
 import com.cosre.backend.entity.*;
-import com.cosre.backend.repository.ClassRoomRepository;
-import com.cosre.backend.repository.ProjectRepository;
-import com.cosre.backend.repository.TeamRepository;
-import com.cosre.backend.repository.UserRepository;
+import com.cosre.backend.repository.*;
+import com.cosre.backend.dto.lecturer.LecturerAssignmentDTO;// Import cả AssignmentRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 @Service
 public class LecturerService {
@@ -31,12 +30,90 @@ public class LecturerService {
     @Autowired
     private UserRepository userRepository;
 
-    // 1. Lấy danh sách lớp
-    public List<ClassRoom> getMyClasses(String email) {
-        return classRoomRepository.findByLecturerEmail(email);
+    // ✅ Đã có file Repository rồi -> Bỏ comment dòng này
+    @Autowired
+    private AssignmentRepository assignmentRepository;
+
+    // =========================================================================
+    // 1. LẤY DANH SÁCH LỚP (CÓ MAP SANG DTO CHI TIẾT + BÀI TẬP)
+    // =========================================================================
+    public List<LecturerClassDetailDTO> getMyClasses(String email) {
+        List<ClassRoom> classes = classRoomRepository.findByLecturerEmail(email);
+
+        return classes.stream().map(cls -> {
+            // --- A. Map Danh sách Nhóm ---
+            List<LecturerTeamDTO> teamDTOs = new ArrayList<>();
+            if (cls.getTeams() != null) {
+                teamDTOs = cls.getTeams().stream().map(team -> {
+                    // --- B. Map Danh sách Sinh viên ---
+                    List<LecturerStudentDTO> memberDTOs = new ArrayList<>();
+                    if (team.getMembers() != null) {
+                        memberDTOs = team.getMembers().stream().map(mem -> {
+                            User s = mem.getStudent();
+                            BigDecimal score = (mem.getFinalGrade() != null) ? mem.getFinalGrade() : BigDecimal.ZERO;
+
+                            return LecturerStudentDTO.builder()
+                                    .id(s.getId())
+                                    .fullName(s.getFullName())
+                                    .code(s.getCode())
+                                    .score(score)
+                                    .build();
+                        }).collect(Collectors.toList());
+                    }
+
+                    BigDecimal teamScore = (team.getTeamScore() != null) ? team.getTeamScore() : BigDecimal.ZERO;
+
+                    return LecturerTeamDTO.builder()
+                            .id(team.getId())
+                            .name(team.getTeamName())
+                            .teamScore(teamScore)
+                            .maxMembers(cls.getMaxCapacity())
+                            .members(memberDTOs)
+                            .build();
+                }).collect(Collectors.toList());
+            }
+
+            int totalStudents = teamDTOs.stream().mapToInt(t -> t.getMembers().size()).sum();
+
+            // --- C. Map Danh sách Bài tập (Assignment) ---
+            List<LecturerAssignmentDTO> assignmentDTOs = new ArrayList<>();
+
+            // ✅ Logic mới khớp với file AssignmentRepository bạn gửi
+            if (assignmentRepository != null) {
+                // Gọi hàm findByClassRoom (truyền object cls thay vì ID)
+                List<Assignment> assignments = assignmentRepository.findByClassRoom(cls);
+
+                assignmentDTOs = assignments.stream().map(a -> LecturerAssignmentDTO.builder()
+                        .id(a.getId())
+                        .title(a.getTitle())
+                        // Entity của bạn chỉ có 'deadline', không có start/end hay type/status
+                        // -> Map deadline vào dueDate
+                        .dueDate(a.getDeadline() != null ? a.getDeadline().toLocalDate().toString() : "")
+
+                        // -> Gán mặc định để Frontend hiển thị đẹp (vì DB chưa có cột này)
+                        .type("CLASS_ASSIGNMENT")
+                        .status("ACTIVE")
+                        .build()
+                ).collect(Collectors.toList());
+            }
+
+            return LecturerClassDetailDTO.builder()
+                    .id(cls.getId())
+                    .name(cls.getName())
+                    .subjectCode(cls.getSubject() != null ? cls.getSubject().getSubjectCode() : "N/A")
+                    .subjectName(cls.getSubject() != null ? cls.getSubject().getName() : "N/A")
+                    .studentCount(totalStudents)
+                    .teams(teamDTOs)
+                    .assignments(assignmentDTOs) // ✅ Đưa list bài tập vào
+                    .build();
+
+        }).collect(Collectors.toList());
     }
 
-    // 2. Thống kê Dashboard
+    // =========================================================================
+    // CÁC HÀM KHÁC GIỮ NGUYÊN
+    // =========================================================================
+
     public DashboardStats getLecturerStats(String email) {
         List<ClassRoom> classes = classRoomRepository.findByLecturerEmail(email);
         long activeClasses = classes.size();
@@ -55,7 +132,6 @@ public class LecturerService {
         return new DashboardStats(0L, 0L, activeClasses, 0L, 0L, pendingRequests, totalStudents);
     }
 
-    // 3. Lấy danh sách đề tài sinh viên gửi (để duyệt)
     public List<ClassProposalDTO> getProposalsByLecturer(String email) {
         List<ClassRoom> classes = classRoomRepository.findByLecturerEmail(email);
         List<ClassProposalDTO> result = new ArrayList<>();
@@ -72,7 +148,6 @@ public class LecturerService {
                             .map(m -> m.getStudent().getFullName() + " (" + m.getStudent().getCode() + ")")
                             .collect(Collectors.toList());
 
-                    // Xử lý an toàn null cho status
                     String statusStr = project.getStatus() != null ? project.getStatus().name() : "UNKNOWN";
 
                     ProposalDTO dto = ProposalDTO.builder()
@@ -106,7 +181,6 @@ public class LecturerService {
         return result;
     }
 
-    // 4. Update trạng thái
     public void updateProjectStatus(Long projectId, String status, String reason) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề tài ID: " + projectId));
@@ -121,7 +195,6 @@ public class LecturerService {
         projectRepository.save(project);
     }
 
-    // 5. Lấy danh sách phản biện
     public List<ProposalDTO> getAssignedReviewProjects(String email) {
         User reviewer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên: " + email));
@@ -145,8 +218,7 @@ public class LecturerService {
         }).collect(Collectors.toList());
     }
 
-    // 6. Tạo đề tài mới
-    public void createProposal(ProposalDTO dto, String email) {
+    public void createProposal(ProposalDTO dto, MultipartFile file, String email) {
         User lecturer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên: " + email));
 
@@ -159,39 +231,31 @@ public class LecturerService {
         project.setStatus(ProjectStatus.PENDING);
         project.setSubmittedDate(LocalDate.now());
 
+        if (file != null && !file.isEmpty()) {
+            String fileName = file.getOriginalFilename();
+            System.out.println(">>> Đã nhận file: " + fileName);
+        }
+
         projectRepository.save(project);
     }
 
-    // 7. Lấy danh sách đề tài tôi đã gửi
     public List<ProposalDTO> getMyCreatedProposals(String email) {
         System.out.println("--- BẮT ĐẦU GỌI API MY-PROPOSALS ---");
         try {
-            // 1. Tìm User
-            System.out.println("1. Tìm giảng viên email: " + email);
             User owner = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên"));
 
-            // 2. Tìm Projects
-            System.out.println("2. Tìm project trong DB...");
             List<Project> projects = projectRepository.findByOwner(owner);
-            System.out.println("-> Tìm thấy " + projects.size() + " đề tài.");
 
-            // 3. Convert sang DTO (Có try-catch từng dòng để tìm lỗi null)
             List<ProposalDTO> dtos = new ArrayList<>();
             for (Project p : projects) {
                 try {
-                    System.out.println("-> Đang xử lý Project ID: " + p.getId());
-
                     String statusStr = (p.getStatus() != null) ? p.getStatus().name() : "PENDING";
-                    // Kiểm tra null cho ngày tháng
                     String subDateStr = "";
                     if (p.getSubmittedDate() != null) {
                         subDateStr = p.getSubmittedDate().toString();
                     }
-
-                    // Kiểm tra null cho số nguyên
                     Integer maxStu = (p.getMaxStudents() != null) ? p.getMaxStudents() : 0;
-
                     String tech = (p.getTechnology() != null) ? p.getTechnology() : "";
                     String desc = (p.getDescription() != null) ? p.getDescription() : "";
                     String title = (p.getName() != null) ? p.getName() : "Không tên";
@@ -211,18 +275,15 @@ public class LecturerService {
                     dtos.add(dto);
 
                 } catch (Exception ex) {
-                    System.err.println("!!! LỖI TẠI PROJECT ID " + p.getId() + ": " + ex.getMessage());
-                    ex.printStackTrace(); // In lỗi ra console để xem
+                    ex.printStackTrace();
                 }
             }
-
-            System.out.println("--- KẾT THÚC THÀNH CÔNG ---");
             return dtos;
 
         } catch (Exception e) {
             System.err.println("!!! LỖI NGHIÊM TRỌNG TRONG SERVICE: " + e.getMessage());
             e.printStackTrace();
-            throw e; // Ném lỗi ra để Controller biết
+            throw e;
         }
     }
 }

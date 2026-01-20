@@ -1,17 +1,15 @@
 package com.cosre.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -39,32 +37,40 @@ public class ClassRoom {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
-    // Lớp này học môn gì
     @ManyToOne
     @JoinColumn(name = "subject_id")
-    @JsonIgnore 
+    @JsonIgnore
     private Subject subject;
 
-    // Giảng viên nào dạy
     @ManyToOne
     @JoinColumn(name = "lecturer_id")
     private User lecturer;
 
     @Builder.Default
-    private Integer maxCapacity = 60; // Mặc định 60 sinh viên
+    private Integer maxCapacity = 60;
 
-    // Danh sách sinh viên đã đăng ký
+    @Builder.Default
+    private boolean isRegistrationOpen = false;
+
+
+    // ⬇ PHẦN GIỮ NGUYÊN (CHO ROLE STUDENT/STAFF)
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "class_enrollments",
             joinColumns = @JoinColumn(name = "class_id"),
             inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    @JsonIgnore // Ngăn chặn loop JSON và load dữ liệu nặng không cần thiết
+    @JsonIgnore
     @Builder.Default
     private Set<User> students = new HashSet<>();
-    @Builder.Default
-    private boolean isRegistrationOpen = false;
+    
+
+    @OneToMany(mappedBy = "classRoom", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Team> teams;
+
+
 
     public boolean canRegister() {
         return isRegistrationOpen && (students.size() < maxCapacity);

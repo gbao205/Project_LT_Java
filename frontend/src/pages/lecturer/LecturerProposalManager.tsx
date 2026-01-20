@@ -1,21 +1,70 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Box, Typography, Paper, TextField, Button, Grid, Container,
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Chip, CircularProgress, IconButton, Alert, Divider
-} from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import api from '../../services/api';
 import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 
+// --- COMPONENTS UI CON ---
+
+// 1. Header Component
+const Header = ({ onBack }: { onBack: () => void }) => {
+    // Mock user info (hoặc lấy từ localStorage)
+    const user = { fullName: 'Giảng Viên' };
+
+    return (
+        <div style={{
+            background: 'linear-gradient(135deg, #0288d1 0%, #0097a7 100%)',
+            borderBottom: '3px solid #01579b',
+            padding: '1rem 2rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            position: 'relative',
+            overflow: 'hidden'
+        }}>
+            <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: '400px', height: '400px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 1 }}>
+                <button
+                    onClick={onBack}
+                    style={{
+                        background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)',
+                        width: '40px', height: '40px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.3rem', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}
+                >
+                    ←
+                </button>
+                <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0288d1', fontWeight: 'bold', fontSize: '1.1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                    CS
+                </div>
+                <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.3rem', color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>CollabSphere</div>
+                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', marginTop: '2px' }}>Quản Lý Đề Xuất</div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 1 }}>
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>{user.fullName}</div>
+                    <span style={{ background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(10px)', color: 'white', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-block', marginTop: '4px', border: '1px solid rgba(255,255,255,0.3)' }}>
+                        Lecturer
+                    </span>
+                </div>
+                <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'white', color: '#0288d1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '3px solid rgba(255,255,255,0.3)' }}>
+                    {user.fullName.charAt(0)}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN COMPONENT ---
 const LecturerProposalManager = () => {
     const navigate = useNavigate();
     const { showSuccess, showError } = useAppSnackbar();
 
-    // --- STATE ---
+    // --- STATE & LOGIC CŨ GIỮ NGUYÊN ---
     const [projects, setProjects] = useState<any[]>([]);
     const [loadingList, setLoadingList] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -27,7 +76,7 @@ const LecturerProposalManager = () => {
         maxStudents: 5
     });
 
-    // --- API: Lấy danh sách đề tài ---
+    // API: Lấy danh sách đề tài
     const fetchMyProposals = async () => {
         setLoadingList(true);
         try {
@@ -44,16 +93,16 @@ const LecturerProposalManager = () => {
         fetchMyProposals();
     }, []);
 
-    // --- HANDLER: Nhập liệu form ---
+    // HANDLER: Nhập liệu form
     const handleChange = (e: any) => {
-        const { name, value } = e.target;
+        // Hỗ trợ cả input thường và textarea
+        const name = e.target.name;
+        const value = e.target.value;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // --- HANDLER: Gửi đề tài ---
-    const handleSubmit = async (e: any) => {
-        e.preventDefault();
-
+    // HANDLER: Gửi đề tài
+    const handleSubmit = async () => {
         if (!formData.title || !formData.description || !formData.technology) {
             showError("Vui lòng điền đầy đủ thông tin!");
             return;
@@ -61,11 +110,9 @@ const LecturerProposalManager = () => {
 
         setSubmitting(true);
         try {
-            // 1. Gọi API tạo mới
             await api.post('/lecturer/submit-proposal', formData);
             showSuccess("Gửi đề tài thành công!");
 
-            // 2. Reset form
             setFormData({
                 title: '',
                 description: '',
@@ -73,7 +120,6 @@ const LecturerProposalManager = () => {
                 maxStudents: 5
             });
 
-            // 3. Load lại danh sách ngay lập tức để hiện đề tài vừa tạo
             await fetchMyProposals();
 
         } catch (error) {
@@ -84,170 +130,202 @@ const LecturerProposalManager = () => {
         }
     };
 
+    const handleBack = () => {
+        navigate('/lecturer/dashboard');
+    };
+
     // Helper: Màu trạng thái
-    const getStatusChip = (status: string) => {
-        switch (status) {
-            case 'PENDING': return <Chip label="Chờ Duyệt" color="warning" variant="outlined" size="small" sx={{fontWeight: 'bold'}} />;
-            case 'APPROVED': return <Chip label="Đã Duyệt" color="success" size="small" sx={{fontWeight: 'bold'}} />;
-            case 'REJECTED': return <Chip label="Bị Từ Chối" color="error" size="small" sx={{fontWeight: 'bold'}} />;
-            default: return <Chip label={status} size="small" />;
-        }
+    const getStatusBadge = (status: string) => {
+        const statusConfig: any = {
+            APPROVED: { label: 'Đã Duyệt', color: '#2e7d32', bg: '#e8f5e9' },
+            PENDING: { label: 'Chờ Duyệt', color: '#f57c00', bg: '#fff3e0' },
+            REJECTED: { label: 'Từ Chối', color: '#d32f2f', bg: '#ffebee' }
+        };
+        const config = statusConfig[status] || { label: status, color: '#666', bg: '#f5f5f5' };
+
+        return (
+            <span style={{ background: config.bg, color: config.color, padding: '4px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                {config.label}
+            </span>
+        );
     };
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%)' }}>
+            <Header onBack={handleBack} />
 
-            {/* Header + Nút Quay Lại */}
-            <Box display="flex" alignItems="center" mb={3} gap={1}>
-                <IconButton onClick={() => navigate('/lecturer/dashboard')}>
-                    <ArrowBackIcon />
-                </IconButton>
-                <Typography variant="h5" fontWeight="bold" color="primary">
-                    Quản Lý Đề Xuất Đề Tài
-                </Typography>
-            </Box>
+            <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
 
-            <Grid container spacing={4}>
-                {/* PHẦN 1: FORM TẠO ĐỀ TÀI (Ở TRÊN) */}
-                <Grid item xs={12}>
-                    <Paper elevation={3} sx={{ p: 3, borderRadius: 2, borderTop: '4px solid #1976d2' }}>
-                        <Typography variant="h6" fontWeight="bold" gutterBottom display="flex" alignItems="center" gap={1}>
-                            📝 Tạo Đề Tài Mới
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" mb={3}>
-                            Điền thông tin đề tài để gửi lên Trưởng bộ môn phê duyệt.
-                        </Typography>
+                {/* 1. TITLE BLOCK */}
+                <div style={{ background: 'white', borderRadius: '12px', padding: '20px 25px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0' }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#0288d1', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '1.8rem' }}>📝</span>
+                        <span>Quản Lý Đề Xuất Đề Tài</span>
+                    </h1>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                        Tạo và quản lý các đề tài đề xuất gửi lên Trưởng bộ môn phê duyệt
+                    </div>
+                </div>
 
-                        <form onSubmit={handleSubmit}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} md={8}>
-                                    <TextField
-                                        label="Tên Đề Tài"
-                                        name="title"
-                                        fullWidth
-                                        required
-                                        size="small"
-                                        value={formData.title}
-                                        onChange={handleChange}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={4}>
-                                    <TextField
-                                        label="Công Nghệ (Ví dụ: React, Spring Boot)"
-                                        name="technology"
-                                        fullWidth
-                                        required
-                                        size="small"
-                                        value={formData.technology}
-                                        onChange={handleChange}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        label="Mô Tả & Yêu Cầu Chi Tiết"
-                                        name="description"
-                                        fullWidth
-                                        required
-                                        multiline
-                                        rows={3}
-                                        value={formData.description}
-                                        onChange={handleChange}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={4}>
-                                    <TextField
-                                        label="Số SV Tối Đa"
-                                        name="maxStudents"
-                                        type="number"
-                                        fullWidth
-                                        required
-                                        size="small"
-                                        value={formData.maxStudents}
-                                        onChange={handleChange}
-                                        InputProps={{ inputProps: { min: 1, max: 10 } }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={8} display="flex" alignItems="center">
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        fullWidth
-                                        disabled={submitting}
-                                        startIcon={<SendIcon />}
-                                        sx={{ py: 1, fontWeight: 'bold' }}
-                                    >
-                                        {submitting ? "Đang Gửi..." : "Gửi Đề Xuất Ngay"}
-                                    </Button>
-                                </Grid>
-                            </Grid>
-                        </form>
-                    </Paper>
-                </Grid>
+                {/* 2. FORM CREATE */}
+                <div style={{ background: 'white', borderRadius: '12px', padding: '25px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '15px', borderBottom: '2px solid #e3f2fd' }}>
+                        <span style={{ fontSize: '1.5rem' }}>📄</span>
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#0288d1', margin: 0 }}>Tạo Đề Tài Mới</h2>
+                    </div>
 
-                {/* Divider ngăn cách */}
-                <Grid item xs={12}>
-                    <Divider>
-                        <Chip label="Danh Sách Đề Tài Đã Gửi" color="primary" variant="outlined" />
-                    </Divider>
-                </Grid>
+                    <div style={{ background: '#f8f9fa', padding: '12px 15px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.85rem', color: '#666', borderLeft: '4px solid #0288d1' }}>
+                        💡 Điền thông tin đề tài để gửi lên Trưởng bộ môn phê duyệt.
+                    </div>
 
-                {/* PHẦN 2: DANH SÁCH ĐỀ TÀI (Ở DƯỚI) */}
-                <Grid item xs={12}>
-                    <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                        <Box p={2} bgcolor="#f8fafc" display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="subtitle1" fontWeight="bold" color="#475569">
-                                📋 Lịch Sử Đề Xuất ({projects.length})
-                            </Typography>
-                            <IconButton size="small" onClick={fetchMyProposals} disabled={loadingList}>
-                                <RefreshIcon />
-                            </IconButton>
-                        </Box>
+                    <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
+                            {/* Input Tên Đề Tài */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: '#333', marginBottom: '8px' }}>
+                                    Tên Đề Tài <span style={{ color: '#d32f2f' }}>*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="Nhập tên đề tài..."
+                                    style={{ width: '100%', padding: '12px 14px', fontSize: '0.9rem', border: '2px solid #e0e0e0', borderRadius: '8px', outline: 'none', transition: 'all 0.2s ease' }}
+                                    onFocus={(e) => e.currentTarget.style.borderColor = '#0288d1'}
+                                    onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+                                />
+                            </div>
 
-                        <TableContainer sx={{ maxHeight: 500 }}>
-                            <Table stickyHeader size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f5f9' }}>Tên Đề Tài</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f5f9' }}>Công Nghệ</TableCell>
-                                        <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f5f9' }}>SV</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f5f9' }}>Ngày Gửi</TableCell>
-                                        <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f5f9' }}>Trạng Thái</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {loadingList ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} align="center" sx={{ py: 5 }}><CircularProgress /></TableCell>
-                                        </TableRow>
-                                    ) : projects.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                                                Chưa có đề tài nào. Hãy nhập form bên trên để tạo mới.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        projects.map((p) => (
-                                            <TableRow key={p.id} hover>
-                                                <TableCell width="40%">
-                                                    <Typography variant="body2" fontWeight="600">{p.title}</Typography>
-                                                    <Typography variant="caption" color="text.secondary" noWrap display="block" sx={{ maxWidth: 350 }}>
-                                                        {p.description}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell><Chip label={p.technology} size="small" variant="outlined" /></TableCell>
-                                                <TableCell align="center">{p.maxStudents}</TableCell>
-                                                <TableCell>{p.submittedDate}</TableCell>
-                                                <TableCell align="center">{getStatusChip(p.status)}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </Container>
+                            {/* Input Công Nghệ */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: '#333', marginBottom: '8px' }}>
+                                    Công Nghệ <span style={{ color: '#d32f2f' }}>*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="technology"
+                                    value={formData.technology}
+                                    onChange={handleChange}
+                                    placeholder="VD: React, Node.js, MongoDB"
+                                    style={{ width: '100%', padding: '12px 14px', fontSize: '0.9rem', border: '2px solid #e0e0e0', borderRadius: '8px', outline: 'none', transition: 'all 0.2s ease' }}
+                                    onFocus={(e) => e.currentTarget.style.borderColor = '#0288d1'}
+                                    onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Input Mô Tả */}
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: '#333', marginBottom: '8px' }}>
+                                Mô Tả & Yêu Cầu Chi Tiết <span style={{ color: '#d32f2f' }}>*</span>
+                            </label>
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                placeholder="Mô tả chi tiết về đề tài, mục tiêu, yêu cầu..."
+                                rows={4}
+                                style={{ width: '100%', padding: '12px 14px', fontSize: '0.9rem', border: '2px solid #e0e0e0', borderRadius: '8px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', transition: 'all 0.2s ease' }}
+                                onFocus={(e) => e.currentTarget.style.borderColor = '#0288d1'}
+                                onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+                            />
+                        </div>
+
+                        {/* Input SV Tối Đa & Button Submit */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: '#333', marginBottom: '8px' }}>
+                                    Số Sinh Viên Tối Đa
+                                </label>
+                                <input
+                                    type="number"
+                                    name="maxStudents"
+                                    min="1" max="10"
+                                    value={formData.maxStudents}
+                                    onChange={handleChange}
+                                    style={{ width: '150px', padding: '12px 14px', fontSize: '0.9rem', border: '2px solid #e0e0e0', borderRadius: '8px', outline: 'none', transition: 'all 0.2s ease' }}
+                                    onFocus={(e) => e.currentTarget.style.borderColor = '#0288d1'}
+                                    onBlur={(e) => e.currentTarget.style.borderColor = '#e0e0e0'}
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSubmit}
+                                disabled={submitting}
+                                style={{
+                                    background: 'linear-gradient(135deg, #0288d1 0%, #0097a7 100%)', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '600', cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(2,136,209,0.3)', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: '8px', opacity: submitting ? 0.7 : 1
+                                }}
+                                onMouseEnter={(e) => !submitting && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                                onMouseLeave={(e) => !submitting && (e.currentTarget.style.transform = 'translateY(0)')}
+                            >
+                                <span style={{ fontSize: '1.2rem' }}>➤</span>
+                                <span>{submitting ? 'ĐANG GỬI...' : 'GỬI ĐỀ XUẤT NGAY'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. PROPOSALS LIST */}
+                <div style={{ background: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '15px', borderBottom: '2px solid #e3f2fd' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '1.5rem' }}>📋</span>
+                            <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#0288d1', margin: 0 }}>Lịch Sử Đề Xuất</h2>
+                            <span style={{ background: '#e3f2fd', color: '#0288d1', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600' }}>
+                                {projects.length} đề tài
+                            </span>
+                        </div>
+                        <button onClick={fetchMyProposals} style={{ background: '#f5f5f5', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '1rem', transition: 'all 0.2s ease' }} title="Làm mới">
+                            🔄
+                        </button>
+                    </div>
+
+                    {loadingList ? (
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Đang tải dữ liệu...</div>
+                    ) : projects.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#999' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>📭</div>
+                            <div style={{ fontSize: '1.1rem', color: '#666' }}>Chưa có đề xuất nào</div>
+                        </div>
+                    ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e0e0e0' }}>
+                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Tên Đề Tài</th>
+                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Công Nghệ</th>
+                                    <th style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>SV Tối Đa</th>
+                                    <th style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Ngày Gửi</th>
+                                    <th style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Trạng Thái</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {projects.map((project) => (
+                                    <tr key={project.id} style={{ borderBottom: '1px solid #f0f0f0', transition: 'all 0.2s ease', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '14px 12px' }}>
+                                            <div style={{ fontWeight: '600', color: '#333', fontSize: '0.9rem', marginBottom: '4px' }}>{project.title}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#999', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{project.description}</div>
+                                        </td>
+                                        <td style={{ padding: '14px 12px' }}>
+                                                <span style={{ background: '#e3f2fd', color: '#0288d1', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '500' }}>
+                                                    {project.technology}
+                                                </span>
+                                        </td>
+                                        <td style={{ padding: '14px 12px', textAlign: 'center', fontSize: '0.9rem', fontWeight: '600' }}>{project.maxStudents}</td>
+                                        <td style={{ padding: '14px 12px', textAlign: 'center', fontSize: '0.85rem', color: '#666' }}>{project.submittedDate}</td>
+                                        <td style={{ padding: '14px 12px', textAlign: 'center' }}>
+                                            {getStatusBadge(project.status)}
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };
 

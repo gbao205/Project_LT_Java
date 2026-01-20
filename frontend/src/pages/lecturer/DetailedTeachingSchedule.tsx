@@ -129,7 +129,7 @@ const DetailedTeachingSchedule = () => {
 
   // 2. Sửa hàm xử lý quay lại
   const handleBack = () => {
-    navigate('/com.cosre.backend.dto.lecturer/dashboard'); // Quay về Dashboard
+    navigate('/lecturer/dashboard'); // Quay về Dashboard
   };
 
   const periods = [
