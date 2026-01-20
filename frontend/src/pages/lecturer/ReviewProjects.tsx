@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-    ArrowLeft, Eye, Edit3, CheckCircle, 
-    FileText, Loader2, Award, Scale 
+import {
+    ArrowLeft, Eye, Edit3, CheckCircle,
+    FileText, Loader2, Award, Scale
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAppSnackbar } from '../../hooks/useAppSnackbar';
@@ -15,6 +15,9 @@ interface ProposalDTO {
     technology: string;
     maxStudents: number;
     status: string;
+    // [MỚI] Thêm trường điểm và nhận xét để hiển thị
+    reviewScore?: number;
+    reviewComment?: string;
 }
 
 // --- MODAL COMPONENT (Tailwind) ---
@@ -30,7 +33,7 @@ const Modal = ({ isOpen, onClose, title, children, actions }: any) => {
                         <span className="text-2xl leading-none">&times;</span>
                     </button>
                 </div>
-                
+
                 {/* Body */}
                 <div className="p-6">
                     {children}
@@ -64,48 +67,66 @@ const ReviewProjects = () => {
     const [score, setScore] = useState('');
     const [comment, setComment] = useState('');
 
+    // Hàm load dữ liệu (Tách ra để tái sử dụng khi reload)
+    const fetchReviews = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/lecturer/reviews');
+            setProjects(response.data);
+        } catch (error) {
+            console.error("Lỗi tải danh sách phản biện:", error);
+            showError("Không thể tải danh sách phản biện.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchReviews = async () => {
-            setLoading(true);
-            try {
-                const response = await api.get('/lecturer/reviews');
-                setProjects(response.data);
-            } catch (error) {
-                console.error("Lỗi tải danh sách phản biện:", error);
-                showError("Không thể tải danh sách phản biện.");
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchReviews();
     }, []);
 
     const handleOpenGrade = (project: ProposalDTO) => {
         setSelectedProject(project);
-        setScore('');
-        setComment('');
+        // [MỚI] Nếu đã có điểm thì fill vào form, chưa có thì để trống
+        setScore(project.reviewScore !== undefined && project.reviewScore !== null ? String(project.reviewScore) : '');
+        setComment(project.reviewComment || '');
         setOpenGrade(true);
     };
 
-    const handleSubmitGrade = () => {
+    const handleSubmitGrade = async () => {
         if (!score || isNaN(Number(score)) || Number(score) < 0 || Number(score) > 10) {
             showError("Vui lòng nhập điểm hợp lệ (0-10)!");
             return;
         }
-        
-        // TODO: Gọi API chấm điểm thật ở đây
-        showSuccess(`Đã chấm ${score} điểm cho đề tài: ${selectedProject?.title}`);
-        setOpenGrade(false);
+
+        // [MỚI] Gọi API chấm điểm thật
+        try {
+            await api.post(`/lecturer/reviews/${selectedProject?.id}/grade`, {
+                score: Number(score),
+                comment: comment
+            });
+
+            showSuccess(`Đã lưu kết quả chấm ${score} điểm cho đề tài: ${selectedProject?.title}`);
+            setOpenGrade(false);
+
+            // Reload lại danh sách để cập nhật trạng thái trên bảng
+            const response = await api.get('/lecturer/reviews');
+            setProjects(response.data);
+
+        } catch (error) {
+            console.error("Lỗi chấm điểm:", error);
+            showError("Lỗi kết nối server khi lưu điểm!");
+        }
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-cyan-50 font-sans pb-20 p-6">
             <div className="max-w-6xl mx-auto">
-                
+
                 {/* HEADER */}
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                        <button 
+                        <button
                             onClick={() => navigate('/lecturer/dashboard')}
                             className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 text-gray-600 transition-all"
                         >
@@ -136,54 +157,68 @@ const ReviewProjects = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs uppercase font-bold">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left">Tên Đề Tài</th>
-                                        <th className="px-6 py-4 text-left">Công Nghệ</th>
-                                        <th className="px-6 py-4 text-center">SV Tối Đa</th>
-                                        <th className="px-6 py-4 text-center">Trạng Thái</th>
-                                        <th className="px-6 py-4 text-center">Thao Tác</th>
-                                    </tr>
+                                <tr>
+                                    <th className="px-6 py-4 text-left">Tên Đề Tài</th>
+                                    <th className="px-6 py-4 text-left">Công Nghệ</th>
+                                    <th className="px-6 py-4 text-center">SV Tối Đa</th>
+                                    <th className="px-6 py-4 text-center">Trạng Thái</th>
+                                    <th className="px-6 py-4 text-center">Thao Tác</th>
+                                </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {projects.map((p) => (
-                                        <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="font-semibold text-gray-800 text-sm mb-1">{p.title}</div>
-                                                <div className="text-xs text-gray-500 line-clamp-1">{p.description}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
+                                {projects.map((p) => (
+                                    <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div className="font-semibold text-gray-800 text-sm mb-1">{p.title}</div>
+                                            <div className="text-xs text-gray-500 line-clamp-1">{p.description}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
                                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                     {p.technology}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center text-sm text-gray-600 font-medium">
-                                                {p.maxStudents}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
+                                        </td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-600 font-medium">
+                                            {p.maxStudents}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
                                                     <CheckCircle className="w-3 h-3" /> Đã Duyệt
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button 
-                                                        onClick={() => { setSelectedProject(p); setOpenDetail(true); }}
-                                                        className="p-2 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 hover:scale-105 transition-all"
-                                                        title="Xem chi tiết"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleOpenGrade(p)}
-                                                        className="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 hover:scale-105 transition-all"
-                                                        title="Chấm điểm"
-                                                    >
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => { setSelectedProject(p); setOpenDetail(true); }}
+                                                    className="p-2 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 hover:scale-105 transition-all"
+                                                    title="Xem chi tiết"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+
+                                                {/* [MỚI] Nút Chấm Điểm: Thay đổi màu sắc nếu đã chấm */}
+                                                <button
+                                                    onClick={() => handleOpenGrade(p)}
+                                                    className={`p-2 rounded-lg hover:scale-105 transition-all ${
+                                                        p.reviewScore !== undefined && p.reviewScore !== null
+                                                            ? 'bg-green-50 text-green-600 hover:bg-green-100' // Đã chấm -> Xanh
+                                                            : 'bg-orange-50 text-orange-600 hover:bg-orange-100' // Chưa chấm -> Cam
+                                                    }`}
+                                                    title={p.reviewScore !== undefined ? `Đã chấm: ${p.reviewScore} điểm` : "Chấm điểm"}
+                                                >
+                                                    {p.reviewScore !== undefined && p.reviewScore !== null ? (
+                                                        // Nếu có điểm rồi thì hiện icon check hoặc số điểm
+                                                        <div className="flex items-center gap-1 font-bold">
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            <span>{p.reviewScore}</span>
+                                                        </div>
+                                                    ) : (
                                                         <Edit3 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                                 </tbody>
                             </table>
                         </div>
@@ -196,8 +231,8 @@ const ReviewProjects = () => {
                     onClose={() => setOpenDetail(false)}
                     title="Chi Tiết Đề Tài"
                     actions={
-                        <button 
-                            onClick={() => setOpenDetail(false)} 
+                        <button
+                            onClick={() => setOpenDetail(false)}
                             className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
                         >
                             Đóng
@@ -219,6 +254,20 @@ const ReviewProjects = () => {
                             <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Công Nghệ</label>
                             <div className="text-sm font-semibold text-blue-600">{selectedProject?.technology}</div>
                         </div>
+                        {/* Hiển thị kết quả chấm trong modal chi tiết nếu có */}
+                        {(selectedProject?.reviewScore !== undefined && selectedProject?.reviewScore !== null) && (
+                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <label className="text-xs font-bold text-green-700 uppercase block mb-1">Kết quả phản biện</label>
+                                <div className="text-sm">
+                                    <strong>Điểm: </strong> <span className="text-lg text-green-700 font-bold">{selectedProject.reviewScore}</span> / 10
+                                    {selectedProject.reviewComment && (
+                                        <div className="mt-1 text-gray-600">
+                                            <strong>NX:</strong> {selectedProject.reviewComment}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </Modal>
 
@@ -229,14 +278,14 @@ const ReviewProjects = () => {
                     title="Chấm Điểm Phản Biện"
                     actions={
                         <>
-                            <button 
-                                onClick={() => setOpenGrade(false)} 
+                            <button
+                                onClick={() => setOpenGrade(false)}
                                 className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
                             >
                                 Hủy
                             </button>
-                            <button 
-                                onClick={handleSubmitGrade} 
+                            <button
+                                onClick={handleSubmitGrade}
                                 className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2"
                             >
                                 <Award className="w-4 h-4" /> Lưu Kết Quả
@@ -252,8 +301,8 @@ const ReviewProjects = () => {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Điểm Số (0-10)</label>
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 min="0" max="10"
                                 value={score}
                                 onChange={(e) => setScore(e.target.value)}
@@ -264,7 +313,7 @@ const ReviewProjects = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Nhận Xét / Góp Ý</label>
-                            <textarea 
+                            <textarea
                                 rows={4}
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}

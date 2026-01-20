@@ -15,4 +15,6 @@ public class HeadProjectDTO {
     private LocalDate submittedDate;
     private String status;
     private String reviewerName;
+    private Double reviewScore;
+    private String reviewComment;
 }

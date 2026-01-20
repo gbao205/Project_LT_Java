@@ -57,7 +57,11 @@ interface Proposal {
     maxStudents: number;
     submittedDate: string;
     status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
-    reviewerName?: string; // [MỚI] Tên GV phản biện
+    reviewerName?: string; // Tên GV phản biện
+
+    // [MỚI] Thêm trường điểm và nhận xét
+    reviewScore?: number;
+    reviewComment?: string;
 }
 
 interface LecturerSubmission {
@@ -329,12 +333,12 @@ const HeadProposalApproval = () => {
                                 <Table size="small">
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell width="30%" sx={{ fontWeight: 'bold', color: '#64748b' }}>TÊN ĐỀ TÀI</TableCell>
+                                            <TableCell width="25%" sx={{ fontWeight: 'bold', color: '#64748b' }}>TÊN ĐỀ TÀI</TableCell>
                                             <TableCell width="15%" sx={{ fontWeight: 'bold', color: '#64748b' }}>CÔNG NGHỆ</TableCell>
                                             <TableCell width="10%" sx={{ fontWeight: 'bold', color: '#64748b' }}>SỐ SV</TableCell>
                                             <TableCell width="15%" align="center" sx={{ fontWeight: 'bold', color: '#64748b' }}>TRẠNG THÁI</TableCell>
                                             {/* [MỚI] Cột Phản Biện */}
-                                            <TableCell width="20%" sx={{ fontWeight: 'bold', color: '#64748b' }}>GV PHẢN BIỆN</TableCell>
+                                            <TableCell width="25%" sx={{ fontWeight: 'bold', color: '#64748b' }}>GV PHẢN BIỆN</TableCell>
                                             <TableCell width="10%" align="center" sx={{ fontWeight: 'bold', color: '#64748b' }}>THAO TÁC</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -359,21 +363,39 @@ const HeadProposalApproval = () => {
                                                 </TableCell>
                                                 <TableCell align="center">{getStatusChip(prop.status)}</TableCell>
 
-                                                {/* [MỚI] Hiển thị GV Phản Biện */}
+                                                {/* [MỚI] Hiển thị GV Phản Biện & Kết quả chấm */}
                                                 <TableCell>
                                                     {prop.status === 'APPROVED' ? (
-                                                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                                                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                                                                {prop.reviewerName && prop.reviewerName !== "Chưa phân công"
-                                                                    ? prop.reviewerName
-                                                                    : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>Chưa có</span>
-                                                                }
-                                                            </Typography>
-                                                            <Tooltip title="Phân công phản biện">
-                                                                <IconButton size="small" onClick={() => handleOpenAssignModal(prop)} sx={{ color: '#0288d1' }}>
-                                                                    <PersonAddIcon fontSize="small" />
-                                                                </IconButton>
-                                                            </Tooltip>
+                                                        <Box>
+                                                            <Box display="flex" alignItems="center" justifyContent="space-between">
+                                                                <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                                                    {prop.reviewerName && prop.reviewerName !== "Chưa phân công"
+                                                                        ? prop.reviewerName
+                                                                        : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>Chưa phân công</span>
+                                                                    }
+                                                                </Typography>
+                                                                <Tooltip title="Phân công phản biện">
+                                                                    <IconButton size="small" onClick={() => handleOpenAssignModal(prop)} sx={{ color: '#0288d1' }}>
+                                                                        <PersonAddIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            </Box>
+
+                                                            {/* HIỂN THỊ KẾT QUẢ CHẤM NẾU CÓ */}
+                                                            {prop.reviewScore !== undefined && prop.reviewScore !== null && (
+                                                                <Box mt={1} p={1} bgcolor="#f0fdf4" border="1px dashed #4ade80" borderRadius={1}>
+                                                                    <Box display="flex" alignItems="center" gap={1}>
+                                                                        <Typography variant="caption" color="success.main" fontWeight="bold">
+                                                                            ĐIỂM: {prop.reviewScore}/10
+                                                                        </Typography>
+                                                                    </Box>
+                                                                    {prop.reviewComment && (
+                                                                        <Typography variant="caption" display="block" color="text.secondary" sx={{ fontStyle: 'italic', mt: 0.5 }}>
+                                                                            "{prop.reviewComment}"
+                                                                        </Typography>
+                                                                    )}
+                                                                </Box>
+                                                            )}
                                                         </Box>
                                                     ) : (
                                                         <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>

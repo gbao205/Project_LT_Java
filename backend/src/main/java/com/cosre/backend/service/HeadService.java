@@ -79,6 +79,8 @@ public class HeadService {
                         .submittedDate(subDate)
                         .status(statusStr)
                         .reviewerName(reviewerName) // Gửi về frontend
+                        .reviewScore(p.getReviewScore())
+                        .reviewComment(p.getReviewComment())
                         .build();
             }).collect(Collectors.toList());
 

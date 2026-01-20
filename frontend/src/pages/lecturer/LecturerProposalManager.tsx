@@ -298,6 +298,8 @@ const LecturerProposalManager = () => {
                                     <th style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>SV Tối Đa</th>
                                     <th style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Ngày Gửi</th>
                                     <th style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Trạng Thái</th>
+                                    {/* [MỚI] Thêm cột Kết quả */}
+                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>Kết Quả Phản Biện</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -316,6 +318,27 @@ const LecturerProposalManager = () => {
                                         <td style={{ padding: '14px 12px', textAlign: 'center', fontSize: '0.85rem', color: '#666' }}>{project.submittedDate}</td>
                                         <td style={{ padding: '14px 12px', textAlign: 'center' }}>
                                             {getStatusBadge(project.status)}
+                                        </td>
+
+                                        {/* [MỚI] Hiển thị cột kết quả */}
+                                        <td style={{ padding: '14px 12px' }}>
+                                            {project.reviewScore !== null && project.reviewScore !== undefined ? (
+                                                <div style={{ background: '#f0fdf4', border: '1px dashed #4ade80', borderRadius: '8px', padding: '8px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                        <span style={{ fontSize: '1.1rem' }}>🏆</span>
+                                                        <span style={{ fontWeight: 'bold', color: '#16a34a', fontSize: '0.95rem' }}>
+                                                            {project.reviewScore}/10 điểm
+                                                        </span>
+                                                    </div>
+                                                    {project.reviewComment && (
+                                                        <div style={{ fontSize: '0.8rem', color: '#555', fontStyle: 'italic', borderTop: '1px solid #dcfce7', paddingTop: '4px', marginTop: '4px' }}>
+                                                            "{project.reviewComment}"
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8rem', color: '#999', fontStyle: 'italic' }}>Chưa có kết quả</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

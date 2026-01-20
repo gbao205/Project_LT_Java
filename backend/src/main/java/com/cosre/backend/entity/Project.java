@@ -57,4 +57,10 @@ public class Project {
     @ManyToOne
     @JoinColumn(name = "reviewer_id")
     private User reviewer;
+    // --- BỔ SUNG CÁC TRƯỜNG LƯU KẾT QUẢ PHẢN BIỆN ---
+    @Column(name = "review_score")
+    private Double reviewScore; // Điểm phản biện (thang 10)
+
+    @Column(name = "review_comment", columnDefinition = "TEXT")
+    private String reviewComment; // Nhận xét của phản biện
 }

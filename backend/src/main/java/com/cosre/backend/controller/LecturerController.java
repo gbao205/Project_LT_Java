@@ -67,4 +67,16 @@ public class LecturerController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(lecturerService.getMyCreatedProposals(email));
     }
+    // 7. API CHẤM ĐIỂM PHẢN BIỆN
+    @PostMapping("/reviews/{projectId}/grade")
+    public ResponseEntity<?> gradeProject(@PathVariable Long projectId, @RequestBody Map<String, Object> body) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // Lấy dữ liệu từ body JSON
+        Double score = Double.valueOf(body.get("score").toString());
+        String comment = (String) body.get("comment");
+        // Gọi service xử lý
+        lecturerService.gradeReviewProject(projectId, score, comment, email);
+
+        return ResponseEntity.ok(Map.of("message", "Chấm điểm thành công!"));
+    }
 }

@@ -21,4 +21,6 @@ public class ProposalDTO {
     private String status;
     private String submittedDate;
     private Integer maxStudents;
+    private Double reviewScore;
+    private String reviewComment;
 }

@@ -214,6 +214,9 @@ public class LecturerService {
                     .groupName("")
                     .students(new ArrayList<>())
                     .titleEn("")
+                    // --- [MỚI] THÊM 2 DÒNG NÀY ĐỂ HIỆN LỊCH SỬ CHẤM ---
+                    .reviewScore(p.getReviewScore())
+                    .reviewComment(p.getReviewComment())
                     .build();
         }).collect(Collectors.toList());
     }
@@ -271,6 +274,8 @@ public class LecturerService {
                             .groupName("")
                             .students(new ArrayList<>())
                             .titleEn("")
+                            .reviewScore(p.getReviewScore())
+                            .reviewComment(p.getReviewComment())
                             .build();
                     dtos.add(dto);
 
@@ -285,5 +290,28 @@ public class LecturerService {
             e.printStackTrace();
             throw e;
         }
+    }
+    /**
+     * Chức năng: Giảng viên phản biện chấm điểm và gửi nhận xét
+     */
+    public void gradeReviewProject(Long projectId, Double score, String comment, String reviewerEmail) {
+        // 1. Tìm đề tài
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề tài ID: " + projectId));
+
+        // 2. Tìm giảng viên đang thao tác
+        User reviewer = userRepository.findByEmail(reviewerEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên: " + reviewerEmail));
+
+        // 3. KIỂM TRA QUYỀN: Người này có đúng là Reviewer của đề tài không?
+        if (project.getReviewer() == null || !project.getReviewer().getId().equals(reviewer.getId())) {
+            throw new RuntimeException("Bạn không được phân công phản biện đề tài này, không thể chấm điểm!");
+        }
+
+        // 4. Lưu kết quả vào database
+        project.setReviewScore(score);
+        project.setReviewComment(comment);
+        projectRepository.save(project);
+        System.out.println(">>> Đã chấm điểm đề tài ID " + projectId + ": " + score + " điểm.");
     }
 }

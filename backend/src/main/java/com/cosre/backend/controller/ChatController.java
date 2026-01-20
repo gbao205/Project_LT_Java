@@ -1,5 +1,6 @@
 package com.cosre.backend.controller;
 
+import com.cosre.backend.dto.VideoCallSignal; // Import DTO mới
 import com.cosre.backend.entity.ChatMessage;
 import com.cosre.backend.repository.ChatMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map; // <--- THÊM DÒNG NÀY
-import java.util.stream.Collectors; // <--- THÊM DÒNG NÀY
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -31,7 +32,7 @@ public class ChatController {
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage message) {
         message.setTimestamp(LocalDateTime.now());
-        message.setIsRead(false); // Lombok tạo setIsRead cho kiểu Boolean
+        message.setIsRead(false);
 
         chatMessageRepository.save(message);
 
@@ -82,5 +83,56 @@ public class ChatController {
             chatMessageRepository.saveAll(unreadMessages);
         }
         return ResponseEntity.ok().build();
+    }
+
+    // --- API XỬ LÝ TÍN HIỆU VIDEO CALL (WEBRTC) ---
+    /**
+     * Nhận tín hiệu (OFFER, ANSWER, ICE) từ client A
+     * và chuyển tiếp ngay lập tức cho client B qua WebSocket.
+     * Không lưu DB.
+     */
+    @MessageMapping("/video.signal")
+    public void signalVideoCall(@Payload VideoCallSignal signal) {
+        // [DEBUG] In log chi tiết để kiểm tra lỗi
+        System.out.println("========== [DEBUG] VIDEO SIGNAL RECEIVED ==========");
+
+        if (signal == null) {
+            System.err.println("!!! [ERROR] Signal payload is NULL");
+            return;
+        }
+
+        System.out.println(">>> Type: " + signal.getType());
+        System.out.println(">>> From (Sender):   " + signal.getSender());
+        System.out.println(">>> To   (Recipient): " + signal.getRecipient());
+
+        // Kiểm tra người nhận có hợp lệ không
+        if (signal.getRecipient() == null || signal.getRecipient().trim().isEmpty()) {
+            System.err.println("!!! [ERROR] Recipient email is NULL or EMPTY. Cannot route signal.");
+            return;
+        }
+
+        // Tạo destination topic
+        String destination = "/topic/private/" + signal.getRecipient();
+        System.out.println(">>> Routing to topic: " + destination);
+
+        try {
+            // Chuyển tiếp tín hiệu
+            messagingTemplate.convertAndSend(destination, signal);
+            System.out.println(">>> [SUCCESS] Signal routed successfully.");
+        } catch (Exception e) {
+            System.err.println("!!! [EXCEPTION] Failed to send signal: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("==================================================");
+    }
+
+    // --- API BẢNG TRẮNG (WHITEBOARD) ---
+    /**
+     * Nhận nét vẽ từ A và gửi sang B
+     */
+    @MessageMapping("/whiteboard.draw")
+    public void drawOnWhiteboard(@Payload com.cosre.backend.dto.DrawAction action) {
+        // Chuyển tiếp nét vẽ đến người nhận
+        messagingTemplate.convertAndSend("/topic/private/" + action.getRecipient(), action);
     }
 }
