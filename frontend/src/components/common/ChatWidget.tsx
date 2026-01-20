@@ -53,10 +53,12 @@ const ChatWidget = () => {
     const [isIncoming, setIsIncoming] = useState(false);
     const [incomingCallDialog, setIncomingCallDialog] = useState<{open: boolean, sender: string} | null>(null);
 
+    // [MỚI] State quản lý việc thu nhỏ video (Thủ công)
+    const [isVideoMinimized, setIsVideoMinimized] = useState(false);
+
     // --- STATE WHITEBOARD ---
     const [whiteboardOpen, setWhiteboardOpen] = useState(false);
     const [incomingDrawAction, setIncomingDrawAction] = useState(null);
-    // [MỚI] State popup lời mời vẽ
     const [incomingWhiteboardRequest, setIncomingWhiteboardRequest] = useState<{open: boolean, sender: string} | null>(null);
 
     // --- REFS ---
@@ -123,9 +125,6 @@ const ChatWidget = () => {
             };
             clientRef.current.publish({ destination: "/app/chat.sendMessage", body: JSON.stringify(chatMessage) });
             moveContactToTop(recipientEmail);
-            if (selectedUser?.email === recipientEmail) {
-                setMessages(prev => [...prev, chatMessage]);
-            }
         }
     };
 
@@ -136,6 +135,7 @@ const ChatWidget = () => {
         if (!selectedUser) return;
         setIsIncoming(false);
         setVideoCallOpen(true);
+        setIsVideoMinimized(false); // Reset trạng thái thu nhỏ khi bắt đầu gọi mới
         sendCallLog("📞 Đã bắt đầu cuộc gọi video", selectedUser.email);
     };
 
@@ -148,6 +148,7 @@ const ChatWidget = () => {
             setView('CHAT');
             setIsIncoming(true);
             setVideoCallOpen(true);
+            setIsVideoMinimized(false);
             setIncomingCallDialog(null);
         }
     };
@@ -167,14 +168,10 @@ const ChatWidget = () => {
     };
 
     // ==============================================================
-    // [MỚI] LOGIC WHITEBOARD (BẢNG TRẮNG)
+    // LOGIC WHITEBOARD (BẢNG TRẮNG)
     // ==============================================================
-
-    // 1. Gửi lời mời vẽ
     const startWhiteboard = () => {
         if (!selectedUser) return;
-
-        // Gửi tín hiệu REQUEST qua kênh whiteboard
         if (clientRef.current?.connected) {
             clientRef.current.publish({
                 destination: "/app/whiteboard.draw",
@@ -182,34 +179,33 @@ const ChatWidget = () => {
                     type: "REQUEST",
                     sender: myEmail,
                     recipient: selectedUser.email,
-                    points: [], // Dữ liệu rỗng
+                    points: [],
                     color: "",
                     strokeWidth: 0
                 })
             });
-            // Hiện thông báo chờ
             setSnackbarMsg("Đã gửi lời mời vẽ...");
             setSnackbarOpen(true);
             sendCallLog("🎨 Đã gửi lời mời tham gia Bảng trắng", selectedUser.email);
+
+            // [THAY ĐỔI] Không tự động thu nhỏ video nữa
+            // setIsVideoMinimized(true); -> Bỏ dòng này
         }
     };
 
-    // 2. Chấp nhận lời mời vẽ
     const acceptWhiteboard = () => {
         if (incomingWhiteboardRequest) {
             const sender = incomingWhiteboardRequest.sender;
-
-            // Set user để chat và vẽ đúng người
             const contactInfo = contacts.find(c => c.email === sender);
             const userToSet = contactInfo || { email: sender, fullName: sender };
             setSelectedUser(userToSet);
             setView('CHAT');
 
-            // Mở bảng trắng
             setWhiteboardOpen(true);
             setIncomingWhiteboardRequest(null);
 
-            // Gửi tín hiệu ACCEPT lại cho người mời
+            // [THAY ĐỔI] Không tự động thu nhỏ video nữa
+
             if (clientRef.current?.connected) {
                 clientRef.current.publish({
                     destination: "/app/whiteboard.draw",
@@ -227,12 +223,9 @@ const ChatWidget = () => {
         }
     };
 
-    // 3. Từ chối lời mời vẽ
     const rejectWhiteboard = () => {
         if (incomingWhiteboardRequest) {
             const sender = incomingWhiteboardRequest.sender;
-
-            // Gửi tín hiệu REJECT
             if (clientRef.current?.connected) {
                 clientRef.current.publish({
                     destination: "/app/whiteboard.draw",
@@ -266,7 +259,7 @@ const ChatWidget = () => {
                 client.subscribe(`/topic/private/${myEmail}`, (message) => {
                     const body = JSON.parse(message.body);
 
-                    // --- A. XỬ LÝ VIDEO CALL ---
+                    // --- VIDEO CALL ---
                     if (body.type && ['OFFER', 'ANSWER', 'ICE_CANDIDATE', 'HANGUP'].includes(body.type)) {
                         if (body.type === 'OFFER') {
                             setIncomingCallSignal(body.data);
@@ -279,36 +272,26 @@ const ChatWidget = () => {
                         return;
                     }
 
-                    // --- B. XỬ LÝ WHITEBOARD (Mời/Vẽ) ---
+                    // --- WHITEBOARD ---
                     if (body.type && ['REQUEST', 'ACCEPT', 'REJECT', 'DRAW', 'CLEAR'].includes(body.type)) {
-
                         if (body.type === 'REQUEST') {
-                            // Người khác mời mình vẽ -> Hiện Popup
-                            if (!isOpenRef.current) setIsOpen(true); // Mở widget nếu đang đóng
+                            if (!isOpenRef.current) setIsOpen(true);
                             setIncomingWhiteboardRequest({ open: true, sender: body.sender });
                             new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
-
                         } else if (body.type === 'ACCEPT') {
-                            // Người kia đồng ý -> Mở bảng trắng của mình lên
                             setWhiteboardOpen(true);
                             setSnackbarMsg(`${body.sender} đã tham gia vẽ!`);
                             setSnackbarOpen(true);
-
                         } else if (body.type === 'REJECT') {
-                            // Người kia từ chối -> Báo lỗi
                             setSnackbarMsg(`${body.sender} đã từ chối tham gia.`);
                             setSnackbarOpen(true);
-
                         } else if (body.type === 'DRAW' || body.type === 'CLEAR') {
-                            // Nét vẽ -> Chỉ vẽ nếu bảng đang mở
-                            if (whiteboardOpen) {
-                                setIncomingDrawAction(body);
-                            }
+                            if (whiteboardOpen) setIncomingDrawAction(body);
                         }
                         return;
                     }
 
-                    // --- C. XỬ LÝ TIN NHẮN CHAT ---
+                    // --- CHAT MESSAGE ---
                     const chattingWith = selectedUserRef.current?.email;
                     const isWidgetOpen = isOpenRef.current;
                     moveContactToTop(body.sender);
@@ -321,10 +304,7 @@ const ChatWidget = () => {
                         });
                     }
                     else if (body.sender === myEmail) {
-                        setMessages(prev => {
-                            if (prev.length > 0 && prev[prev.length - 1].timestamp === body.timestamp) return prev;
-                            return [...prev, body];
-                        });
+                        setMessages(prev => [...prev, body]);
                     }
                     else {
                         setUnreadCounts(prev => ({
@@ -342,7 +322,7 @@ const ChatWidget = () => {
         client.activate();
         clientRef.current = client;
         return () => clientRef.current?.deactivate();
-    }, [myEmail, token, whiteboardOpen]); // [Quan trọng] Thêm dependency whiteboardOpen để biến state cập nhật đúng trong socket
+    }, [myEmail, token, whiteboardOpen]);
 
     // --- UI HANDLERS ---
     const handleSelectUser = async (user: any) => {
@@ -374,7 +354,6 @@ const ChatWidget = () => {
             clientRef.current.publish({ destination: "/app/chat.sendMessage", body: JSON.stringify(chatMessage) });
             moveContactToTop(selectedUser.email);
             setMsgInput("");
-            setMessages(prev => [...prev, chatMessage]);
         }
     };
 
@@ -492,8 +471,10 @@ const ChatWidget = () => {
                     stompClient={clientRef.current}
                     isIncoming={isIncoming}
                     signalData={incomingCallSignal}
-                    minimized={whiteboardOpen}
-                    onToggleMinimize={() => setWhiteboardOpen(!whiteboardOpen)}
+
+                    // [SỬA ĐỔI QUAN TRỌNG] Tách biệt khỏi whiteboardOpen
+                    minimized={isVideoMinimized}
+                    onToggleMinimize={() => setIsVideoMinimized(!isVideoMinimized)}
                 />
             )}
 
@@ -524,7 +505,7 @@ const ChatWidget = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* DIALOG 2: LỜI MỜI BẢNG TRẮNG [MỚI] */}
+            {/* DIALOG 2: LỜI MỜI BẢNG TRẮNG */}
             <Dialog open={!!incomingWhiteboardRequest} onClose={rejectWhiteboard} PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}>
                 <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 60, height: 60, bgcolor: '#ed6c02' }}><DrawIcon fontSize="large" /></Avatar>

@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, IconButton, Typography, Button } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
 import { CallEnd, Mic, MicOff, Videocam, VideocamOff, OpenInFull, CloseFullscreen } from '@mui/icons-material';
 
-// Cấu hình STUN Server
+// Cấu hình STUN Server (Để kết nối peer-to-peer)
 const rtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -18,8 +18,8 @@ interface VideoCallProps {
     stompClient: any;
     isIncoming: boolean;
     signalData?: any;
-    minimized?: boolean; // [MỚI] Trạng thái thu nhỏ
-    onToggleMinimize?: () => void; // [MỚI] Hàm bật/tắt thu nhỏ
+    minimized?: boolean; // Trạng thái thu nhỏ
+    onToggleMinimize?: () => void; // Hàm bật/tắt thu nhỏ
 }
 
 const VideoCallWindow = ({
@@ -35,7 +35,7 @@ const VideoCallWindow = ({
     const [camOn, setCamOn] = useState(true);
     const [status, setStatus] = useState("Đang kết nối...");
 
-    // 1. Khởi tạo Peer Connection (Giữ nguyên logic cũ)
+    // 1. Khởi tạo Peer Connection
     useEffect(() => {
         if (!open) return;
 
@@ -52,7 +52,7 @@ const VideoCallWindow = ({
                 peer.ontrack = (event) => {
                     if (remoteVideoRef.current && event.streams[0]) {
                         remoteVideoRef.current.srcObject = event.streams[0];
-                        setStatus("");
+                        setStatus(""); // Xóa chữ đang kết nối khi đã thấy video
                     }
                 };
 
@@ -73,7 +73,7 @@ const VideoCallWindow = ({
 
             } catch (err) {
                 console.error("Lỗi media:", err);
-                setStatus("Không thể truy cập Camera/Mic");
+                setStatus("Lỗi Camera/Mic");
             }
         };
 
@@ -86,10 +86,8 @@ const VideoCallWindow = ({
         };
     }, [open]);
 
-    // Giữ connection khi props thay đổi (trừ khi open tắt)
-    useEffect(() => {
-        // Hàm này rỗng để đảm bảo React không re-run logic kết nối khi biến 'minimized' thay đổi
-    }, [minimized]);
+    // Giữ connection khi props thay đổi
+    useEffect(() => {}, [minimized]);
 
     const sendSignal = (type: string, data: any) => {
         if (stompClient && stompClient.connected) {
@@ -116,7 +114,7 @@ const VideoCallWindow = ({
         } else if (signal.type === "ICE_CANDIDATE") {
             try { await peer.addIceCandidate(new RTCIceCandidate(signal.data)); } catch (e) {}
         } else if (signal.type === "HANGUP") {
-            onClose();
+            onClose(); // Bên kia tắt thì mình cũng tắt
         }
     };
 
@@ -142,14 +140,15 @@ const VideoCallWindow = ({
     return (
         <Box sx={{
             position: 'fixed',
-            // Logic chuyển đổi giao diện:
+            // Logic vị trí:
             top: minimized ? 'auto' : 0,
             left: minimized ? 'auto' : 0,
             bottom: minimized ? 20 : 0,
             right: minimized ? 20 : 0,
             width: minimized ? 320 : '100vw',
             height: minimized ? 240 : '100vh',
-            zIndex: 13000, // Cao hơn Whiteboard (thường Dialog là 1300)
+            // Z-Index cực cao để đè lên mọi thứ khác
+            zIndex: 14000,
             bgcolor: 'black',
             borderRadius: minimized ? 3 : 0,
             boxShadow: minimized ? '0 8px 32px rgba(0,0,0,0.5)' : 'none',
@@ -160,18 +159,32 @@ const VideoCallWindow = ({
             flexDirection: 'column'
         }}>
 
-            {/* MÀN HÌNH CHÍNH (REMOTE) */}
-            <Box sx={{ position: 'relative', flexGrow: 1, height: '100%', bgcolor: '#222' }}>
-                <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {/* CONTAINER VIDEO (Chiếm toàn bộ diện tích) */}
+            <Box sx={{ position: 'relative', width: '100%', height: '100%', bgcolor: '#000' }}>
 
-                {/* Status text */}
+                {/* 1. REMOTE VIDEO (Full màn hình) */}
+                <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover' // Đảm bảo video luôn lấp đầy khung
+                    }}
+                />
+
+                {/* Chữ trạng thái (nếu đang kết nối) */}
                 {status && (
-                    <Typography sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', bgcolor: 'rgba(0,0,0,0.6)', p: 1, borderRadius: 1 }}>
+                    <Typography sx={{
+                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                        color: 'white', bgcolor: 'rgba(0,0,0,0.6)', p: 1, borderRadius: 1, zIndex: 2
+                    }}>
                         {status}
                     </Typography>
                 )}
 
-                {/* MÀN HÌNH NHỎ (LOCAL) */}
+                {/* 2. LOCAL VIDEO (Góc phải trên) */}
                 <Box sx={{
                     position: 'absolute',
                     top: 10, right: 10,
@@ -179,39 +192,52 @@ const VideoCallWindow = ({
                     height: minimized ? 60 : 100,
                     bgcolor: '#333', borderRadius: 2,
                     overflow: 'hidden', border: '1px solid rgba(255,255,255,0.5)',
-                    boxShadow: 3
+                    boxShadow: 3,
+                    zIndex: 3 // Cao hơn remote video
                 }}>
                     <video ref={localVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </Box>
 
-                {/* NÚT THU NHỎ/PHÓNG TO */}
+                {/* 3. NÚT THU NHỎ (Góc trái trên) */}
                 {onToggleMinimize && (
                     <IconButton
                         onClick={onToggleMinimize}
-                        sx={{ position: 'absolute', top: 10, left: 10, color: 'white', bgcolor: 'rgba(0,0,0,0.3)', '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' } }}
+                        sx={{
+                            position: 'absolute', top: 10, left: 10,
+                            color: 'white', bgcolor: 'rgba(0,0,0,0.3)',
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' },
+                            zIndex: 4
+                        }}
                     >
                         {minimized ? <OpenInFull /> : <CloseFullscreen />}
                     </IconButton>
                 )}
-            </Box>
 
-            {/* THANH ĐIỀU KHIỂN */}
-            <Box sx={{
-                height: minimized ? 50 : 80,
-                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: minimized ? 1 : 3,
-                bgcolor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)'
-            }}>
-                <IconButton onClick={toggleMic} size={minimized ? "small" : "medium"} sx={{ bgcolor: micOn ? '#444' : '#f44336', color: 'white' }}>
-                    {micOn ? <Mic fontSize={minimized ? "small" : "medium"} /> : <MicOff fontSize={minimized ? "small" : "medium"} />}
-                </IconButton>
+                {/* 4. THANH ĐIỀU KHIỂN (Luôn nổi ở dưới đáy) */}
+                <Box sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '100%',
+                    height: minimized ? 50 : 80,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: minimized ? 1 : 3,
+                    bgcolor: 'rgba(0,0,0,0.6)', // Nền đen mờ
+                    backdropFilter: 'blur(5px)',
+                    zIndex: 5 // Quan trọng: Luôn cao hơn video
+                }}>
+                    <IconButton onClick={toggleMic} size={minimized ? "small" : "medium"} sx={{ bgcolor: micOn ? 'rgba(255,255,255,0.2)' : '#f44336', color: 'white' }}>
+                        {micOn ? <Mic fontSize={minimized ? "small" : "medium"} /> : <MicOff fontSize={minimized ? "small" : "medium"} />}
+                    </IconButton>
 
-                <IconButton onClick={handleHangup} size={minimized ? "small" : "medium"} sx={{ bgcolor: '#d32f2f', color: 'white', px: 2 }}>
-                    <CallEnd fontSize={minimized ? "small" : "medium"} />
-                </IconButton>
+                    <IconButton onClick={handleHangup} size={minimized ? "small" : "medium"} sx={{ bgcolor: '#d32f2f', color: 'white', px: minimized ? 2 : 4 }}>
+                        <CallEnd fontSize={minimized ? "small" : "medium"} />
+                    </IconButton>
 
-                <IconButton onClick={toggleCam} size={minimized ? "small" : "medium"} sx={{ bgcolor: camOn ? '#444' : '#f44336', color: 'white' }}>
-                    {camOn ? <Videocam fontSize={minimized ? "small" : "medium"} /> : <VideocamOff fontSize={minimized ? "small" : "medium"} />}
-                </IconButton>
+                    <IconButton onClick={toggleCam} size={minimized ? "small" : "medium"} sx={{ bgcolor: camOn ? 'rgba(255,255,255,0.2)' : '#f44336', color: 'white' }}>
+                        {camOn ? <Videocam fontSize={minimized ? "small" : "medium"} /> : <VideocamOff fontSize={minimized ? "small" : "medium"} />}
+                    </IconButton>
+                </Box>
+
             </Box>
         </Box>
     );
