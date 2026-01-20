@@ -28,7 +28,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import SearchIcon from "@mui/icons-material/Search"; // Nhớ import icon này
 import Pagination from "@mui/material/Pagination";
-
+import { useNavigate } from "react-router-dom";
 import {
   getStaffSubjects,
   createSubject,
@@ -47,7 +47,7 @@ const SubjectManager = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const pageSize = 10;
-
+  const navigate = useNavigate();
   // 1. State chứa dữ liệu đang nhập trên giao diện (Chưa gọi API)
   const [searchInputs, setSearchInputs] = useState({
     subjectCode: "",
@@ -78,7 +78,7 @@ const SubjectManager = () => {
         pageSize,
         appliedFilters.subjectCode,
         appliedFilters.name,
-        appliedFilters.specialization
+        appliedFilters.specialization,
       );
       if (pageData && pageData.content) {
         setSubjects(pageData.content);
@@ -197,17 +197,17 @@ const SubjectManager = () => {
             <Button
               variant="outlined"
               startIcon={<CloudUploadIcon />}
-              onClick={() => setOpenImport(true)}
+              onClick={() => navigate("/staff/import")}
               sx={{
                 borderRadius: 3,
-                px: 3,
-                textTransform: "none",
                 fontWeight: 700,
                 color: "#9c27b0",
                 borderColor: "#9c27b0",
+                textTransform: "none",
+                px: 3,
               }}
             >
-              Import Syllabus
+              Đến Trung Tâm Import
             </Button>
             <Button
               variant="contained"

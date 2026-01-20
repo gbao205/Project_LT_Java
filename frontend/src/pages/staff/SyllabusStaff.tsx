@@ -31,13 +31,13 @@ import {
   getSyllabusDetail,
 } from "../../services/syllabusService";
 import { useAppSnackbar } from "../../hooks/useAppSnackbar";
-
+import { useNavigate } from "react-router-dom";
 import type { SyllabusList, SyllabusDetail } from "../../types/Syllabus";
 
 const SyllabusManager = () => {
   const { showSnackbar } = useAppSnackbar();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const navigate = useNavigate();
   // Data states
   const [data, setData] = useState<SyllabusList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +82,7 @@ const SyllabusManager = () => {
         pageSize,
         filterId,
         appliedFilters.subjectName,
-        filterYear
+        filterYear,
       );
 
       if (res && res.content) {
@@ -123,7 +123,7 @@ const SyllabusManager = () => {
       const res = await getSyllabusDetail(id);
       setDetail(res);
       setOpenDetail(true);
-    } catch (error) {
+    } catch {
       showSnackbar("Không thể tải chi tiết Syllabus", "error");
     }
   };
@@ -199,18 +199,17 @@ const SyllabusManager = () => {
           <Button
             variant="outlined"
             startIcon={<CloudUploadIcon />}
-            onClick={() => setOpenImport(true)}
+            onClick={() => navigate("/staff/import")}
             sx={{
               borderRadius: 3,
-              px: 3,
-              textTransform: "none",
               fontWeight: 700,
               color: "#9c27b0",
               borderColor: "#9c27b0",
-              "&:hover": { borderColor: "#7b1fa2", bgcolor: "#f3e5f5" },
+              textTransform: "none",
+              px: 3,
             }}
           >
-            Import Syllabus
+            Đến Trung Tâm Import
           </Button>
         </Box>
 

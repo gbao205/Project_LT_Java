@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import {
+  Container,
+  Typography,
   Box,
+  Button,
   Paper,
   Table,
   TableBody,
@@ -9,212 +12,333 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  IconButton,
+  Stack,
   TextField,
-  MenuItem,
+  CircularProgress,
+  Avatar,
+  Pagination,
+  Chip,
+  Grid,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import {
-  getAllClasses,
-  createClass,
-  type ClassRoom,
-} from "../../services/classService";
-import { getSubjects } from "../../services/subjectService";
-import { getAllUsers } from "../../services/userService";
-import AdminLayout from "../../components/layout/AdminLayout";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import SchoolIcon from "@mui/icons-material/School";
+import SearchIcon from "@mui/icons-material/Search";
+import ToggleOnIcon from "@mui/icons-material/ToggleOn";
+import ToggleOffIcon from "@mui/icons-material/ToggleOff";
+
+import { staffService } from "../../services/staffService";
+import { useAppSnackbar } from "../../hooks/useAppSnackbar";
+
+// --- Định nghĩa Interfaces ---
+interface ClassData {
+  id: number;
+  classCode: string;
+  name: string;
+  semester: string;
+  subjectName: string;
+  lecturerName: string;
+  registrationOpen: boolean; // Tên biến chuẩn từ Server (không có chữ is)
+}
+
+interface ApiResponseWrapper {
+  data: {
+    content: ClassData[];
+    totalPages: number;
+  };
+}
+
+interface AxiosErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
 
 const ClassManager = () => {
-  const [classes, setClasses] = useState<ClassRoom[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [lecturers, setLecturers] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
+  const { showSuccess, showError } = useAppSnackbar();
+  const navigate = useNavigate();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm();
+  const [classes, setClasses] = useState<ClassData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const pageSize = 10;
 
-  // Load dữ liệu (Lớp, Môn, Giảng viên)
-  const fetchData = async () => {
+  const [searchInputs, setSearchInputs] = useState({
+    classCode: "",
+    name: "",
+    semester: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    classCode: "",
+    name: "",
+    semester: "",
+  });
+
+  const loadData = async () => {
+    setIsLoading(true);
     try {
-      const [classRes, subRes, userRes] = await Promise.all([
-        getAllClasses(),
-        getSubjects(),
-        getAllUsers(),
-      ]);
-
-      setClasses(classRes);
-      setSubjects(subRes);
-      // Lọc user để lấy danh sách Giảng viên (LECTURER)
-      // Lưu ý: Kiểm tra lại cấu trúc trả về của getAllUsers, đôi khi nó trả về mảng trực tiếp hoặc object { data: [...] }
-      const users = Array.isArray(userRes) ? userRes : userRes.data || [];
-      const lecturerList = users.filter(
-          (u: any) => u.role === "LECTURER"
-      );
-      setLecturers(lecturerList);
-    } catch (error) {
-      console.error("Lỗi tải dữ liệu:", error);
+      const res = await staffService.getClasses({
+        page,
+        size: pageSize,
+        classCode: appliedFilters.classCode || undefined,
+        name: appliedFilters.name || undefined,
+        semester: appliedFilters.semester || undefined,
+      });
+      const response = res as unknown as ApiResponseWrapper;
+      if (response.data?.content) {
+        setClasses(response.data.content);
+        setTotalPages(response.data.totalPages);
+      }
+    } catch {
+      showError("Lỗi tải danh sách lớp học");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    loadData();
+  }, [page, appliedFilters]);
 
-  const onSubmit = async (data: any) => {
+  const handleToggleStatus = async (id: number) => {
     try {
-      await createClass({
-        ...data,
-        subjectId: Number(data.subjectId),
-        lecturerId: Number(data.lecturerId),
-      });
-      alert("Tạo lớp thành công!");
-      setOpen(false);
-      reset();
-      fetchData(); // Reload lại bảng
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Có lỗi xảy ra!");
+      const response = await staffService.status(id);
+      // Dữ liệu từ server trả về là: { ..., registrationOpen: true/false }
+      const updatedData = response.data;
+
+      setClasses((prevClasses) =>
+        prevClasses.map((cls) => {
+          if (Number(cls.id) === Number(id)) {
+            return {
+              ...cls,
+              // Cập nhật đúng tên biến registrationOpen
+              registrationOpen: updatedData.registrationOpen,
+            };
+          }
+          return cls;
+        }),
+      );
+
+      const statusText = updatedData.registrationOpen ? "Mở" : "Khóa";
+      showSuccess(`${statusText} đăng ký lớp học thành công!`);
+    } catch (err: unknown) {
+      const error = err as AxiosErrorResponse;
+      showError(error.response?.data?.message || "Lỗi cập nhật");
     }
   };
 
+  const handleSearch = () => {
+    setAppliedFilters(searchInputs);
+    setPage(0);
+  };
+  const handleReset = () => {
+    const empty = { classCode: "", name: "", semester: "" };
+    setSearchInputs(empty);
+    setAppliedFilters(empty);
+    setPage(0);
+  };
+
   return (
-      <AdminLayout title="Quản Lý Lớp Học">
-        {/* THANH CÔNG CỤ (Nút Tạo mới) */}
-        <Box display="flex" justifyContent="flex-end" mb={2}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 6 }}>
+      <Container maxWidth="xl">
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={5}
+        >
+          <Box display="flex" alignItems="center" gap={2}>
+            <Avatar
+              sx={{
+                bgcolor: "#f3e5f5",
+                color: "#9c27b0",
+                width: 56,
+                height: 56,
+              }}
+            >
+              <SchoolIcon fontSize="large" />
+            </Avatar>
+            <Box>
+              <Typography
+                variant="h4"
+                fontWeight={900}
+                sx={{ letterSpacing: -1 }}
+              >
+                Quản Lý Lớp Học
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Danh sách lớp và trạng thái đăng ký học phần
+              </Typography>
+            </Box>
+          </Box>
           <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpen(true)}
+            variant="outlined"
+            startIcon={<CloudUploadIcon />}
+            onClick={() => navigate("/staff/import")}
+            sx={{
+              borderRadius: 3,
+              fontWeight: 700,
+              color: "#9c27b0",
+              borderColor: "#9c27b0",
+            }}
           >
-            Tạo Lớp Mới
+            Đến Trung Tâm Import
           </Button>
         </Box>
 
-        {/* BẢNG DỮ LIỆU */}
-        <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+        {/* Search */}
+        <Paper
+          sx={{ p: 2.5, mb: 4, borderRadius: 4, border: "1px solid #f1f5f9" }}
+        >
+          <Grid container spacing={2} alignItems="center">
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+              <TextField
+                label="Mã lớp"
+                size="small"
+                fullWidth
+                value={searchInputs.classCode}
+                onChange={(e) =>
+                  setSearchInputs({
+                    ...searchInputs,
+                    classCode: e.target.value,
+                  })
+                }
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+              <TextField
+                label="Tên lớp"
+                size="small"
+                fullWidth
+                value={searchInputs.name}
+                onChange={(e) =>
+                  setSearchInputs({ ...searchInputs, name: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+              <TextField
+                label="Học kỳ"
+                size="small"
+                fullWidth
+                value={searchInputs.semester}
+                onChange={(e) =>
+                  setSearchInputs({ ...searchInputs, semester: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleSearch}
+                  startIcon={<SearchIcon />}
+                  sx={{ bgcolor: "#9c27b0", fontWeight: 700 }}
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleReset}
+                  sx={{ fontWeight: 700, color: "#64748b" }}
+                >
+                  Reset
+                </Button>
+              </Stack>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        <TableContainer
+          component={Paper}
+          sx={{
+            borderRadius: 5,
+            overflow: "hidden",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.03)",
+          }}
+        >
           <Table>
-            <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+            <TableHead sx={{ bgcolor: "#f3e5f5" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Tên Lớp</TableCell>
-                <TableCell>Học Kỳ</TableCell>
-                <TableCell>Môn Học</TableCell>
-                <TableCell>Giảng Viên</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>MÃ LỚP</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>TÊN LỚP</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>HỌC KỲ</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>MÔN HỌC</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>TRẠNG THÁI</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>
+                  THAO TÁC
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {classes.map((cls) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                    <CircularProgress color="secondary" />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                classes.map((cls) => (
                   <TableRow key={cls.id} hover>
-                    <TableCell>{cls.id}</TableCell>
-                    <TableCell sx={{ color: "red", fontWeight: "bold" }}>
-                      {cls.name}
+                    <TableCell sx={{ fontWeight: 800, color: "#6a1b9a" }}>
+                      {cls.classCode}
                     </TableCell>
-                    <TableCell>{cls.semester}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{cls.name}</TableCell>
                     <TableCell>
-                      {cls.subject
-                          ? `${cls.subject.name} (${cls.subject.subjectCode})`
-                          : "---"}
+                      <Chip
+                        label={`HK ${cls.semester}`}
+                        size="small"
+                        variant="outlined"
+                      />
                     </TableCell>
-                    {/* ✅ ĐÃ SỬA LỖI: Gọi đúng tên biến lecturer */}
+                    <TableCell>{cls.subjectName}</TableCell>
                     <TableCell>
-                      {cls.lecturer ? (
-                          cls.lecturer.fullName
-                      ) : (
-                          <span style={{ color: "gray" }}>Chưa phân công</span>
-                      )}
+                      <Chip
+                        label={cls.registrationOpen ? "Đang mở" : "Đã khóa"}
+                        color={cls.registrationOpen ? "success" : "error"}
+                        size="small"
+                        sx={{ fontWeight: 700, minWidth: 80 }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        onClick={() => handleToggleStatus(cls.id)}
+                        sx={{
+                          color: cls.registrationOpen ? "#10b981" : "#ef4444",
+                          bgcolor: cls.registrationOpen ? "#ecfdf5" : "#fef2f2",
+                          transition: "all 0.3s ease",
+                          "&:hover": { transform: "scale(1.1)" },
+                        }}
+                      >
+                        {cls.registrationOpen ? (
+                          <ToggleOnIcon fontSize="large" />
+                        ) : (
+                          <ToggleOffIcon fontSize="large" />
+                        )}
+                      </IconButton>
                     </TableCell>
                   </TableRow>
-              ))}
-              {classes.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                        colSpan={5}
-                        align="center"
-                        sx={{ py: 3, color: "text.secondary" }}
-                    >
-                      Chưa có lớp học nào được tạo
-                    </TableCell>
-                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
 
-        {/* DIALOG FORM TẠO LỚP */}
-        <Dialog
-            open={open}
-            onClose={() => setOpen(false)}
-            fullWidth
-            maxWidth="sm"
-        >
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogTitle>Mở Lớp Học Mới</DialogTitle>
-            <DialogContent>
-              <Box display="flex" flexDirection="column" gap={2} mt={1}>
-                <TextField
-                    label="Tên lớp (VD: SE1702)"
-                    fullWidth
-                    {...register("name", { required: "Nhập tên lớp" })}
-                    error={!!errors.name}
-                />
-
-                <TextField
-                    label="Học kỳ (VD: Spring 2025)"
-                    fullWidth
-                    {...register("semester", { required: "Nhập học kỳ" })}
-                    error={!!errors.semester}
-                />
-
-                {/* Select Môn Học */}
-                <TextField
-                    select
-                    label="Chọn Môn Học"
-                    fullWidth
-                    defaultValue=""
-                    inputProps={register("subjectId", { required: "Chọn môn học" })}
-                    error={!!errors.subjectId}
-                >
-                  {subjects.map((sub) => (
-                      <MenuItem key={sub.id} value={sub.id}>
-                        {sub.subjectCode} - {sub.name}
-                      </MenuItem>
-                  ))}
-                </TextField>
-
-                {/* Select Giảng Viên */}
-                <TextField
-                    select
-                    label="Chọn Giảng Viên"
-                    fullWidth
-                    defaultValue=""
-                    inputProps={register("lecturerId", {
-                      required: "Chọn giảng viên",
-                    })}
-                    error={!!errors.lecturerId}
-                >
-                  {lecturers.map((lec) => (
-                      <MenuItem key={lec.id} value={lec.id}>
-                        {lec.fullName} ({lec.email})
-                      </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setOpen(false)}>Hủy</Button>
-              <Button type="submit" variant="contained">
-                Lưu
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-      </AdminLayout>
+        <Box display="flex" justifyContent="center" py={4}>
+          <Pagination
+            count={totalPages}
+            page={page + 1}
+            color="secondary"
+            shape="rounded"
+            onChange={(_, v) => setPage(v - 1)}
+          />
+        </Box>
+      </Container>
+    </Box>
   );
 };
 
