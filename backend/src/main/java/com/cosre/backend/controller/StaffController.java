@@ -1,8 +1,6 @@
 package com.cosre.backend.controller;
 
-import com.cosre.backend.dto.staff.SubjectDTO;
-import com.cosre.backend.dto.staff.SyllabusDetailDTO;
-import com.cosre.backend.dto.staff.SyllabusListDTO;
+import com.cosre.backend.dto.staff.*;
 import com.cosre.backend.entity.Role;
 import com.cosre.backend.entity.User;
 import com.cosre.backend.service.IStaffService;
@@ -14,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.cosre.backend.dto.staff.ClassResponseDTO;
+
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +25,7 @@ public class StaffController {
     private final IimportParser<?> importSubject;
     private final IimportParser<?> importClass;
     private final IimportParser<?> importSyllabus;
+    private final IimportParser<?> assignStudent;
     private final IStaffService staffService;
     @Autowired
     public StaffController(
@@ -34,13 +33,15 @@ public class StaffController {
             @Qualifier("importUser") IimportParser<?> importUser,
             @Qualifier("importSubject") IimportParser<?> importSubject,
             @Qualifier("importClass") IimportParser<?> importClasses,
-            @Qualifier("importSyllabus") IimportParser<?> importSyllabus
+            @Qualifier("importSyllabus") IimportParser<?> importSyllabus,
+            @Qualifier("assignStudent") IimportParser<?> assignStudent
             ) {
         this.staffService = staffService;
         this.importUser = importUser;
         this.importSubject =importSubject;
         this.importClass=importClasses;
         this.importSyllabus=importSyllabus;
+        this.assignStudent = assignStudent;
     }
 
     @GetMapping("/search-user")
@@ -154,12 +155,33 @@ public class StaffController {
     @PatchMapping("/classes/{id}/status")
     public ResponseEntity<ClassResponseDTO> updateStatus(@PathVariable Long id) {
         return ResponseEntity.ok(staffService.status(id));
-    }    //===================================assign================================================
-    @PutMapping("/classes/{classId}/assign-lecturer/{lecturerId}")
-    public ResponseEntity<String> assignLecturer(
-            @PathVariable Long classId,
-            @PathVariable Long lecturerId) {
-        staffService.assignLecturer(classId, lecturerId);
-        return ResponseEntity.ok("Phân công giảng viên thành công");
+    }
+    @GetMapping("/classes/{classCode}/students")
+    public ResponseEntity<List<StudentInClassDTO>> getStudentsInClass(@PathVariable String classCode) {
+        List<StudentInClassDTO> students = staffService.getStudentInClass(classCode);
+        return ResponseEntity.ok(students);
+    }
+    //===================================assign================================================
+    @PatchMapping("/classes/{classCode}/assign-lecturer-cccd/{cccd}")
+    public ResponseEntity<Map<String, String>> assignLecturerByCCCD(
+            @PathVariable String classCode,
+            @PathVariable String cccd) {
+
+        staffService.assignLecturer(classCode, cccd);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Phân công giảng viên " + cccd + " vào lớp " + classCode + " thành công"
+        ));
+    }
+    @PostMapping("/classes/{classId}/assign-students")
+    public ResponseEntity<?> assignStudentsToClass(
+            @PathVariable String classId,
+            @RequestParam("file") MultipartFile file) {
+
+        assignStudent.execute(file, classId);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Gán danh sách sinh viên vào lớp thành công!"
+        ));
     }
 }

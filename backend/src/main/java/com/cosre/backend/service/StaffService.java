@@ -1,9 +1,6 @@
 package com.cosre.backend.service;
 
-import com.cosre.backend.dto.staff.ClassResponseDTO;
-import com.cosre.backend.dto.staff.SubjectDTO;
-import com.cosre.backend.dto.staff.SyllabusDetailDTO;
-import com.cosre.backend.dto.staff.SyllabusListDTO;
+import com.cosre.backend.dto.staff.*;
 import com.cosre.backend.entity.*;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.*;
@@ -26,6 +23,9 @@ public class StaffService implements IStaffService {
     private final ClassRoomRepository classRoomRepository;
     private final SubjectRepository subjectRepository;
     private final SyllabusRepository syllabusRepository;
+    private final LecturerRepository lecturerRepository;
+    private final StudentRepository studentRepository;
+
 
     public List<User> getAllUser(String keyword) {
         List<Role> allowrole = Arrays.asList(Role.LECTURER, Role.STUDENT);
@@ -47,27 +47,6 @@ public class StaffService implements IStaffService {
     @Override
     public List<ClassResponseDTO> getAllUserForStaff() {
         return List.of();
-    }
-
-    @Transactional
-    public ClassResponseDTO toggleClass(Long classId) {
-        ClassRoom classRoom = classRoomRepository.findById(classId)
-                .orElseThrow(() -> new AppException("Lớp không tồn tại", HttpStatus.NOT_FOUND));
-
-        classRoom.setRegistrationOpen(!classRoom.isRegistrationOpen());
-        classRoomRepository.save(classRoom);
-
-        return ClassResponseDTO.builder()
-                .id(classRoom.getId())
-                .name(classRoom.getName())
-                .classCode(classRoom.getClassCode())
-                .semester(classRoom.getSemester())
-                .subjectName(classRoom.getSubject() != null ? classRoom.getSubject().getName() : "N/A")
-                .lecturerName(classRoom.getLecturer() != null ? classRoom.getLecturer().getFullName() : "Chưa phân công")
-                .isRegistrationOpen(classRoom.isRegistrationOpen())
-                .maxCapacity(classRoom.getMaxCapacity())
-                .studentCount(classRoom.getStudents() != null ? classRoom.getStudents().size() : 0)
-                .build();
     }
 
     //===================================Syllabus================================================
@@ -140,22 +119,7 @@ public class StaffService implements IStaffService {
                 .build()
         );
     }
-    @Override
-    @Transactional
-    public void assignLecturer(Long cId,Long lId)
-    {
-        ClassRoom c=classRoomRepository.findById(cId).orElseThrow(() -> new AppException("Classroom not found",HttpStatus.NOT_FOUND));
-        User l = userRepository.findById(lId)
-                .filter(u -> u.getRole() == Role.LECTURER)
-                .orElseThrow(() -> new AppException("Giảng viên không hợp lệ", HttpStatus.NOT_FOUND));
-        c.setLecturer(l);
-        classRoomRepository.save(c);
-    }
-    public List<User> getListLecturer() {
-        return userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.LECTURER)
-                .collect(Collectors.toList());
-    }
+
     @Transactional
     @Override
     public ClassResponseDTO status(Long classId) {
@@ -178,5 +142,41 @@ public class StaffService implements IStaffService {
                 .maxCapacity(classRoom.getMaxCapacity())
                 .build();
     }
+    @Transactional
+    @Override
+    public void assignLecturer(String classCode, String cccd) {
+        ClassRoom classroom = classRoomRepository.findByClassCode(classCode)
+                .orElseThrow(() -> new AppException("Không tìm thấy lớp học: " + classCode, HttpStatus.NOT_FOUND));
 
+        Lecturer lecturer = lecturerRepository.findByCCCD(cccd)
+                .orElseThrow(() -> new AppException("Không tìm thấy giảng viên có CCCD: " + cccd, HttpStatus.NOT_FOUND));
+
+        User lecturerUser = lecturer.getUser();
+
+        if (lecturerUser == null || lecturerUser.getRole() != Role.LECTURER) {
+            throw new AppException("Người dùng này không phải là giảng viên hợp lệ", HttpStatus.BAD_REQUEST);
+        }
+
+        classroom.setLecturer(lecturerUser);
+        classRoomRepository.save(classroom);
+    }
+    @Override
+    public List<StudentInClassDTO> getStudentInClass(String classCode) {
+        ClassRoom classRoom = classRoomRepository.findByClassCode(classCode)
+                .orElseThrow(() -> new AppException("Không tìm thấy lớp học", HttpStatus.NOT_FOUND));
+
+        return classRoom.getStudents().stream()
+                .map(user -> {
+                    Optional<Student> studentProfile = studentRepository.findByUser(user);
+
+                    String mssv = studentProfile.isPresent() ? studentProfile.get().getStudentId() : user.getCode();
+
+                    return new StudentInClassDTO(
+                            user.getFullName(),
+                            user.getEmail(),
+                            mssv
+                    );
+                })
+                .collect(Collectors.toList());
+    }
 }

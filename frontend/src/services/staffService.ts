@@ -36,4 +36,18 @@ export const staffService = {
         lecturerName?: string;
         isRegistrationOpen?: boolean;
     }) => api.get('/staff/classes', { params }),
+    assignLecturer: (classCode: string, cccd: string) => {
+        return api.patch(`/staff/classes/${classCode}/assign-lecturer-cccd/${cccd}`);
+    },
+    assignStudents: (classCode: string, file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return api.post(`/staff/classes/${classCode}/assign-students`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+    },
+    getStudentsInClass: (classCode: string) => 
+    api.get(`/staff/classes/${classCode}/students`),
 };
