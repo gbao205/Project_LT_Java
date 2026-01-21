@@ -12,15 +12,17 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   Button,
   Avatar,
-  Tooltip,
   Drawer,
   IconButton,
-  Divider,
   Grid,
   CircularProgress,
+  Pagination,
+  Stack,
+  TextField,
+  InputAdornment,
+  Divider,
 } from "@mui/material";
 
 // Icons
@@ -28,556 +30,581 @@ import PersonIcon from "@mui/icons-material/Person";
 import SchoolIcon from "@mui/icons-material/School";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CloseIcon from "@mui/icons-material/Close";
-import BadgeIcon from "@mui/icons-material/Badge";
+import SearchIcon from "@mui/icons-material/Search";
+import GroupIcon from "@mui/icons-material/Group"; // Thay banner bằng icon tiêu đề
 
 import { staffService } from "../../services/staffService";
-// --- 1. ĐỊNH NGHĨA INTERFACE CHUẨN ---
-interface StudentProfile {
-  gender?: string;
-  ethnicity?: string;
-  religion?: string;
-  phoneNumber?: string;
-  nativePlace?: string;
-  permanentAddress?: string;
-  temporaryAddress?: string;
-  idCardNumber?: string;
-  idCardIssuePlace?: string;
-  insuranceCode?: string;
-  unionDate?: string;
-}
 
-interface StudentInfo {
-  studentId?: string;
-  studentStatus?: string;
-  dob?: string;
-  major?: string;
-  specialization?: string;
-  faculty?: string;
-  admissionDate?: string;
-  eduLevel?: string;
-  batch?: string;
-  trainingType?: string;
-  profile?: StudentProfile;
-}
-
-interface LecturerInfo {
-  cccd?: string;
-  degree?: string;
-  department?: string;
-}
-
-interface UserAccount {
-  id: number;
+// --- INTERFACES ---
+interface StudentDetail {
   fullName: string;
   email: string;
-  role: "STUDENT" | "LECTURER" | "ADMIN" | "STAFF";
-  student?: StudentInfo;
-  lecturer?: LecturerInfo;
+  studentId: string;
+  eduLevel?: string;
+  batch?: string;
+  faculty?: string;
+  specialization?: string;
+  trainingType?: string;
+  studentStatus?: string;
+  dob?: string;
+  admissionDate?: string;
 }
 
-// --- 2. COMPONENT CON & INTERFACE (Đưa lên đầu để tránh lỗi undefined) ---
-
-interface InfoItemProps {
-  icon?: React.ReactNode;
+// --- COMPONENT CON HIỂN THỊ CHI TIẾT ---
+const InfoItem = ({
+  label,
+  value,
+  size = 12,
+}: {
   label: string;
-  // Cho phép nhiều kiểu dữ liệu hơn để tránh lỗi type
-  value?: string | number | React.ReactNode | null | undefined;
+  value?: any;
   size?: number;
-}
-
-const InfoItem = ({ icon, label, value, size = 12 }: InfoItemProps) => {
-  return (
-    <Grid item xs={12} sm={size}>
-      <Box
+}) => (
+  <Grid size={{ xs: 12, sm: size }}>
+    <Box
+      sx={{
+        p: 1.5,
+        borderRadius: 2,
+        bgcolor: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        height: "100%",
+      }}
+    >
+      <Typography
+        variant="caption"
         sx={{
-          p: 1.5,
-          borderRadius: 2,
-          bgcolor: "#f1f5f9",
-          border: "1px solid #e2e8f0",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
+          color: "text.secondary",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          fontSize: "0.65rem",
+          display: "block",
+          mb: 0.5,
         }}
       >
-        <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-          {icon && icon}
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              fontSize: "0.65rem",
-            }}
-          >
-            {label}
-          </Typography>
-        </Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: "#1e293b" }}>
-          {/* Kiểm tra nullish an toàn, hiển thị "---" nếu không có giá trị */}
-          {value ?? "---"}
-        </Typography>
-      </Box>
-    </Grid>
-  );
-};
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: 700,
+          color: value ? "#1e293b" : "#94a3b8",
+          fontStyle: value ? "normal" : "italic",
+        }}
+      >
+        {value || "Chưa cập nhật"}
+      </Typography>
+    </Box>
+  </Grid>
+);
 
-// --- 3. MAIN COMPONENT ---
 const StaffUserManager = () => {
-  // State
   const [activeTab, setActiveTab] = useState(0);
-  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [detailData, setDetailData] = useState<StudentDetail | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
-  // Common styles
-  const commonFont = { fontFamily: "'Inter', sans-serif !important" };
+  // State cho tìm kiếm
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
 
-  // --- FETCH DATA ---
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        // GỌI staffService.searchUsers() để đúng URL /api/staff/search-user
-        const res = await staffService.searchUsers();
+  const pageSize = 10;
 
-        // axios trả về { data: [...] } nên ta lấy res.data
-        const userList = Array.isArray(res.data) ? res.data : [];
-        setUsers(userList);
-      } catch (error) {
-        console.error("Lỗi tải danh sách người dùng:", error);
-        // Nếu lỗi 403 vẫn xảy ra, hãy kiểm tra token trong localStorage
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      let res;
+      const params = { page, size: pageSize, keyword: appliedKeyword };
+      if (activeTab === 0) {
+        res = await staffService.getStudents(params);
+      } else {
+        res = await staffService.getLecturers(params);
       }
-    };
-    fetchUsers();
-  }, []);
+      setData(res.data.content);
+      setTotalPages(res.data.totalPages);
+    } catch (error) {
+      console.error("Lỗi fetch:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Filter users based on active Tab
-  const displayedUsers = users.filter((u) =>
-    activeTab === 0 ? u.role === "STUDENT" : u.role === "LECTURER"
-  );
+  useEffect(() => {
+    loadData();
+  }, [activeTab, page, appliedKeyword]);
 
-  const handleOpenDetail = (user: UserAccount) => {
-    setSelectedUser(user);
+  const handleTabChange = (_: any, newValue: number) => {
+    setActiveTab(newValue);
+    setPage(0);
+    setSearchKeyword("");
+    setAppliedKeyword("");
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAppliedKeyword(searchKeyword);
+    setPage(0);
+  };
+
+  const handleReset = () => {
+    setSearchKeyword("");
+    setAppliedKeyword("");
+    setPage(0);
+  };
+
+  const handleOpenDetail = async (id: number) => {
     setIsDrawerOpen(true);
+    setDrawerLoading(true);
+    try {
+      const res = await staffService.getStudentDetail(id);
+      setDetailData(res.data);
+    } catch (error) {
+      console.error("Lỗi lấy chi tiết:", error);
+    } finally {
+      setDrawerLoading(false);
+    }
+  };
+
+  const renderCellText = (text: any) => {
+    if (!text)
+      return (
+        <Typography
+          variant="body2"
+          sx={{ color: "#94a3b8", fontStyle: "italic", fontSize: "0.85rem" }}
+        >
+          Chưa có
+        </Typography>
+      );
+    return text;
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", pb: 10, ...commonFont }}>
-      {/* HEADER BANNER */}
-      <Box
-        sx={{
-          background: "linear-gradient(135deg, #6a1b9a 0%, #9c27b0 100%)",
-          pt: 6,
-          pb: 10,
-          mb: 4,
-        }}
-      >
-        <Container maxWidth="xl">
-          <Typography
-            variant="h3"
-            fontWeight="900"
-            color="white"
-            sx={{ letterSpacing: -1 }}
-          >
-            Quản Lý Thành Viên
-          </Typography>
-          <Typography color="white" sx={{ opacity: 0.85 }}>
-            Tra cứu và quản lý hồ sơ chi tiết của hệ thống
-          </Typography>
-        </Container>
-      </Box>
-
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 6 }}>
       <Container maxWidth="xl">
+        {/* HEADER SECTION - GIỐNG SYLLABUS MANAGER */}
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={5}
+        >
+          <Box display="flex" alignItems="center" gap={2}>
+            <Avatar
+              sx={{
+                bgcolor: "#f3e5f5",
+                color: "#9c27b0",
+                width: 56,
+                height: 56,
+              }}
+            >
+              <GroupIcon fontSize="large" />
+            </Avatar>
+            <Box>
+              <Typography
+                variant="h4"
+                fontWeight={900}
+                color="#1e293b"
+                sx={{ letterSpacing: -1 }}
+              >
+                Quản Lý Thành Viên
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                fontWeight="500"
+              >
+                Tra cứu và xem hồ sơ chi tiết của Sinh viên và Giảng viên
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* SEARCH SECTION - ĐỒNG BỘ STYLE PHẲNG */}
+        <Paper
+          sx={{
+            p: 2.5,
+            mb: 4,
+            borderRadius: 4,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+            border: "1px solid #f1f5f9",
+          }}
+        >
+          <form onSubmit={handleSearch}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems="center"
+            >
+              <TextField
+                fullWidth
+                size="small"
+                placeholder={
+                  activeTab === 0
+                    ? "Tìm kiếm sinh viên theo tên, MSSV..."
+                    : "Tìm kiếm giảng viên theo tên, CCCD..."
+                }
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ bgcolor: "#fff", borderRadius: 2 }}
+              />
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ minWidth: "fit-content" }}
+              >
+                <Button
+                  variant="contained"
+                  type="submit"
+                  sx={{
+                    bgcolor: "#9c27b0",
+                    textTransform: "none",
+                    fontWeight: 700,
+                    px: 3,
+                    "&:hover": { bgcolor: "#7b1fa2" },
+                  }}
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleReset}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    borderColor: "#cbd5e1",
+                  }}
+                >
+                  Reset
+                </Button>
+              </Stack>
+            </Stack>
+          </form>
+        </Paper>
+
+        {/* TABLE SECTION - ĐỒNG BỘ STYLE TABLE VỚI SYLLABUS */}
         <Paper
           sx={{
             borderRadius: 5,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.03)",
             overflow: "hidden",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
-            border: "1px solid #e2e8f0",
           }}
         >
-          {/* TABS */}
           <Tabs
             value={activeTab}
-            onChange={(_, v) => setActiveTab(v)}
-            sx={{
-              bgcolor: "white",
-              borderBottom: 1,
-              borderColor: "divider",
-              "& .MuiTab-root": {
-                fontWeight: 800,
-                py: 2.5,
-                fontSize: "0.9rem",
-              },
-            }}
+            onChange={handleTabChange}
+            sx={{ bgcolor: "#f3e5f5", borderBottom: 1, borderColor: "divider" }}
           >
             <Tab
               icon={<PersonIcon />}
               iconPosition="start"
-              label={`DANH SÁCH SINH VIÊN (${
-                users.filter((u) => u.role === "STUDENT").length
-              })`}
+              label="DANH SÁCH SINH VIÊN"
+              sx={{ fontWeight: 800, color: "#4a148c" }}
             />
             <Tab
               icon={<SchoolIcon />}
               iconPosition="start"
-              label={`DANH SÁCH GIẢNG VIÊN (${
-                users.filter((u) => u.role === "LECTURER").length
-              })`}
+              label="DANH SÁCH GIẢNG VIÊN"
+              sx={{ fontWeight: 800, color: "#4a148c" }}
             />
           </Tabs>
 
-          {/* DATA TABLE */}
-          <TableContainer sx={{ maxHeight: 600 }}>
+          <TableContainer sx={{ minHeight: 400 }}>
             <Table stickyHeader>
-              <TableHead>
-                <TableRow
-                  sx={{
-                    "& th": {
-                      bgcolor: "#f1f5f9",
-                      fontWeight: 800,
-                      color: "#475569",
-                    },
-                  }}
-                >
-                  <TableCell>HỌ VÀ TÊN</TableCell>
-                  <TableCell>EMAIL</TableCell>
+              <TableHead sx={{ bgcolor: "#f3e5f5" }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                    HỌ VÀ TÊN
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                    EMAIL
+                  </TableCell>
                   {activeTab === 0 ? (
                     <>
-                      <TableCell>MSSV</TableCell>
-                      <TableCell>NGÀNH</TableCell>
-                      <TableCell>TRẠNG THÁI</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                        MSSV
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                        NGÀNH
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{ fontWeight: 800, color: "#4a148c" }}
+                      >
+                        THAO TÁC
+                      </TableCell>
                     </>
                   ) : (
                     <>
-                      <TableCell>HỌC VỊ</TableCell>
-                      <TableCell>BỘ MÔN</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                        CCCD
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                        BỘ MÔN
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                        HỌC VỊ
+                      </TableCell>
                     </>
                   )}
-                  <TableCell align="center">THAO TÁC</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                      <CircularProgress />
-                      <Typography sx={{ mt: 1, color: "gray" }}>
-                        Đang tải dữ liệu...
-                      </Typography>
+                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                      <CircularProgress color="secondary" />
                     </TableCell>
                   </TableRow>
-                ) : displayedUsers.length === 0 ? (
+                ) : data.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={6}
                       align="center"
-                      sx={{ py: 5, color: "gray" }}
+                      sx={{ py: 10, color: "#94a3b8" }}
                     >
-                      Không tìm thấy dữ liệu phù hợp.
+                      Không tìm thấy dữ liệu phù hợp
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayedUsers.map((user) => (
-                    <TableRow hover key={user.id}>
+                  data.map((item) => (
+                    <TableRow hover key={item.id}>
                       <TableCell>
-                        <Box display="flex" alignItems="center" gap={2}>
+                        <Stack direction="row" spacing={2} alignItems="center">
                           <Avatar
                             sx={{
                               bgcolor: activeTab === 0 ? "#10b981" : "#3b82f6",
                               fontWeight: 700,
+                              width: 32,
+                              height: 32,
+                              fontSize: "0.85rem",
                             }}
                           >
-                            {activeTab === 0 ? "S" : "L"}
+                            {item.fullName.charAt(0)}
                           </Avatar>
-                          <Typography sx={{ fontWeight: 700 }}>
-                            {user.fullName}
+                          <Typography variant="body2" fontWeight={700}>
+                            {item.fullName}
                           </Typography>
-                        </Box>
+                        </Stack>
                       </TableCell>
-                      <TableCell sx={{ color: "#64748b" }}>
-                        {user.email}
+                      <TableCell sx={{ fontSize: "0.85rem" }}>
+                        {item.email}
                       </TableCell>
-
                       {activeTab === 0 ? (
                         <>
-                          <TableCell sx={{ fontWeight: 600 }}>
-                            {user.student?.studentId || "---"}
+                          <TableCell sx={{ fontWeight: 700, color: "#6a1b9a" }}>
+                            {renderCellText(item.studentId)}
                           </TableCell>
-                          <TableCell>{user.student?.major || "---"}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={user.student?.studentStatus || "Đang học"}
+                          <TableCell sx={{ fontSize: "0.85rem" }}>
+                            {renderCellText(item.major)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Button
                               size="small"
+                              variant="outlined"
+                              startIcon={<VisibilityIcon />}
+                              onClick={() => handleOpenDetail(item.id)}
                               sx={{
-                                bgcolor: "#dcfce7",
-                                color: "#166534",
+                                borderRadius: 2,
+                                textTransform: "none",
                                 fontWeight: 700,
+                                color: "#9c27b0",
+                                borderColor: "#9c27b0",
                               }}
-                            />
+                            >
+                              Hồ sơ
+                            </Button>
                           </TableCell>
                         </>
                       ) : (
                         <>
-                          <TableCell>
-                            {user.lecturer?.degree || "---"}
+                          <TableCell sx={{ fontWeight: 600 }}>
+                            {renderCellText(item.cccd)}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: "0.85rem" }}>
+                            {renderCellText(item.department)}
                           </TableCell>
                           <TableCell>
-                            {user.lecturer?.department || "---"}
+                            <Box
+                              sx={{
+                                bgcolor: "#e0f2f1",
+                                color: "#00695c",
+                                px: 2,
+                                py: 0.5,
+                                borderRadius: 2,
+                                display: "inline-block",
+                                fontSize: "0.75rem",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {item.degree || "N/A"}
+                            </Box>
                           </TableCell>
                         </>
                       )}
-
-                      <TableCell align="center">
-                        <Tooltip title="Xem chi tiết hồ sơ">
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<VisibilityIcon />}
-                            onClick={() => handleOpenDetail(user)}
-                            sx={{
-                              borderRadius: 2,
-                              textTransform: "none",
-                              fontWeight: 700,
-                              bgcolor: "#9c27b0",
-                              "&:hover": { bgcolor: "#6a1b9a" },
-                            }}
-                          >
-                            Chi tiết
-                          </Button>
-                        </Tooltip>
-                      </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Pagination Section */}
+          <Box display="flex" justifyContent="center" py={4} bgcolor="white">
+            <Pagination
+              count={totalPages}
+              page={page + 1}
+              color="secondary"
+              shape="rounded"
+              size="large"
+              onChange={(_, value) => setPage(value - 1)}
+            />
+          </Box>
         </Paper>
       </Container>
 
-      {/* --- DRAWER CHI TIẾT --- */}
+      {/* DRAWER CHI TIẾT SINH VIÊN */}
       <Drawer
         anchor="right"
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        // Sử dụng PaperProps để an toàn với mọi phiên bản MUI v5
         PaperProps={{
-          sx: { width: { xs: "100%", sm: 650 }, borderRadius: "20px 0 0 20px" },
+          sx: { width: { xs: "100%", sm: 550 }, borderRadius: "16px 0 0 16px" },
         }}
       >
-        {selectedUser && (
+        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          {/* Header Drawer */}
           <Box
             sx={{
-              ...commonFont,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
+              background: "linear-gradient(135deg, #6a1b9a 0%, #9c27b0 100%)",
+              p: 4,
+              color: "white",
+              position: "relative",
             }}
           >
-            {/* Header Drawer */}
-            <Box
-              sx={{
-                background: "linear-gradient(135deg, #6a1b9a 0%, #9c27b0 100%)",
-                p: 4,
-                color: "white",
-                position: "relative",
-              }}
+            <IconButton
+              onClick={() => setIsDrawerOpen(false)}
+              sx={{ position: "absolute", right: 10, top: 10, color: "white" }}
             >
-              <IconButton
-                onClick={() => setIsDrawerOpen(false)}
-                sx={{
-                  position: "absolute",
-                  right: 10,
-                  top: 10,
-                  color: "white",
-                }}
-              >
-                <CloseIcon />
-              </IconButton>
-              <Box display="flex" alignItems="center" gap={3}>
+              <CloseIcon />
+            </IconButton>
+            {detailData && (
+              <Stack direction="row" spacing={3} alignItems="center">
                 <Avatar
                   sx={{
-                    width: 80,
-                    height: 80,
-                    border: "4px solid rgba(255,255,255,0.3)",
-                    fontSize: "2rem",
+                    width: 64,
+                    height: 64,
+                    border: "3px solid rgba(255,255,255,0.3)",
+                    fontSize: "1.5rem",
                     fontWeight: 800,
                   }}
                 >
-                  {selectedUser.fullName.charAt(0)}
+                  {detailData.fullName.charAt(0)}
                 </Avatar>
                 <Box>
-                  <Typography variant="h5" fontWeight="900">
-                    {selectedUser.fullName.toUpperCase()}
+                  <Typography variant="h5" fontWeight={800}>
+                    {detailData.fullName}
                   </Typography>
-                  <Box display="flex" gap={1} mt={1}>
-                    <Chip
-                      label={selectedUser.role}
-                      size="small"
-                      sx={{
-                        bgcolor: "rgba(255,255,255,0.2)",
-                        color: "white",
-                        fontWeight: 700,
-                      }}
-                    />
-                  </Box>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Mã số sinh viên: {detailData.studentId}
+                  </Typography>
                 </Box>
+              </Stack>
+            )}
+          </Box>
+
+          <Box sx={{ p: 4, flex: 1, overflowY: "auto" }}>
+            {drawerLoading ? (
+              <Box
+                display="flex"
+                flexDirection="column"
+                alignItems="center"
+                pt={10}
+              >
+                <CircularProgress color="secondary" />
+                <Typography sx={{ mt: 2, color: "text.secondary" }}>
+                  Đang tải hồ sơ...
+                </Typography>
               </Box>
-            </Box>
-
-            {/* Body Drawer */}
-            <Box sx={{ p: 4, flex: 1, overflowY: "auto" }}>
-              {selectedUser.role === "STUDENT" ? (
-                <>
-                  {/* PHẦN 1: THÔNG TIN HỌC VẤN */}
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="800"
-                    color="#9c27b0"
-                    mb={3}
-                    sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                  >
-                    <SchoolIcon fontSize="small" /> THÔNG TIN HỌC VẤN
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <InfoItem
-                      label="Mã số sinh viên"
-                      value={selectedUser.student?.studentId}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Khóa / Bậc"
-                      value={`${selectedUser.student?.batch || ""} - ${
-                        selectedUser.student?.eduLevel || ""
-                      }`}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Khoa"
-                      value={selectedUser.student?.faculty}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Ngành học"
-                      value={selectedUser.student?.major}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Chuyên ngành"
-                      value={selectedUser.student?.specialization}
-                      size={12}
-                    />
-                    <InfoItem
-                      label="Loại hình đào tạo"
-                      value={selectedUser.student?.trainingType}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Ngày nhập học"
-                      value={selectedUser.student?.admissionDate}
-                      size={6}
-                    />
-                  </Grid>
-
-                  <Divider sx={{ my: 4 }} />
-
-                  {/* PHẦN 2: THÔNG TIN CÁ NHÂN */}
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="800"
-                    color="#9c27b0"
-                    mb={3}
-                    sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                  >
-                    <PersonIcon fontSize="small" /> HỒ SƠ CÁ NHÂN
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <InfoItem
-                      label="Giới tính"
-                      value={selectedUser.student?.profile?.gender}
-                      size={4}
-                    />
-                    <InfoItem
-                      label="Ngày sinh"
-                      value={selectedUser.student?.dob}
-                      size={4}
-                    />
-                    <InfoItem
-                      label="Dân tộc"
-                      value={selectedUser.student?.profile?.ethnicity}
-                      size={4}
-                    />
-                    <InfoItem
-                      label="Số điện thoại"
-                      value={selectedUser.student?.profile?.phoneNumber}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Email cá nhân"
-                      value={selectedUser.email}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Địa chỉ thường trú"
-                      value={selectedUser.student?.profile?.permanentAddress}
-                      size={12}
-                    />
-                  </Grid>
-
-                  <Divider sx={{ my: 4 }} />
-
-                  {/* PHẦN 3: ĐỊNH DANH */}
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="800"
-                    color="#9c27b0"
-                    mb={3}
-                    sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                  >
-                    <BadgeIcon fontSize="small" /> ĐỊNH DANH
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <InfoItem
-                      label="Số CCCD"
-                      value={selectedUser.student?.profile?.idCardNumber}
-                      size={6}
-                    />
-                    <InfoItem
-                      label="Mã BHYT"
-                      value={selectedUser.student?.profile?.insuranceCode}
-                      size={6}
-                    />
-                  </Grid>
-                </>
-              ) : (
-                /* PHẦN GIẢNG VIÊN */
+            ) : (
+              detailData && (
                 <Grid container spacing={2}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      width: "100%",
+                      ml: 2,
+                      mb: 1,
+                      fontWeight: 800,
+                      color: "#9c27b0",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Hồ sơ đào tạo
+                  </Typography>
                   <InfoItem
-                    label="Học vị"
-                    value={selectedUser.lecturer?.degree}
+                    label="Email chính thức"
+                    value={detailData.email}
+                    size={12}
+                  />
+                  <InfoItem label="Khoa" value={detailData.faculty} size={6} />
+                  <InfoItem
+                    label="Chuyên ngành"
+                    value={detailData.specialization}
+                    size={6}
+                  />
+                  <InfoItem label="Khóa" value={detailData.batch} size={4} />
+                  <InfoItem
+                    label="Bậc đào tạo"
+                    value={detailData.eduLevel}
+                    size={4}
+                  />
+                  <InfoItem
+                    label="Loại hình"
+                    value={detailData.trainingType}
+                    size={4}
+                  />
+
+                  <Divider sx={{ width: "100%", my: 2 }} />
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      width: "100%",
+                      ml: 2,
+                      mb: 1,
+                      fontWeight: 800,
+                      color: "#9c27b0",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Thông tin cá nhân
+                  </Typography>
+                  <InfoItem label="Ngày sinh" value={detailData.dob} size={6} />
+                  <InfoItem
+                    label="Ngày nhập học"
+                    value={detailData.admissionDate}
                     size={6}
                   />
                   <InfoItem
-                    label="Bộ môn"
-                    value={selectedUser.lecturer?.department}
-                    size={6}
-                  />
-                  <InfoItem
-                    label="Số CCCD"
-                    value={selectedUser.lecturer?.cccd}
+                    label="Trạng thái hiện tại"
+                    value={detailData.studentStatus}
                     size={12}
                   />
                 </Grid>
-              )}
-            </Box>
+              )
+            )}
           </Box>
-        )}
+        </Box>
       </Drawer>
     </Box>
   );

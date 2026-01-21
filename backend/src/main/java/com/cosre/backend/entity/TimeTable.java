@@ -23,11 +23,10 @@ public class TimeTable {
     @JsonIgnore
     private ClassRoom classRoom;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime startTime;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime endTime;
+    private int dayOfWeek;
+    private int slot;
 
     private String room;
+    @Column(columnDefinition = "TEXT")
+    private String weeks;
 }

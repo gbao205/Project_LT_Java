@@ -262,7 +262,7 @@ const StaffDashboard = ({
         </Box>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StaffStatCard
               title="Môn Học"
               value={stats?.totalSubjects || 0}
@@ -270,7 +270,7 @@ const StaffDashboard = ({
               color="#f59e0b"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StaffStatCard
               title="Lớp Học"
               value={stats?.totalClasses || 0}
@@ -278,7 +278,7 @@ const StaffDashboard = ({
               color="#3b82f6"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StaffStatCard
               title="Sinh Viên"
               value={stats?.totalUsers || 0}
@@ -286,7 +286,7 @@ const StaffDashboard = ({
               color="#10b981"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StaffStatCard
               title="Đề Tài"
               value={stats?.totalProjects || 0}
@@ -301,12 +301,12 @@ const StaffDashboard = ({
     <Container maxWidth="lg">
       <Grid container spacing={4}>
         {/* Menu chính nghiệp vụ */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Typography variant="h6" fontWeight="800" mb={3}>
             Nghiệp Vụ Chính
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <MenuCard
                 title="Quản Lý Môn Học"
                 desc="Import và cấu hình Syllabus hệ thống"
@@ -315,7 +315,7 @@ const StaffDashboard = ({
                 onClick={() => navigate("/staff/subjects")}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <MenuCard
                 title="Quản Lý Lớp Học"
                 desc="Mở lớp, chia nhóm & nhập dữ liệu"
@@ -324,7 +324,7 @@ const StaffDashboard = ({
                 onClick={() => navigate("/staff/classes")}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <MenuCard
                 title="Quản Lý Tài Khoản"
                 desc="Dữ liệu Giảng viên & Sinh viên"
@@ -333,7 +333,7 @@ const StaffDashboard = ({
                 onClick={() => navigate("/staff/users")}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <MenuCard
                 title="Quản lý Chương Trình Học"
                 desc="xem & điều chỉnh chương trình học"
@@ -342,7 +342,7 @@ const StaffDashboard = ({
                 onClick={() => navigate("/staff/syllabus")}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <MenuCard
                 title="Đổi Mật Khẩu"
                 desc="Bảo mật tài khoản"
@@ -354,7 +354,7 @@ const StaffDashboard = ({
           </Grid>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Typography variant="h6" fontWeight="800" mb={3}>
             Trung Tâm Dữ Liệu
           </Typography>

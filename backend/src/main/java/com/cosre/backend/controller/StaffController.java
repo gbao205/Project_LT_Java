@@ -27,6 +27,7 @@ public class StaffController {
     private final IimportParser<?> importSyllabus;
     private final IimportParser<?> assignStudent;
     private final IStaffService staffService;
+    private final IimportParser<?> importTimeTable;
     @Autowired
     public StaffController(
             IStaffService staffService,
@@ -34,7 +35,8 @@ public class StaffController {
             @Qualifier("importSubject") IimportParser<?> importSubject,
             @Qualifier("importClass") IimportParser<?> importClasses,
             @Qualifier("importSyllabus") IimportParser<?> importSyllabus,
-            @Qualifier("assignStudent") IimportParser<?> assignStudent
+            @Qualifier("assignStudent") IimportParser<?> assignStudent,
+            @Qualifier("importTimeTable") IimportParser<?> importTimeTable
             ) {
         this.staffService = staffService;
         this.importUser = importUser;
@@ -42,14 +44,29 @@ public class StaffController {
         this.importClass=importClasses;
         this.importSyllabus=importSyllabus;
         this.assignStudent = assignStudent;
+        this.importTimeTable = importTimeTable;
     }
 
-    @GetMapping("/search-user")
-    public ResponseEntity<List<User>> getAllUserForStaff(@RequestParam(required = false) String search){
-        return ResponseEntity.ok()
-                .body(staffService.getAllUser(search));
+    @GetMapping("/students")
+    public ResponseEntity<Page<StudentResponseDTO>> getStudents(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(staffService.getStudentList(page, size, keyword));
     }
 
+    @GetMapping("/students/{id}")
+    public ResponseEntity<StudentDetailDTO> getStudentDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(staffService.getStudentDetail(id));
+    }
+
+    @GetMapping("/lecturers")
+    public ResponseEntity<Page<LecturerResponseDTO>> getLecturers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(staffService.getLecturerList(page, size, keyword));
+    }
     //===================================import================================================
     @PostMapping("/import-subject")
     public ResponseEntity<?> importSubject(@RequestParam("file") MultipartFile file) {
@@ -93,6 +110,11 @@ public class StaffController {
                 "message", "Import danh sách " + targetRole + " thành công!"
         ));
     }
+    @PostMapping("/import-timetable")
+    public ResponseEntity<?> importTimeTable(@RequestParam("file") MultipartFile file) {
+        importTimeTable.execute(file);
+        return ResponseEntity.ok(Map.of("message", "Import thời khóa biểu thành công!"));
+    }
     //===================================Syllabus================================================
     @GetMapping("/syllabus")
     public ResponseEntity<Page<SyllabusListDTO>> getSyllabusList(
@@ -125,6 +147,18 @@ public class StaffController {
                 name,
                 specialization
         );
+    }
+    @PatchMapping("/subjects/{subjectCode}")
+    public ResponseEntity<?> updateSubject(
+            @PathVariable String subjectCode,
+            @RequestBody UpdateSubjectDTO dto) {
+
+        SubjectDTO result = staffService.updateSubject(subjectCode, dto);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Cập nhật thông tin môn học thành công!",
+                "data", result
+        ));
     }
     //===================================class================================================
     @GetMapping("/classes")
@@ -160,6 +194,23 @@ public class StaffController {
     public ResponseEntity<List<StudentInClassDTO>> getStudentsInClass(@PathVariable String classCode) {
         List<StudentInClassDTO> students = staffService.getStudentInClass(classCode);
         return ResponseEntity.ok(students);
+    }
+    @GetMapping("/classes/{classCode}/timetable")
+    public ResponseEntity<List<TimeTableResponseDTO>> getClassTimeTable(@PathVariable String classCode) {
+        List<TimeTableResponseDTO> timetable = staffService.getTimeTable(classCode);
+        return ResponseEntity.ok(timetable);
+    }
+    @PatchMapping("/classes/{classCode}/dates")
+    public ResponseEntity<?> updateClassDates(
+            @PathVariable String classCode,
+            @RequestBody UpdateClassDateDTO dto) {
+
+        ClassResponseDTO result = staffService.updateClassDate(classCode, dto);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Cập nhật ngày nhập học thành công!",
+                "data", result
+        ));
     }
     //===================================assign================================================
     @PatchMapping("/classes/{classCode}/assign-lecturer-cccd/{cccd}")

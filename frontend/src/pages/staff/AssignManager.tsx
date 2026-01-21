@@ -11,9 +11,7 @@ import {
   Link,
   Grid,
   CircularProgress,
-  Alert,
   Paper,
-  Divider,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -82,8 +80,8 @@ const AssignManager = () => {
       showSuccess(res.data.message || "Cập nhật giảng viên thành công");
       await fetchClassDetail(); // Load lại để lấy tên GV mới từ Database
       setCccd("");
-    } catch (err: any) {
-      showError(err.response?.data?.message || "Lỗi khi gán giảng viên");
+    } catch {
+      showError("Lỗi khi gán giảng viên");
     } finally {
       setIsAssigning(false);
     }
@@ -181,7 +179,7 @@ const AssignManager = () => {
         >
           <Grid container spacing={6}>
             {/* CỘT GIẢNG VIÊN */}
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Box
                 sx={{
                   borderRight: { md: "1px solid #f1f5f9" },
@@ -305,7 +303,7 @@ const AssignManager = () => {
             </Grid>
 
             {/* CỘT SINH VIÊN */}
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Box
                 sx={{
                   display: "flex",

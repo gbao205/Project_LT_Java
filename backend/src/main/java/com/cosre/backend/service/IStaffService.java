@@ -4,14 +4,11 @@ import com.cosre.backend.dto.staff.*;
 import com.cosre.backend.entity.User;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface IStaffService {
-    List<ClassResponseDTO> getAllUserForStaff();
 
-    List<User> getAllUser(String keyword);
-
-    //===================================Syllabus================================================
     Page<SyllabusListDTO> getSyllabusList(int page,
                                           int size,
                                           Long id,
@@ -25,7 +22,13 @@ public interface IStaffService {
 
     ClassResponseDTO status(Long classId);
     void assignLecturer(String classCode, String cccd);
-    public List<StudentInClassDTO> getStudentInClass(String classCode);
-}
+    List<StudentInClassDTO> getStudentInClass(String classCode);
+    List<TimeTableResponseDTO> getTimeTable(String classCode);
+    ClassResponseDTO updateClassDate(String classId, UpdateClassDateDTO dto);
+    SubjectDTO updateSubject(String SubjectCode, UpdateSubjectDTO dto);
+    Page<StudentResponseDTO> getStudentList(int page, int size, String keyword);
+    StudentDetailDTO getStudentDetail(Long id);
+    Page<LecturerResponseDTO> getLecturerList(int page, int size, String keyword);
+    }
 
 

@@ -36,7 +36,8 @@ import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 
 import { staffService } from "../../services/staffService";
 import { useAppSnackbar } from "../../hooks/useAppSnackbar";
-
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import EditCalendarIcon from "@mui/icons-material/EditCalendar";
 // --- Định nghĩa Interfaces ---
 interface ClassData {
   id: number;
@@ -48,6 +49,8 @@ interface ClassData {
   studentCount: number;
   maxCapacity: number;
   registrationOpen: boolean;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface ApiResponseWrapper {
@@ -91,7 +94,48 @@ const ClassManager = () => {
     name: "",
     semester: "",
   });
+  const [openTimetableModal, setOpenTimetableModal] = useState(false);
+  const [timetableList, setTimetableList] = useState<any[]>([]);
+  const [loadingTimetable, setLoadingTimetable] = useState(false);
 
+  const [openDateModal, setOpenDateModal] = useState(false);
+  const [newStartDate, setNewStartDate] = useState("");
+  const [processingDate, setProcessingDate] = useState(false);
+  // 1. Logic lấy thời khóa biểu
+  const handleViewTimetable = async (classCode: string) => {
+    setSelectedClassCode(classCode);
+    setOpenTimetableModal(true);
+    setLoadingTimetable(true);
+    try {
+      const res = await staffService.getClassTimeTable(classCode);
+      setTimetableList(res.data);
+    } catch {
+      showError("Không thể tải thời khóa biểu");
+    } finally {
+      setLoadingTimetable(false);
+    }
+  };
+
+  // 2. Logic cập nhật ngày bắt đầu
+  const handleUpdateDate = async () => {
+    if (!newStartDate) return showError("Vui lòng chọn ngày bắt đầu");
+
+    setProcessingDate(true);
+    try {
+      await staffService.updateClassDates(selectedClassCode, {
+        startDate: newStartDate,
+      });
+      showSuccess(
+        "Cập nhật ngày thành công! Ngày kết thúc đã được tự động tính toán.",
+      );
+      setOpenDateModal(false);
+      loadData(); // Tải lại danh sách lớp để cập nhật dữ liệu mới
+    } catch {
+      showError("Lỗi khi cập nhật ngày học");
+    } finally {
+      setProcessingDate(false);
+    }
+  };
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -126,7 +170,7 @@ const ClassManager = () => {
     try {
       const res = await staffService.getStudentsInClass(classCode);
       setStudentList(res.data);
-    } catch (err) {
+    } catch {
       showError("Không thể tải danh sách sinh viên");
     } finally {
       setLoadingStudents(false);
@@ -222,7 +266,7 @@ const ClassManager = () => {
           sx={{ p: 2.5, mb: 4, borderRadius: 4, border: "1px solid #f1f5f9" }}
         >
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <TextField
                 label="Mã lớp"
                 size="small"
@@ -236,7 +280,7 @@ const ClassManager = () => {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <TextField
                 label="Tên lớp"
                 size="small"
@@ -247,7 +291,7 @@ const ClassManager = () => {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <TextField
                 label="Học kỳ"
                 size="small"
@@ -258,7 +302,7 @@ const ClassManager = () => {
                 }
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Stack direction="row" spacing={1}>
                 <Button
                   fullWidth
@@ -488,6 +532,64 @@ const ClassManager = () => {
                             )}
                           </IconButton>
                         </Tooltip>
+                        {/* 4. NÚT XEM THỜI KHÓA BIỂU */}
+                        <Tooltip title="Xem thời khóa biểu">
+                          <IconButton
+                            onClick={() => handleViewTimetable(cls.classCode)}
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              color: "#3b82f6",
+                              bgcolor: "#eff6ff",
+                              "&:hover": { bgcolor: "#dbeafe" },
+                            }}
+                          >
+                            <CalendarMonthIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+
+                        {/* 5. NÚT SỬA NGÀY NHẬP HỌC */}
+                        <Tooltip
+                          title={
+                            cls.registrationOpen
+                              ? "Cập nhật ngày nhập học"
+                              : "Lớp đã khóa, không thể sửa ngày"
+                          }
+                        >
+                          <span>
+                            {" "}
+                            {/* Bọc span để Tooltip hiện được khi disabled */}
+                            <IconButton
+                              disabled={!cls.registrationOpen} // KHÓA NÚT Ở ĐÂY
+                              onClick={() => {
+                                setSelectedClassCode(cls.classCode);
+                                setNewStartDate(cls.startDate || "");
+                                setOpenDateModal(true);
+                              }}
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                color: cls.registrationOpen
+                                  ? "#f59e0b"
+                                  : "rgba(0, 0, 0, 0.26)",
+                                bgcolor: cls.registrationOpen
+                                  ? "#fffbeb"
+                                  : "#f5f5f5",
+                                "&:hover": {
+                                  bgcolor: cls.registrationOpen
+                                    ? "#fef3c7"
+                                    : "#f5f5f5",
+                                },
+                                "&.Mui-disabled": {
+                                  color: "rgba(0, 0, 0, 0.26)",
+                                  bgcolor: "#f5f5f5",
+                                },
+                              }}
+                            >
+                              <EditCalendarIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -582,6 +684,74 @@ const ClassManager = () => {
               sx={{ textTransform: "none", borderRadius: 2 }}
             >
               Đóng
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
+          open={openTimetableModal}
+          onClose={() => setOpenTimetableModal(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 800 }}>
+            Thời khóa biểu: {selectedClassCode}
+          </DialogTitle>
+          <DialogContent>
+            {loadingTimetable ? (
+              <CircularProgress />
+            ) : (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                    <TableRow>
+                      <TableCell>Ngày</TableCell>
+                      <TableCell>Thứ</TableCell>
+                      <TableCell>Ca</TableCell>
+                      <TableCell>Phòng</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {timetableList.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{item.date}</TableCell>
+                        <TableCell>Thứ {item.dayOfWeek}</TableCell>
+                        <TableCell>Ca {item.slot}</TableCell>
+                        <TableCell>{item.room}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </DialogContent>
+        </Dialog>
+        <Dialog open={openDateModal} onClose={() => setOpenDateModal(false)}>
+          <DialogTitle sx={{ fontWeight: 800 }}>Cập nhật ngày học</DialogTitle>
+          <DialogContent sx={{ minWidth: 300, pt: 2 }}>
+            <Typography variant="body2" mb={2} color="text.secondary">
+              Chọn ngày bắt đầu mới, hệ thống sẽ tự động tính toán lại ngày kết
+              thúc dựa trên thời khóa biểu đã import.
+            </Typography>
+            <TextField
+              fullWidth
+              type="date"
+              label="Ngày bắt đầu mới"
+              InputLabelProps={{ shrink: true }}
+              value={newStartDate}
+              onChange={(e) => setNewStartDate(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setOpenDateModal(false)} color="inherit">
+              Hủy
+            </Button>
+            <Button
+              onClick={handleUpdateDate}
+              variant="contained"
+              disabled={processingDate}
+              sx={{ bgcolor: "#9c27b0" }}
+            >
+              {processingDate ? <CircularProgress size={24} /> : "Lưu thay đổi"}
             </Button>
           </DialogActions>
         </Dialog>

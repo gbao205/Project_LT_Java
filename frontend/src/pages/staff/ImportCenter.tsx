@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -65,6 +65,9 @@ const ImportCenter = () => {
           break;
         case "SYLLABUS":
           response = await staffService.importSyllabus(formData);
+          break;
+        case "TIMETABLE":
+          response = await staffService.importTimeTable(formData);
           break;
         default:
           setLoading(false);
@@ -162,6 +165,9 @@ const ImportCenter = () => {
                       <MenuItem value="CLASS">Lớp học</MenuItem>
                       <MenuItem value="SYLLABUS">Chương trình môn học</MenuItem>
                       <MenuItem value="SUBJECT">Môn học</MenuItem>
+                      <MenuItem value="TIMETABLE">
+                        Thời khóa biểu lớp học
+                      </MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
