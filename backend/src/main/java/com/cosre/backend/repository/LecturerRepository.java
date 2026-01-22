@@ -13,7 +13,9 @@ import java.util.Optional;
 public interface LecturerRepository extends JpaRepository<Lecturer, Long> {
     Optional<Lecturer> findByCCCD(String cccd);
     boolean existsByCCCD(String cccd);
-    Page<Lecturer> findByUser_FullNameContainingIgnoreCaseOrCCCDContainingIgnoreCase(
-            String fullName, String cccd, Pageable pageable
-    );
+    @Query("SELECT l FROM Lecturer l LEFT JOIN l.user u WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR " +
+            "LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR " +
+            "LOWER(l.CCCD) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
+    Page<Lecturer> searchLecturers(@Param("keyword") String keyword, Pageable pageable);
 }

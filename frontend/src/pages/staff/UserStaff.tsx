@@ -23,6 +23,7 @@ import {
   TextField,
   InputAdornment,
   Divider,
+  Skeleton,
 } from "@mui/material";
 
 // Icons
@@ -31,11 +32,23 @@ import SchoolIcon from "@mui/icons-material/School";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
-import GroupIcon from "@mui/icons-material/Group"; // Thay banner bằng icon tiêu đề
+import GroupIcon from "@mui/icons-material/Group";
 
 import { staffService } from "../../services/staffService";
 
-// --- INTERFACES ---
+// --- 1. ĐỊNH NGHĨA INTERFACE ĐỂ BỎ ANY ---
+interface UserListItem {
+  id: number;
+  fullName: string;
+  email: string;
+  studentId?: string;
+  major?: string;
+  CCCD?: string; // Khớp với JSON Postman của em
+  cccd?: string; // Dự phòng trường hợp Backend đổi kiểu đặt tên
+  department?: string;
+  degree?: string;
+}
+
 interface StudentDetail {
   fullName: string;
   email: string;
@@ -50,17 +63,17 @@ interface StudentDetail {
   admissionDate?: string;
 }
 
-// --- COMPONENT CON HIỂN THỊ CHI TIẾT ---
+// --- COMPONENT CON ---
 const InfoItem = ({
   label,
   value,
   size = 12,
 }: {
   label: string;
-  value?: any;
+  value?: string | number | null; // Đã đổi any thành kiểu cụ thể
   size?: number;
 }) => (
-  <Grid size={{ xs: 12, sm: size }}>
+  <Grid size={size} xs={12} sm={size}>
     <Box
       sx={{
         p: 1.5,
@@ -99,7 +112,7 @@ const InfoItem = ({
 
 const StaffUserManager = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<UserListItem[]>([]); // Đã bỏ any
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -107,7 +120,6 @@ const StaffUserManager = () => {
   const [detailData, setDetailData] = useState<StudentDetail | null>(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  // State cho tìm kiếm
   const [searchKeyword, setSearchKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
 
@@ -127,6 +139,7 @@ const StaffUserManager = () => {
       setTotalPages(res.data.totalPages);
     } catch (error) {
       console.error("Lỗi fetch:", error);
+      setData([]); // Đảm bảo data không bị undefined khi lỗi
     } finally {
       setLoading(false);
     }
@@ -136,7 +149,7 @@ const StaffUserManager = () => {
     loadData();
   }, [activeTab, page, appliedKeyword]);
 
-  const handleTabChange = (_: any, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
     setPage(0);
     setSearchKeyword("");
@@ -168,7 +181,7 @@ const StaffUserManager = () => {
     }
   };
 
-  const renderCellText = (text: any) => {
+  const renderCellText = (text: string | number | null | undefined) => {
     if (!text)
       return (
         <Typography
@@ -184,7 +197,7 @@ const StaffUserManager = () => {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 6 }}>
       <Container maxWidth="xl">
-        {/* HEADER SECTION - GIỐNG SYLLABUS MANAGER */}
+        {/* HEADER */}
         <Box
           display="flex"
           justifyContent="space-between"
@@ -222,7 +235,7 @@ const StaffUserManager = () => {
           </Box>
         </Box>
 
-        {/* SEARCH SECTION - ĐỒNG BỘ STYLE PHẲNG */}
+        {/* SEARCH BOX */}
         <Paper
           sx={{
             p: 2.5,
@@ -242,9 +255,7 @@ const StaffUserManager = () => {
                 fullWidth
                 size="small"
                 placeholder={
-                  activeTab === 0
-                    ? "Tìm kiếm sinh viên theo tên, MSSV..."
-                    : "Tìm kiếm giảng viên theo tên, CCCD..."
+                  activeTab === 0 ? "MSSV, Họ tên..." : "CCCD, Họ tên..."
                 }
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
@@ -267,10 +278,9 @@ const StaffUserManager = () => {
                   type="submit"
                   sx={{
                     bgcolor: "#9c27b0",
-                    textTransform: "none",
                     fontWeight: 700,
                     px: 3,
-                    "&:hover": { bgcolor: "#7b1fa2" },
+                    textTransform: "none",
                   }}
                 >
                   Tìm kiếm
@@ -279,8 +289,8 @@ const StaffUserManager = () => {
                   variant="outlined"
                   onClick={handleReset}
                   sx={{
-                    textTransform: "none",
                     fontWeight: 700,
+                    textTransform: "none",
                     color: "#64748b",
                     borderColor: "#cbd5e1",
                   }}
@@ -292,12 +302,15 @@ const StaffUserManager = () => {
           </form>
         </Paper>
 
-        {/* TABLE SECTION - ĐỒNG BỘ STYLE TABLE VỚI SYLLABUS */}
+        {/* DATA TABLE - FIX NHẢY CỘT */}
         <Paper
           sx={{
             borderRadius: 5,
             boxShadow: "0 10px 30px rgba(0,0,0,0.03)",
             overflow: "hidden",
+            minHeight: "650px",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <Tabs
@@ -319,94 +332,119 @@ const StaffUserManager = () => {
             />
           </Tabs>
 
-          <TableContainer sx={{ minHeight: 400 }}>
-            <Table stickyHeader>
-              <TableHead sx={{ bgcolor: "#f3e5f5" }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                    HỌ VÀ TÊN
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                    EMAIL
-                  </TableCell>
+          <TableContainer sx={{ flexGrow: 1 }}>
+            <Table stickyHeader sx={{ tableLayout: "fixed", minWidth: 800 }}>
+              <TableHead>
+                <TableRow
+                  sx={{
+                    "& th": {
+                      bgcolor: "#f3e5f5",
+                      fontWeight: 800,
+                      color: "#4a148c",
+                    },
+                  }}
+                >
+                  <TableCell sx={{ width: "25%" }}>HỌ VÀ TÊN</TableCell>
+                  <TableCell sx={{ width: "25%" }}>EMAIL</TableCell>
                   {activeTab === 0 ? (
                     <>
-                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                        MSSV
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                        NGÀNH
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{ fontWeight: 800, color: "#4a148c" }}
-                      >
+                      <TableCell sx={{ width: "15%" }}>MSSV</TableCell>
+                      <TableCell sx={{ width: "20%" }}>NGÀNH</TableCell>
+                      <TableCell align="center" sx={{ width: "15%" }}>
                         THAO TÁC
                       </TableCell>
                     </>
                   ) : (
                     <>
-                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                        CCCD
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                        BỘ MÔN
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
-                        HỌC VỊ
-                      </TableCell>
+                      <TableCell sx={{ width: "20%" }}>CCCD</TableCell>
+                      <TableCell sx={{ width: "20%" }}>BỘ MÔN</TableCell>
+                      <TableCell sx={{ width: "15%" }}>HỌC VỊ</TableCell>
                     </>
                   )}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                      <CircularProgress color="secondary" />
-                    </TableCell>
-                  </TableRow>
+                  // Skeleton giữ chỗ cho 10 dòng
+                  Array.from(new Array(10)).map((_, index) => (
+                    <TableRow key={index} sx={{ height: 70 }}>
+                      <TableCell>
+                        <Stack direction="row" spacing={2}>
+                          <Skeleton variant="circular" width={32} height={32} />
+                          <Skeleton width="60%" />
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton width="80%" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton width="40%" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton width="40%" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton variant="rounded" width={80} height={30} />
+                      </TableCell>
+                    </TableRow>
+                  ))
                 ) : data.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={5}
                       align="center"
-                      sx={{ py: 10, color: "#94a3b8" }}
+                      sx={{ height: 400, color: "#94a3b8" }}
                     >
-                      Không tìm thấy dữ liệu phù hợp
+                      Không tìm thấy dữ liệu
                     </TableCell>
                   </TableRow>
                 ) : (
                   data.map((item) => (
-                    <TableRow hover key={item.id}>
+                    <TableRow hover key={item.id} sx={{ height: 70 }}>
                       <TableCell>
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Avatar
                             sx={{
                               bgcolor: activeTab === 0 ? "#10b981" : "#3b82f6",
-                              fontWeight: 700,
                               width: 32,
                               height: 32,
                               fontSize: "0.85rem",
+                              fontWeight: 700,
                             }}
                           >
-                            {item.fullName.charAt(0)}
+                            {item.fullName?.charAt(0)}
                           </Avatar>
-                          <Typography variant="body2" fontWeight={700}>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            noWrap
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
                             {item.fullName}
                           </Typography>
                         </Stack>
                       </TableCell>
-                      <TableCell sx={{ fontSize: "0.85rem" }}>
-                        {item.email}
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                        >
+                          {item.email}
+                        </Typography>
                       </TableCell>
                       {activeTab === 0 ? (
                         <>
                           <TableCell sx={{ fontWeight: 700, color: "#6a1b9a" }}>
                             {renderCellText(item.studentId)}
                           </TableCell>
-                          <TableCell sx={{ fontSize: "0.85rem" }}>
-                            {renderCellText(item.major)}
+                          <TableCell>
+                            <Typography variant="body2" noWrap>
+                              {renderCellText(item.major)}
+                            </Typography>
                           </TableCell>
                           <TableCell align="center">
                             <Button
@@ -429,10 +467,12 @@ const StaffUserManager = () => {
                       ) : (
                         <>
                           <TableCell sx={{ fontWeight: 600 }}>
-                            {renderCellText(item.cccd)}
+                            {renderCellText(item.CCCD || item.cccd)}
                           </TableCell>
-                          <TableCell sx={{ fontSize: "0.85rem" }}>
-                            {renderCellText(item.department)}
+                          <TableCell>
+                            <Typography variant="body2" noWrap>
+                              {renderCellText(item.department)}
+                            </Typography>
                           </TableCell>
                           <TableCell>
                             <Box
@@ -459,21 +499,26 @@ const StaffUserManager = () => {
             </Table>
           </TableContainer>
 
-          {/* Pagination Section */}
-          <Box display="flex" justifyContent="center" py={4} bgcolor="white">
+          <Box
+            display="flex"
+            justifyContent="center"
+            py={3}
+            bgcolor="white"
+            sx={{ borderTop: "1px solid #f1f5f9" }}
+          >
             <Pagination
               count={totalPages}
               page={page + 1}
               color="secondary"
               shape="rounded"
               size="large"
-              onChange={(_, value) => setPage(value - 1)}
+              onChange={(_, v) => setPage(v - 1)}
             />
           </Box>
         </Paper>
       </Container>
 
-      {/* DRAWER CHI TIẾT SINH VIÊN */}
+      {/* DRAWER CHI TIẾT */}
       <Drawer
         anchor="right"
         open={isDrawerOpen}
@@ -483,7 +528,6 @@ const StaffUserManager = () => {
         }}
       >
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          {/* Header Drawer */}
           <Box
             sx={{
               background: "linear-gradient(135deg, #6a1b9a 0%, #9c27b0 100%)",
@@ -516,13 +560,12 @@ const StaffUserManager = () => {
                     {detailData.fullName}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Mã số sinh viên: {detailData.studentId}
+                    MSSV: {detailData.studentId}
                   </Typography>
                 </Box>
               </Stack>
             )}
           </Box>
-
           <Box sx={{ p: 4, flex: 1, overflowY: "auto" }}>
             {drawerLoading ? (
               <Box
@@ -552,11 +595,7 @@ const StaffUserManager = () => {
                   >
                     Hồ sơ đào tạo
                   </Typography>
-                  <InfoItem
-                    label="Email chính thức"
-                    value={detailData.email}
-                    size={12}
-                  />
+                  <InfoItem label="Email chính thức" value={detailData.email} />
                   <InfoItem label="Khoa" value={detailData.faculty} size={6} />
                   <InfoItem
                     label="Chuyên ngành"
@@ -574,21 +613,7 @@ const StaffUserManager = () => {
                     value={detailData.trainingType}
                     size={4}
                   />
-
                   <Divider sx={{ width: "100%", my: 2 }} />
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      width: "100%",
-                      ml: 2,
-                      mb: 1,
-                      fontWeight: 800,
-                      color: "#9c27b0",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Thông tin cá nhân
-                  </Typography>
                   <InfoItem label="Ngày sinh" value={detailData.dob} size={6} />
                   <InfoItem
                     label="Ngày nhập học"
@@ -596,9 +621,8 @@ const StaffUserManager = () => {
                     size={6}
                   />
                   <InfoItem
-                    label="Trạng thái hiện tại"
+                    label="Trạng thái"
                     value={detailData.studentStatus}
-                    size={12}
                   />
                 </Grid>
               )

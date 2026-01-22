@@ -266,16 +266,20 @@ public class StaffService implements IStaffService {
     @Override
     public Page<StudentResponseDTO> getStudentList(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        String searchKey = (keyword == null) ? "" : keyword;
-        Page<Student> students = studentRepository
-                .findByUser_FullNameContainingIgnoreCaseOrStudentIdContainingIgnoreCase(searchKey, searchKey, pageable);
-        return students.map(s -> StudentResponseDTO.builder()
-                .id(s.getId())
-                .studentId(s.getStudentId())
-                .fullName(s.getUser().getFullName())
-                .email(s.getUser().getEmail())
-                .major(s.getMajor())
-                .build());
+        Page<Student> students = studentRepository.searchStudents(keyword, pageable);
+
+        return students.map(s -> {
+            User user = s.getUser();
+
+            return StudentResponseDTO.builder()
+                    .id(s.getId())
+                    .studentId(s.getStudentId())
+                    // Nếu user null thì hiện "Chưa cấp tài khoản", không bao giờ để sập code
+                    .fullName(user != null ? user.getFullName() : "Chưa cập nhật")
+                    .email(user != null ? user.getEmail() : "N/A")
+                    .major(s.getMajor() != null ? s.getMajor() : "Đại cương")
+                    .build();
+        });
     }
 
     @Override
@@ -286,8 +290,8 @@ public class StaffService implements IStaffService {
         User u = s.getUser();
 
         return StudentDetailDTO.builder()
-                .fullName(u.getFullName()) // Lấy từ User
-                .email(u.getEmail())       // Lấy từ User
+                .fullName(u.getFullName())
+                .email(u.getEmail())
                 .studentId(s.getStudentId())
                 .eduLevel(s.getEduLevel())
                 .batch(s.getBatch())
@@ -303,16 +307,20 @@ public class StaffService implements IStaffService {
     @Override
     public Page<LecturerResponseDTO> getLecturerList(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        String searchKey = (keyword == null) ? "" : keyword;
-        Page<Lecturer> lecturers = lecturerRepository
-                .findByUser_FullNameContainingIgnoreCaseOrCCCDContainingIgnoreCase(searchKey, searchKey, pageable);
-        return lecturers.map(l -> LecturerResponseDTO.builder()
-                .id(l.getId())
-                .CCCD(l.getCCCD())
-                .fullName(l.getUser().getFullName())
-                .email(l.getUser().getEmail())
-                .department(l.getDepartment())
-                .degree(l.getDegree())
-                .build());
+
+        Page<Lecturer> lecturers = lecturerRepository.searchLecturers(keyword, pageable);
+
+        return lecturers.map(l -> {
+            User user = l.getUser();
+
+            return LecturerResponseDTO.builder()
+                    .id(l.getId())
+                    .CCCD(l.getCCCD())
+                    .fullName(user != null ? user.getFullName() : "Chưa cập nhật")
+                    .email(user != null ? user.getEmail() : "N/A")
+                    .department(l.getDepartment() != null ? l.getDepartment() : "Chưa rõ")
+                    .degree(l.getDegree() != null ? l.getDegree() : "N/A")
+                    .build();
+        });
     }
 }

@@ -17,9 +17,9 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     Optional<Student> findByUser(User user);
     @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.studentId = :studentId")
     Optional<Student> findByStudentId(@Param("studentId") String studentId);
-    Page<Student> findByUser_FullNameContainingIgnoreCaseOrStudentIdContainingIgnoreCase(
-            String fullName,
-            String studentId,
-            Pageable pageable
-    );
+    @Query("SELECT s FROM Student s LEFT JOIN s.user u WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR " +
+            "LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR " +
+            "LOWER(s.studentId) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
+    Page<Student> searchStudents(@Param("keyword") String keyword, Pageable pageable);
 }
