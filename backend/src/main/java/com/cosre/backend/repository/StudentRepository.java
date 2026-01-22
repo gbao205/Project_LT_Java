@@ -17,13 +17,9 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     Optional<Student> findByUser(User user);
     @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.studentId = :studentId")
     Optional<Student> findByStudentId(@Param("studentId") String studentId);
-    @Query(value = "SELECT s.* FROM students s " +
-            "JOIN users u ON u.id = s.user_id " +
-            "WHERE (:keyword IS NULL OR " +
-            "u.full_name ILIKE CONCAT('%', :keyword, '%') OR " +
-            "s.student_id ILIKE CONCAT('%', :keyword, '%'))",
-            countQuery = "SELECT count(*) FROM students s JOIN users u ON u.id = s.user_id " +
-                    "WHERE (:keyword IS NULL OR u.full_name ILIKE CONCAT('%', :keyword, '%') OR s.student_id ILIKE CONCAT('%', :keyword, '%'))",
-            nativeQuery = true)
-    Page<Student> searchStudents(@Param("keyword") String keyword, Pageable pageable);
+    Page<Student> findByUser_FullNameContainingIgnoreCaseOrStudentIdContainingIgnoreCase(
+            String fullName,
+            String studentId,
+            Pageable pageable
+    );
 }

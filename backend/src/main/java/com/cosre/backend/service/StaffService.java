@@ -266,10 +266,11 @@ public class StaffService implements IStaffService {
     @Override
     public Page<StudentResponseDTO> getStudentList(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Student> students = studentRepository.searchStudents(keyword, pageable);
-
+        String searchKey = (keyword == null) ? "" : keyword;
+        Page<Student> students = studentRepository
+                .findByUser_FullNameContainingIgnoreCaseOrStudentIdContainingIgnoreCase(searchKey, searchKey, pageable);
         return students.map(s -> StudentResponseDTO.builder()
-                .id(s.getId()) // Lưu ý: Đây là ID của Student để gọi detail sau này
+                .id(s.getId())
                 .studentId(s.getStudentId())
                 .fullName(s.getUser().getFullName())
                 .email(s.getUser().getEmail())
@@ -302,8 +303,9 @@ public class StaffService implements IStaffService {
     @Override
     public Page<LecturerResponseDTO> getLecturerList(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Lecturer> lecturers = lecturerRepository.searchLecturers(keyword, pageable);
-
+        String searchKey = (keyword == null) ? "" : keyword;
+        Page<Lecturer> lecturers = lecturerRepository
+                .findByUser_FullNameContainingIgnoreCaseOrCCCDContainingIgnoreCase(searchKey, searchKey, pageable);
         return lecturers.map(l -> LecturerResponseDTO.builder()
                 .id(l.getId())
                 .CCCD(l.getCCCD())
