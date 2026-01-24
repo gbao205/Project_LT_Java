@@ -53,7 +53,7 @@ const ChatWidget = () => {
     const [isIncoming, setIsIncoming] = useState(false);
     const [incomingCallDialog, setIncomingCallDialog] = useState<{open: boolean, sender: string} | null>(null);
 
-    // [MỚI] State quản lý việc thu nhỏ video (Thủ công)
+    // State quản lý việc thu nhỏ video (Thủ công)
     const [isVideoMinimized, setIsVideoMinimized] = useState(false);
 
     // --- STATE WHITEBOARD ---
@@ -146,9 +146,13 @@ const ChatWidget = () => {
             const userToSet = contactInfo || { email: callerEmail, fullName: callerEmail };
             setSelectedUser(userToSet);
             setView('CHAT');
+
+            // 1. Cập nhật trạng thái Video
             setIsIncoming(true);
             setVideoCallOpen(true);
             setIsVideoMinimized(false);
+
+            // 2. [FIX QUAN TRỌNG] Xóa hẳn dialog thông báo để nó không hiện lại khi thu nhỏ
             setIncomingCallDialog(null);
         }
     };
@@ -187,9 +191,6 @@ const ChatWidget = () => {
             setSnackbarMsg("Đã gửi lời mời vẽ...");
             setSnackbarOpen(true);
             sendCallLog("🎨 Đã gửi lời mời tham gia Bảng trắng", selectedUser.email);
-
-            // [THAY ĐỔI] Không tự động thu nhỏ video nữa
-            // setIsVideoMinimized(true); -> Bỏ dòng này
         }
     };
 
@@ -202,9 +203,9 @@ const ChatWidget = () => {
             setView('CHAT');
 
             setWhiteboardOpen(true);
-            setIncomingWhiteboardRequest(null);
 
-            // [THAY ĐỔI] Không tự động thu nhỏ video nữa
+            // [FIX QUAN TRỌNG] Xóa lời mời ngay khi chấp nhận
+            setIncomingWhiteboardRequest(null);
 
             if (clientRef.current?.connected) {
                 clientRef.current.publish({
@@ -471,8 +472,6 @@ const ChatWidget = () => {
                     stompClient={clientRef.current}
                     isIncoming={isIncoming}
                     signalData={incomingCallSignal}
-
-                    // [SỬA ĐỔI QUAN TRỌNG] Tách biệt khỏi whiteboardOpen
                     minimized={isVideoMinimized}
                     onToggleMinimize={() => setIsVideoMinimized(!isVideoMinimized)}
                 />
@@ -490,8 +489,21 @@ const ChatWidget = () => {
                 />
             )}
 
-            {/* DIALOG 1: NHẬN CUỘC GỌI VIDEO */}
-            <Dialog open={!!incomingCallDialog} onClose={rejectCall} PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}>
+            {/* DIALOG 1: NHẬN CUỘC GỌI VIDEO - [ĐÃ FIX 100%] */}
+            <Dialog
+                // Chỉ hiện khi: Có cuộc gọi đến VÀ (chưa mở cửa sổ video)
+                open={!!incomingCallDialog && !videoCallOpen}
+
+                // [FIX LỖI BẤM RA NGOÀI TẮT CUỘC GỌI]
+                disableEscapeKeyDown
+                onClose={(event, reason) => {
+                    if (reason !== 'backdropClick') {
+                        rejectCall();
+                    }
+                }}
+
+                PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}
+            >
                 <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 60, height: 60, bgcolor: '#1976d2' }}><VideoCallIcon fontSize="large" /></Avatar>
                     <Typography variant="h6" fontWeight="bold">Cuộc gọi đến</Typography>
@@ -505,8 +517,20 @@ const ChatWidget = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* DIALOG 2: LỜI MỜI BẢNG TRẮNG */}
-            <Dialog open={!!incomingWhiteboardRequest} onClose={rejectWhiteboard} PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}>
+            {/* DIALOG 2: LỜI MỜI BẢNG TRẮNG - [ĐÃ FIX 100%] */}
+            <Dialog
+                // [FIX LỖI KHI MỞ BẢNG TRẮNG VẪN CÒN LỜI MỜI]
+                open={!!incomingWhiteboardRequest && !whiteboardOpen}
+
+                // [FIX LỖI BẤM RA NGOÀI BỊ TẮT]
+                disableEscapeKeyDown
+                onClose={(event, reason) => {
+                    if (reason !== 'backdropClick') {
+                        rejectWhiteboard();
+                    }
+                }}
+                PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}
+            >
                 <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 60, height: 60, bgcolor: '#ed6c02' }}><DrawIcon fontSize="large" /></Avatar>
                     <Typography variant="h6" fontWeight="bold">Lời mời vẽ chung</Typography>
