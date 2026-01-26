@@ -6,7 +6,6 @@ import {
     ArrowLeft, Loader2, Eye, Download, Clock, AlertCircle, Save
 } from 'lucide-react';
 
-// --- INTERFACES ---
 interface StudentDTO {
     id: number;
     fullName: string;
@@ -23,16 +22,15 @@ interface GroupDataDTO {
     maxMembers: number;
 }
 
-// Interface cho bài tập và bài làm của sinh viên
 interface StudentAssignmentDTO {
-    id: number; // Assignment ID
+    id: number;
     title: string;
-    description: string; // Đề bài giáo viên gửi
+    description: string;
     deadline: string;
     status: 'SUBMITTED' | 'LATE' | 'MISSING' | 'PENDING';
     submissionDate?: string;
-    submissionFile?: string; // Link bài làm
-    score?: number; // Điểm của bài này
+    submissionFile?: string;
+    score?: number;
     feedback?: string;
 }
 
@@ -60,7 +58,7 @@ const LecturerTeamDetail: React.FC = () => {
     const [currentScore, setCurrentScore] = useState('');
     const [currentFeedback, setCurrentFeedback] = useState('');
 
-    // --- STATE EASTER EGG (Giữ nguyên) ---
+    // --- STATE EASTER EGG ---
     const [konamiProgress, setKonamiProgress] = useState(0);
     const [easterEggActive, setEasterEggActive] = useState(false);
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
@@ -92,7 +90,7 @@ const LecturerTeamDetail: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [konamiProgress]);
 
-    // --- FETCH DATA (LÀM MỚI DỮ LIỆU) ---
+    // --- FETCH DATA (LÀM MỚI DỮ LIỆU NHÓM) ---
     const fetchGroupDetails = async () => {
         if (!groupData?.id) return;
         setLoading(true);
@@ -113,46 +111,38 @@ const LecturerTeamDetail: React.FC = () => {
         }
     };
 
-    // --- FETCH ASSIGNMENTS KHI MỞ MODAL ---
+    // --- FETCH ASSIGNMENTS KHI MỞ MODAL (QUAN TRỌNG: FIX LOGIC) ---
     const fetchStudentAssignments = async (studentId: number) => {
         setLoadingAssignments(true);
+        setAssignments([]); // Clear data cũ tránh hiển thị nhầm
+        setSelectedAssignmentId(null);
+
         try {
-            // Gọi API lấy danh sách bài tập kèm trạng thái nộp của sinh viên này
-            // Backend cần endpoint: GET /api/lecturer/student-assignments/{studentId}/{classId}
+            // ✅ GỌI API THẬT: Lấy danh sách bài tập + trạng thái nộp + điểm đã chấm
+            // Endpoint này khớp với LecturerController.getStudentAssignments
             const response = await api.get(`/lecturer/student-assignments/${studentId}/${classId}`);
+
+            console.log("🔥 Assignments Data:", response.data);
             setAssignments(response.data);
 
-            // Mặc định chọn bài đầu tiên
+            // Mặc định chọn bài đầu tiên để hiển thị chi tiết ngay
             if (response.data && response.data.length > 0) {
                 selectAssignmentForGrading(response.data[0]);
             }
         } catch (error) {
             console.error("Lỗi tải bài tập:", error);
-            // Mock data tạm thời để bạn test UI (khi chưa có API)
-            const mockData: StudentAssignmentDTO[] = [
-                {
-                    id: 1, title: 'Bài tập tuần 1: Database Design', description: 'Vẽ ERD và map sang Schema quan hệ.', deadline: '2024-02-20',
-                    status: 'SUBMITTED', submissionDate: '2024-02-19 10:00', submissionFile: 'erd_design.pdf', score: 8.5, feedback: 'Làm tốt, chú ý chuẩn hóa 3NF'
-                },
-                {
-                    id: 2, title: 'Bài tập tuần 2: Backend API', description: 'Viết CRUD API cho User và Product.', deadline: '2024-03-01',
-                    status: 'MISSING', score: undefined, feedback: ''
-                },
-                {
-                    id: 3, title: 'Bài tập tuần 3: Frontend React', description: 'Dựng giao diện Dashboard.', deadline: '2024-03-10',
-                    status: 'PENDING', score: undefined, feedback: ''
-                }
-            ];
-            setAssignments(mockData);
-            selectAssignmentForGrading(mockData[0]);
+            // ⚠️ Đã XÓA phần Mock Data ở đây để đảm bảo bạn biết nếu API bị lỗi
+            alert("Không thể tải dữ liệu bài tập của sinh viên này.");
         } finally {
             setLoadingAssignments(false);
         }
     };
 
+    // Khi chọn một bài tập từ list bên trái
     const selectAssignmentForGrading = (asm: StudentAssignmentDTO) => {
         setSelectedAssignmentId(asm.id);
-        setCurrentScore(asm.score !== undefined ? asm.score.toString() : '');
+        // Load điểm và feedback cũ lên form (nếu có)
+        setCurrentScore(asm.score !== undefined && asm.score !== null ? asm.score.toString() : '');
         setCurrentFeedback(asm.feedback || '');
     };
 
@@ -163,33 +153,51 @@ const LecturerTeamDetail: React.FC = () => {
         fetchStudentAssignments(student.id);
     };
 
+    // --- LƯU ĐIỂM (QUAN TRỌNG: FIX API PATH) ---
     const handleSaveGrade = async () => {
         if (!selectedStudent || !selectedAssignmentId) return;
+
+        // Validate điểm
+        const scoreVal = parseFloat(currentScore);
+        if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
+            alert("⚠️ Điểm số phải từ 0 đến 10!");
+            return;
+        }
 
         try {
             const payload = {
                 studentId: selectedStudent.id,
                 assignmentId: selectedAssignmentId,
-                score: parseFloat(currentScore),
-                comment: currentFeedback,
-                type: 'ASSIGNMENT' // Đánh dấu đây là chấm bài tập
+                score: scoreVal,
+                comment: currentFeedback || '',
+                type: 'ASSIGNMENT'
             };
 
-            // Gọi API lưu điểm cho bài tập cụ thể
-            await api.post('/evaluations/assignment', payload);
+            // ✅ FIX ĐƯỜNG DẪN API: Thêm /lecturer vào trước
+            // Backend Controller: @RequestMapping("/api/lecturer")
+            await api.post('/lecturer/evaluations/assignment', payload);
 
-            // Cập nhật lại state local để UI phản hồi ngay
+            // Cập nhật lại State UI ngay lập tức (Optimistic Update)
             setAssignments(prev => prev.map(a =>
                 a.id === selectedAssignmentId
-                    ? { ...a, score: parseFloat(currentScore), feedback: currentFeedback }
+                    ? { ...a, score: scoreVal, feedback: currentFeedback }
                     : a
             ));
 
             alert("✅ Đã lưu điểm bài tập thành công!");
         } catch (error) {
             console.error("Lỗi lưu điểm:", error);
-            alert("❌ Lỗi khi lưu điểm.");
+            alert("❌ Lỗi khi lưu điểm. Vui lòng thử lại.");
         }
+    };
+
+    // Mở file bài làm (Nếu có URL)
+    const handleViewFile = (fileUrl?: string) => {
+        if (!fileUrl) return alert("Không tìm thấy file bài làm!");
+        // Logic mở file: Nếu là link online thì mở tab mới, nếu là local server thì ghép base URL
+        // Ở đây giả sử trả về tên file -> Backend cần serve file static hoặc trả về full URL
+        alert(`Đang mở file: ${fileUrl}\n(Chức năng download cần backend cấu hình serve static file)`);
+        // window.open(fileUrl, '_blank');
     };
 
     // Helper UI: Badge trạng thái nộp bài
@@ -234,7 +242,7 @@ const LecturerTeamDetail: React.FC = () => {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">
-                {/* Title & Stats (Giữ nguyên) */}
+                {/* Title & Stats */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h2 className="text-3xl font-extrabold text-blue-900 flex items-center gap-3">
@@ -379,7 +387,7 @@ const LecturerTeamDetail: React.FC = () => {
                                                         <p className="text-gray-500 text-sm">Sinh viên chưa nộp bài tập này.</p>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white shadow-sm hover:border-blue-300 transition-colors cursor-pointer group">
+                                                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white shadow-sm hover:border-blue-300 transition-colors cursor-pointer group" onClick={() => handleViewFile(activeAssignment.submissionFile)}>
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
                                                                 <FileText className="w-5 h-5" />
@@ -460,7 +468,7 @@ const LecturerTeamDetail: React.FC = () => {
                 </div>
             )}
 
-            {/* Easter Egg (Giữ nguyên) */}
+            {/* Easter Egg */}
             {easterEggActive && (
                 <div className="fixed bottom-8 right-8 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-xl shadow-2xl animate-bounce z-50 flex items-center gap-3">
                     <Trophy className="w-6 h-6 text-yellow-300" />

@@ -4,16 +4,22 @@ import com.cosre.backend.dto.DashboardStats;
 import com.cosre.backend.dto.lecturer.*;
 import com.cosre.backend.entity.*;
 import com.cosre.backend.repository.*;
-import com.cosre.backend.dto.lecturer.LecturerAssignmentDTO;// Import cả AssignmentRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.math.BigDecimal;
+import java.util.UUID;
+import java.io.IOException;          // ✅ Mới
+import java.nio.file.Files;          // ✅ Mới
+import java.nio.file.Path;           // ✅ Mới
+import java.nio.file.Paths;          // ✅ Mới
+import java.nio.file.StandardCopyOption;
 
 @Service
 public class LecturerService {
@@ -30,28 +36,33 @@ public class LecturerService {
     @Autowired
     private UserRepository userRepository;
 
-    // ✅ Đã có file Repository rồi -> Bỏ comment dòng này
     @Autowired
     private AssignmentRepository assignmentRepository;
 
+    // ✅ Bắt buộc phải có 2 Repo này để chấm điểm và xem bài nộp
+    @Autowired
+    private SubmissionRepository submissionRepository;
+    @Autowired
+    private EvaluationRepository evaluationRepository;
+    @Autowired
+    private CourseMaterialRepository courseMaterialRepository;
+
     // =========================================================================
-    // 1. LẤY DANH SÁCH LỚP (CÓ MAP SANG DTO CHI TIẾT + BÀI TẬP)
+    // 1. LẤY DANH SÁCH LỚP (KÈM DANH SÁCH BÀI TẬP ĐÃ GIAO)
     // =========================================================================
     public List<LecturerClassDetailDTO> getMyClasses(String email) {
         List<ClassRoom> classes = classRoomRepository.findByLecturerEmail(email);
 
         return classes.stream().map(cls -> {
-            // --- A. Map Danh sách Nhóm ---
+            // A. Map Teams & Students
             List<LecturerTeamDTO> teamDTOs = new ArrayList<>();
             if (cls.getTeams() != null) {
                 teamDTOs = cls.getTeams().stream().map(team -> {
-                    // --- B. Map Danh sách Sinh viên ---
                     List<LecturerStudentDTO> memberDTOs = new ArrayList<>();
                     if (team.getMembers() != null) {
                         memberDTOs = team.getMembers().stream().map(mem -> {
                             User s = mem.getStudent();
                             BigDecimal score = (mem.getFinalGrade() != null) ? mem.getFinalGrade() : BigDecimal.ZERO;
-
                             return LecturerStudentDTO.builder()
                                     .id(s.getId())
                                     .fullName(s.getFullName())
@@ -60,9 +71,7 @@ public class LecturerService {
                                     .build();
                         }).collect(Collectors.toList());
                     }
-
                     BigDecimal teamScore = (team.getTeamScore() != null) ? team.getTeamScore() : BigDecimal.ZERO;
-
                     return LecturerTeamDTO.builder()
                             .id(team.getId())
                             .name(team.getTeamName())
@@ -75,24 +84,16 @@ public class LecturerService {
 
             int totalStudents = teamDTOs.stream().mapToInt(t -> t.getMembers().size()).sum();
 
-            // --- C. Map Danh sách Bài tập (Assignment) ---
+            // B. Map Assignments (Để hiển thị list bài tập ở ClassManager)
             List<LecturerAssignmentDTO> assignmentDTOs = new ArrayList<>();
-
-            // ✅ Logic mới khớp với file AssignmentRepository bạn gửi
             if (assignmentRepository != null) {
-                // Gọi hàm findByClassRoom (truyền object cls thay vì ID)
                 List<Assignment> assignments = assignmentRepository.findByClassRoom(cls);
-
                 assignmentDTOs = assignments.stream().map(a -> LecturerAssignmentDTO.builder()
                         .id(a.getId())
                         .title(a.getTitle())
-                        // Entity của bạn chỉ có 'deadline', không có start/end hay type/status
-                        // -> Map deadline vào dueDate
                         .dueDate(a.getDeadline() != null ? a.getDeadline().toLocalDate().toString() : "")
-
-                        // -> Gán mặc định để Frontend hiển thị đẹp (vì DB chưa có cột này)
-                        .type("CLASS_ASSIGNMENT")
-                        .status("ACTIVE")
+                        .type("CLASS_ASSIGNMENT") // Mặc định
+                        .status("ACTIVE")       // Mặc định
                         .build()
                 ).collect(Collectors.toList());
             }
@@ -104,16 +105,15 @@ public class LecturerService {
                     .subjectName(cls.getSubject() != null ? cls.getSubject().getName() : "N/A")
                     .studentCount(totalStudents)
                     .teams(teamDTOs)
-                    .assignments(assignmentDTOs) // ✅ Đưa list bài tập vào
+                    .assignments(assignmentDTOs)
                     .build();
 
         }).collect(Collectors.toList());
     }
 
     // =========================================================================
-    // CÁC HÀM KHÁC GIỮ NGUYÊN
+    // 2. DASHBOARD STATS
     // =========================================================================
-
     public DashboardStats getLecturerStats(String email) {
         List<ClassRoom> classes = classRoomRepository.findByLecturerEmail(email);
         long activeClasses = classes.size();
@@ -132,6 +132,9 @@ public class LecturerService {
         return new DashboardStats(0L, 0L, activeClasses, 0L, 0L, pendingRequests, totalStudents);
     }
 
+    // =========================================================================
+    // 3. LẤY ĐỀ TÀI SINH VIÊN GỬI
+    // =========================================================================
     public List<ClassProposalDTO> getProposalsByLecturer(String email) {
         List<ClassRoom> classes = classRoomRepository.findByLecturerEmail(email);
         List<ClassProposalDTO> result = new ArrayList<>();
@@ -161,7 +164,6 @@ public class LecturerService {
                             .status(statusStr)
                             .submittedDate("2024-01-01")
                             .build();
-
                     proposalDTOS.add(dto);
 
                     if (project.getStatus() == ProjectStatus.PENDING) {
@@ -181,6 +183,9 @@ public class LecturerService {
         return result;
     }
 
+    // =========================================================================
+    // 4. DUYỆT ĐỀ TÀI
+    // =========================================================================
     public void updateProjectStatus(Long projectId, String status, String reason) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề tài ID: " + projectId));
@@ -195,6 +200,9 @@ public class LecturerService {
         projectRepository.save(project);
     }
 
+    // =========================================================================
+    // 5. LẤY DANH SÁCH PHẢN BIỆN (Xem mình phải review ai)
+    // =========================================================================
     public List<ProposalDTO> getAssignedReviewProjects(String email) {
         User reviewer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên: " + email));
@@ -214,13 +222,15 @@ public class LecturerService {
                     .groupName("")
                     .students(new ArrayList<>())
                     .titleEn("")
-                    // --- [MỚI] THÊM 2 DÒNG NÀY ĐỂ HIỆN LỊCH SỬ CHẤM ---
                     .reviewScore(p.getReviewScore())
                     .reviewComment(p.getReviewComment())
                     .build();
         }).collect(Collectors.toList());
     }
 
+    // =========================================================================
+    // 6. TẠO ĐỀ TÀI MỚI (CÓ UPLOAD FILE)
+    // =========================================================================
     public void createProposal(ProposalDTO dto, MultipartFile file, String email) {
         User lecturer = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên: " + email));
@@ -238,80 +248,256 @@ public class LecturerService {
             String fileName = file.getOriginalFilename();
             System.out.println(">>> Đã nhận file: " + fileName);
         }
-
         projectRepository.save(project);
     }
 
+    // =========================================================================
+    // 7. LẤY DANH SÁCH ĐỀ TÀI TÔI ĐÃ GỬI
+    // =========================================================================
     public List<ProposalDTO> getMyCreatedProposals(String email) {
-        System.out.println("--- BẮT ĐẦU GỌI API MY-PROPOSALS ---");
         try {
             User owner = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên"));
 
             List<Project> projects = projectRepository.findByOwner(owner);
-
             List<ProposalDTO> dtos = new ArrayList<>();
             for (Project p : projects) {
-                try {
-                    String statusStr = (p.getStatus() != null) ? p.getStatus().name() : "PENDING";
-                    String subDateStr = "";
-                    if (p.getSubmittedDate() != null) {
-                        subDateStr = p.getSubmittedDate().toString();
-                    }
-                    Integer maxStu = (p.getMaxStudents() != null) ? p.getMaxStudents() : 0;
-                    String tech = (p.getTechnology() != null) ? p.getTechnology() : "";
-                    String desc = (p.getDescription() != null) ? p.getDescription() : "";
-                    String title = (p.getName() != null) ? p.getName() : "Không tên";
+                String statusStr = (p.getStatus() != null) ? p.getStatus().name() : "PENDING";
+                String subDateStr = (p.getSubmittedDate() != null) ? p.getSubmittedDate().toString() : "";
+                Integer maxStu = (p.getMaxStudents() != null) ? p.getMaxStudents() : 0;
+                String tech = (p.getTechnology() != null) ? p.getTechnology() : "";
+                String desc = (p.getDescription() != null) ? p.getDescription() : "";
+                String title = (p.getName() != null) ? p.getName() : "Không tên";
 
-                    ProposalDTO dto = ProposalDTO.builder()
-                            .id(p.getId())
-                            .title(title)
-                            .description(desc)
-                            .technology(tech)
-                            .maxStudents(maxStu)
-                            .status(statusStr)
-                            .submittedDate(subDateStr)
-                            .groupName("")
-                            .students(new ArrayList<>())
-                            .titleEn("")
-                            .reviewScore(p.getReviewScore())
-                            .reviewComment(p.getReviewComment())
-                            .build();
-                    dtos.add(dto);
-
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                ProposalDTO dto = ProposalDTO.builder()
+                        .id(p.getId())
+                        .title(title)
+                        .description(desc)
+                        .technology(tech)
+                        .maxStudents(maxStu)
+                        .status(statusStr)
+                        .submittedDate(subDateStr)
+                        .groupName("")
+                        .students(new ArrayList<>())
+                        .titleEn("")
+                        .reviewScore(p.getReviewScore())
+                        .reviewComment(p.getReviewComment())
+                        .build();
+                dtos.add(dto);
             }
             return dtos;
-
         } catch (Exception e) {
-            System.err.println("!!! LỖI NGHIÊM TRỌNG TRONG SERVICE: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
     }
-    /**
-     * Chức năng: Giảng viên phản biện chấm điểm và gửi nhận xét
-     */
+
+    // =========================================================================
+    // 8. CHẤM ĐIỂM PHẢN BIỆN
+    // =========================================================================
     public void gradeReviewProject(Long projectId, Double score, String comment, String reviewerEmail) {
-        // 1. Tìm đề tài
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề tài ID: " + projectId));
 
-        // 2. Tìm giảng viên đang thao tác
         User reviewer = userRepository.findByEmail(reviewerEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên: " + reviewerEmail));
 
-        // 3. KIỂM TRA QUYỀN: Người này có đúng là Reviewer của đề tài không?
         if (project.getReviewer() == null || !project.getReviewer().getId().equals(reviewer.getId())) {
-            throw new RuntimeException("Bạn không được phân công phản biện đề tài này, không thể chấm điểm!");
+            throw new RuntimeException("Bạn không được phân công phản biện đề tài này!");
         }
 
-        // 4. Lưu kết quả vào database
         project.setReviewScore(score);
         project.setReviewComment(comment);
         projectRepository.save(project);
-        System.out.println(">>> Đã chấm điểm đề tài ID " + projectId + ": " + score + " điểm.");
     }
+
+    // =========================================================================
+    // 9. GIAO BÀI TẬP (CẬP NHẬT: THÊM THAM SỐ TYPE)
+    // =========================================================================
+    public void createAssignment(Long classId, String title, String description, String type, String deadline, MultipartFile file) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Lớp học không tồn tại"));
+
+        Assignment assignment = new Assignment();
+        assignment.setTitle(title);
+        assignment.setDescription(description);
+        assignment.setClassRoom(classRoom);
+
+        // --- Xử lý loại bài tập (Nếu có Enum thì parse, không thì lưu String) ---
+        // Ví dụ: assignment.setType(AssignmentType.valueOf(type));
+        // Hiện tại nếu Entity chưa có field type thì ta bỏ qua hoặc ghi vào description
+        if (type != null) {
+            System.out.println("Loại bài tập: " + type);
+        }
+
+        // Xử lý hạn nộp
+        try {
+            assignment.setDeadline(LocalDateTime.parse(deadline));
+        } catch (Exception e) {
+            assignment.setDeadline(LocalDateTime.now().plusDays(7));
+        }
+
+        // Xử lý file
+        if (file != null && !file.isEmpty()) {
+            String savedFileName = saveFileToDisk(file);
+            assignment.setDescription(assignment.getDescription() + "\n[File đính kèm: " + savedFileName + "]");
+        }
+
+        assignmentRepository.save(assignment);
+    }
+
+
+    // =========================================================================
+    // 10. LẤY CHI TIẾT BÀI TẬP CỦA SINH VIÊN (ĐÃ FIX LỖI BIGDECIMAL)
+    // =========================================================================
+    public List<StudentAssignmentDTO> getStudentAssignments(Long studentId, Long classId) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Lớp không tồn tại"));
+
+        List<Assignment> assignments = assignmentRepository.findByClassRoom(classRoom);
+        List<StudentAssignmentDTO> result = new ArrayList<>();
+
+        for (Assignment asm : assignments) {
+            Submission sub = submissionRepository.findFirstByAssignment_IdAndStudent_IdOrderBySubmittedAtDesc(asm.getId(), studentId).orElse(null);
+            Evaluation eval = evaluationRepository.findFirstByAssignment_IdAndStudent_IdOrderByEvaluatedAtDesc(asm.getId(), studentId).orElse(null);
+
+            String status = "MISSING";
+            String subDate = "";
+            String subFile = "";
+            BigDecimal score = null; // Dùng BigDecimal chuẩn
+            String feedback = "";
+
+            if (sub != null) {
+                status = "SUBMITTED";
+                subDate = sub.getSubmittedAt() != null ? sub.getSubmittedAt().toString() : "";
+                subFile = sub.getFileUrl();
+
+                if (asm.getDeadline() != null && sub.getSubmittedAt() != null && sub.getSubmittedAt().isAfter(asm.getDeadline())) {
+                    status = "LATE";
+                }
+            } else {
+                if (asm.getDeadline() != null && LocalDateTime.now().isBefore(asm.getDeadline())) {
+                    status = "PENDING";
+                }
+            }
+
+            // --- FIX LỖI Ở ĐÂY ---
+            if (eval != null) {
+                // Nếu trong Entity Evaluation, score là BigDecimal -> Gán trực tiếp
+                score = eval.getScore();
+
+                // Nếu trong Entity Evaluation, score là Double -> Dùng BigDecimal.valueOf(eval.getScore())
+                // Nhưng theo Entity tôi gửi ở Bước 1, nó là BigDecimal, nên gán trực tiếp là đúng.
+
+                feedback = eval.getComment();
+            }
+
+            result.add(StudentAssignmentDTO.builder()
+                    .id(asm.getId())
+                    .title(asm.getTitle())
+                    .description(asm.getDescription())
+                    .deadline(asm.getDeadline() != null ? asm.getDeadline().toString() : "")
+                    .status(status)
+                    .submissionDate(subDate)
+                    .submissionFile(subFile)
+                    .score(score)
+                    .feedback(feedback)
+                    .build());
+        }
+        return result;
+    }
+
+    // =========================================================================
+    // 11. CHẤM ĐIỂM BÀI TẬP (ĐÃ FIX LỖI SETTER)
+    // =========================================================================
+    public void gradeAssignment(Long studentId, Long assignmentId, Double scoreVal, String comment) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Sinh viên không tồn tại"));
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new RuntimeException("Bài tập không tồn tại"));
+
+        // Tìm Evaluation cũ hoặc tạo mới
+        Evaluation eval = evaluationRepository.findFirstByAssignment_IdAndStudent_IdOrderByEvaluatedAtDesc(assignmentId, studentId)
+                .orElse(new Evaluation());
+
+        eval.setStudent(student);
+
+        // --- FIX LỖI Ở ĐÂY (Đã thêm trường assignment vào Entity) ---
+        eval.setAssignment(assignment);
+
+        // --- FIX LỖI TYPE (Double -> BigDecimal) ---
+        // Đầu vào scoreVal là Double, Entity cần BigDecimal -> Phải convert
+        eval.setScore(BigDecimal.valueOf(scoreVal));
+
+        eval.setComment(comment);
+
+        // --- FIX LỖI Ở ĐÂY (Đã thêm trường evaluatedAt vào Entity) ---
+        eval.setEvaluatedAt(LocalDateTime.now());
+
+        evaluationRepository.save(eval);
+    }
+
+    // =========================================================================
+    // 12. UPLOAD TÀI LIỆU HỌC TẬP (CÓ LƯU FILE THẬT)
+    // =========================================================================
+    public void uploadMaterial(Long classId, String title, String description, MultipartFile file) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Lớp học không tồn tại"));
+
+        CourseMaterial material = new CourseMaterial();
+        material.setTitle(title);
+        material.setDescription(description);
+        material.setClassRoom(classRoom);
+        material.setUploadDate(LocalDateTime.now());
+
+        // ✅ LOGIC LƯU FILE THẬT
+        if (file != null && !file.isEmpty()) {
+            String savedFileName = saveFileToDisk(file); // Gọi hàm lưu file
+            material.setFileUrl(savedFileName); // Lưu tên file vào DB
+        }
+
+        courseMaterialRepository.save(material);
+    }
+
+    // =========================================================================
+    // 13. LẤY DANH SÁCH TÀI LIỆU CỦA LỚP
+    // =========================================================================
+    public List<CourseMaterial> getClassMaterials(Long classId) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Lớp học không tồn tại"));
+        return courseMaterialRepository.findByClassRoom(classRoom);
+    }
+
+    // =========================================================================
+    //  HÀM HỖ TRỢ: LƯU FILE VÀO Ổ CỨNG (Private)
+    // =========================================================================
+    private String saveFileToDisk(MultipartFile file) {
+        try {
+            // 1. Định nghĩa thư mục lưu: "uploads" nằm ngay trong thư mục dự án
+            String uploadDir = "uploads";
+            Path uploadPath = Paths.get(uploadDir);
+
+            // 2. Tạo thư mục nếu chưa có
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // 3. Tạo tên file duy nhất (để tránh trùng lặp)
+            // Ví dụ: file_goc.pdf -> 1738293_file_goc.pdf
+            String originalName = file.getOriginalFilename();
+            String fileName = System.currentTimeMillis() + "_" + originalName;
+
+            // 4. Lưu file
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            System.out.println("✅ Đã lưu file thành công tại: " + filePath.toAbsolutePath());
+            return fileName; // Trả về tên file để lưu vào Database
+
+        } catch (IOException e) {
+            throw new RuntimeException("Không thể lưu file: " + e.getMessage());
+        }
+    }
+
+
 }

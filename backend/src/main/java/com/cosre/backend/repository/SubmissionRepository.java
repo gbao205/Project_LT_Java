@@ -15,4 +15,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     // 2. Lấy danh sách tất cả bài nộp của một bài tập (để Giảng viên chấm điểm)
     List<Submission> findByAssignment(Assignment assignment);
+
+    // --- HÀM MỚI THÊM (Cho LecturerService) ---
+    // Tìm bài nộp dựa trên ID của bài tập và ID của sinh viên
+    Optional<Submission> findFirstByAssignment_IdAndStudent_IdOrderBySubmittedAtDesc(Long assignmentId, Long studentId);
 }

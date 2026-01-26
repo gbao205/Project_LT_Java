@@ -10,4 +10,7 @@ import java.util.List;
 public interface CourseMaterialRepository extends JpaRepository<CourseMaterial, Long> {
     // Tìm tất cả tài liệu thuộc về một lớp học cụ thể
     List<CourseMaterial> findByClassRoom(ClassRoom classRoom);
+
+    // Cách 2: Tìm bằng ID lớp (Dự phòng, tiện hơn trong một số trường hợp)
+    List<CourseMaterial> findByClassRoom_Id(Long classId);
 }

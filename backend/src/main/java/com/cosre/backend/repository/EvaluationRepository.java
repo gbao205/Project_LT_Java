@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 import java.util.List;
 
 @Repository
@@ -20,4 +22,6 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
     Double findAverageScoreByStudentAndTeamAndType(@Param("studentId") Long studentId,
                                                    @Param("teamId") Long teamId,
                                                    @Param("type") EvaluationType type);
+
+    Optional<Evaluation> findFirstByAssignment_IdAndStudent_IdOrderByEvaluatedAtDesc(Long assignmentId, Long studentId);
 }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -56,4 +57,13 @@ public class Evaluation {
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private EvaluationType type;
+
+    // Liên kết với bài tập (để biết điểm này của bài nào)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignment_id")
+    private Assignment assignment;
+
+    // Thời gian chấm điểm
+    @Column(name = "evaluated_at")
+    private LocalDateTime evaluatedAt;
 }

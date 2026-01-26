@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, BookOpen, Hash, ChevronRight, Plus, Minus,
   ClipboardList, Star, Loader2, FileText, Target,
-  Clock, Calendar, Upload, X, ArrowLeft
+  Clock, Calendar, Upload, X, ArrowLeft, FolderPlus // ✅ Import icon mới
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -41,7 +41,121 @@ interface ClassDTO {
   name?: string;
 }
 
-// --- COMPONENT: EnhancedAssignmentModal ---
+// --- [NEW COMPONENT] UPLOAD MATERIAL MODAL ---
+const UploadMaterialModal = ({ isOpen, onClose, classId }: any) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    attachedFile: null as File | null
+  });
+  const [fileName, setFileName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({ title: '', description: '', attachedFile: null });
+      setFileName('');
+    }
+  }, [isOpen]);
+
+  const handleFileUpload = (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({ ...formData, attachedFile: file });
+      setFileName(file.name);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.title.trim()) return alert('⚠️ Vui lòng nhập tiêu đề tài liệu!');
+    if (!formData.attachedFile) return alert('⚠️ Vui lòng chọn file!');
+
+    setIsSubmitting(true);
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('file', formData.attachedFile);
+
+      await api.post(`/lecturer/classes/${classId}/materials`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      alert('✅ Upload tài liệu thành công!');
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+      alert('❌ Lỗi khi upload tài liệu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+      <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-600 to-teal-600 p-5 text-white rounded-t-2xl flex justify-between items-center">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <FolderPlus className="w-6 h-6" /> Upload Tài Liệu
+            </h3>
+            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-lg transition-colors"><X className="w-6 h-6"/></button>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Tiêu Đề</label>
+              <input
+                  type="text"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  placeholder="VD: Slide bài giảng chương 1..."
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Mô Tả</label>
+              <textarea
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none h-24 resize-none"
+                  placeholder="Nhập mô tả tài liệu..."
+                  value={formData.description}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">File Đính Kèm</label>
+              <div className="relative">
+                <input type="file" id="materialUpload" onChange={handleFileUpload} className="hidden" />
+                <label htmlFor="materialUpload" className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-green-50 hover:border-green-400 cursor-pointer transition-all">
+                  {fileName ? (
+                      <div className="flex items-center text-green-700 font-medium"><FileText className="w-5 h-5 mr-2"/> {fileName}</div>
+                  ) : (
+                      <div className="text-gray-500 flex flex-col items-center"><Upload className="w-8 h-8 mb-2"/><span>Chọn file để upload</span></div>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-5 border-t bg-gray-50 rounded-b-2xl flex gap-3">
+            <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100">Hủy</button>
+            <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 py-2.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 flex justify-center items-center gap-2 disabled:opacity-50">
+              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Upload Ngay'}
+            </button>
+          </div>
+        </div>
+      </div>
+  );
+};
+
+// --- COMPONENT: EnhancedAssignmentModal (GIỮ NGUYÊN) ---
 const EnhancedAssignmentModal = ({ isOpen, onClose, classId, availableGroups, onRefresh }: any) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -112,8 +226,7 @@ const EnhancedAssignmentModal = ({ isOpen, onClose, classId, availableGroups, on
       data.append('title', formData.title);
       data.append('description', formData.description);
       data.append('type', formData.assignmentType === 'class' ? 'CLASS_ASSIGNMENT' : 'GROUP_PROJECT');
-      data.append('startDateTime', `${formData.startDate}T${formData.startTime}`);
-      data.append('endDateTime', `${formData.endDate}T${formData.endTime}`);
+      data.append('deadline', `${formData.endDate}T${formData.endTime}`);
 
       // Xử lý mảng nhóm (Gửi nhiều lần key 'targetGroups' để backend nhận List<Integer>)
       if (formData.assignmentType === 'specific_groups') {
@@ -128,7 +241,7 @@ const EnhancedAssignmentModal = ({ isOpen, onClose, classId, availableGroups, on
       console.log('📤 Sending FormData...');
 
       // 2. Gọi API với Header Multipart
-      await api.post(`/classes/${classId}/assignments`, data, {
+      await api.post(`/lecturer/classes/${classId}/assignments`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -321,6 +434,7 @@ export default function ClassManager() {
   const [expandedClass, setExpandedClass] = useState<number | null>(null);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
+  const [showMaterialModal, setShowMaterialModal] = useState(false); // ✅ State mới cho Modal Upload
 
   // Selection States
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
@@ -543,8 +657,20 @@ export default function ClassManager() {
                           <ChevronRight className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${expandedClass === classItem.id ? 'rotate-90 text-blue-600' : ''}`} />
                         </div>
 
-                        {/* Quick Action Button */}
-                        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                        {/* Quick Action Buttons (ĐÃ THÊM NÚT UPLOAD) */}
+                        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
+                          <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedClassId(classItem.id);
+                                setShowMaterialModal(true); // Mở modal upload
+                              }}
+                              className="flex items-center space-x-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg hover:-translate-y-0.5 transition-all font-medium"
+                          >
+                            <FolderPlus className="w-5 h-5" />
+                            <span>Upload Tài Liệu</span>
+                          </button>
+
                           <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -554,7 +680,7 @@ export default function ClassManager() {
                               className="flex items-center space-x-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all font-medium"
                           >
                             <ClipboardList className="w-5 h-5" />
-                            <span>Giao Bài Tập Mới</span>
+                            <span>Giao Bài Tập</span>
                           </button>
                         </div>
                       </div>
@@ -701,6 +827,13 @@ export default function ClassManager() {
             classId={selectedClassId}
             availableGroups={classes.find(c => c.id === selectedClassId)?.groups || []}
             onRefresh={fetchClasses}
+        />
+
+        {/* --- [NEW] MODAL UPLOAD MATERIAL --- */}
+        <UploadMaterialModal
+            isOpen={showMaterialModal}
+            onClose={() => setShowMaterialModal(false)}
+            classId={selectedClassId}
         />
 
         {/* Score Modal */}
