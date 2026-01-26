@@ -19,7 +19,7 @@ public class Subject {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String subjectCode; // Mã môn (VD: SWP391)
+    private String subjectCode;
     private String name;
     private String specialization;
 

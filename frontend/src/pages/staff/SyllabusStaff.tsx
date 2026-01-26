@@ -304,17 +304,26 @@ const SyllabusManager = () => {
           <Table>
             <TableHead sx={{ bgcolor: "#f3e5f5" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                <TableCell
+                  align="center"
+                  sx={{ fontWeight: 800, color: "#4a148c" }}
+                >
                   ID
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                <TableCell
+                  align="center"
+                  sx={{ fontWeight: 800, color: "#4a148c" }}
+                >
                   TÊN MÔN HỌC
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: "#4a148c" }}>
+                <TableCell
+                  align="center"
+                  sx={{ fontWeight: 800, color: "#4a148c" }}
+                >
                   NĂM
                 </TableCell>
                 <TableCell
-                  align="right"
+                  align="center"
                   sx={{ fontWeight: 800, color: "#4a148c" }}
                 >
                   THAO TÁC
@@ -332,13 +341,16 @@ const SyllabusManager = () => {
               ) : data.length > 0 ? (
                 data.map((s) => (
                   <TableRow key={s.id} hover>
-                    <TableCell sx={{ fontWeight: 700, color: "#6a1b9a" }}>
+                    <TableCell
+                      align="center"
+                      sx={{ fontWeight: 700, color: "#6a1b9a" }}
+                    >
                       #{s.id}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>
                       {s.subjectName}
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                       <Box
                         sx={{
                           bgcolor: "#e0f2f1",
@@ -354,7 +366,7 @@ const SyllabusManager = () => {
                         {s.year}
                       </Box>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <Button
                         size="small"
                         variant="outlined"

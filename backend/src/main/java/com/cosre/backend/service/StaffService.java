@@ -1,9 +1,6 @@
 package com.cosre.backend.service;
 
-import com.cosre.backend.dto.staff.ClassResponseDTO;
-import com.cosre.backend.dto.staff.SubjectDTO;
-import com.cosre.backend.dto.staff.SyllabusDetailDTO;
-import com.cosre.backend.dto.staff.SyllabusListDTO;
+import com.cosre.backend.dto.staff.*;
 import com.cosre.backend.entity.*;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.repository.*;
@@ -15,6 +12,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,51 +27,9 @@ public class StaffService implements IStaffService {
     private final ClassRoomRepository classRoomRepository;
     private final SubjectRepository subjectRepository;
     private final SyllabusRepository syllabusRepository;
+    private final LecturerRepository lecturerRepository;
+    private final StudentRepository studentRepository;
 
-    public List<User> getAllUser(String keyword) {
-        List<Role> allowrole = Arrays.asList(Role.LECTURER, Role.STUDENT);
-        List<User> allUsers = userRepository.findAll();
-        List<User> fillterUser = allUsers.stream()
-                .filter(user -> allowrole.contains(user.getRole()))
-                .filter(user -> {
-                    if (keyword == null || keyword.isEmpty()) {
-                        return true;
-                    }
-                    String lower = keyword.toLowerCase();
-                    return user.getFullName().toLowerCase().contains(lower) ||
-                            user.getEmail().toLowerCase().contains(lower);
-                })
-                .collect(Collectors.toList());
-        return fillterUser;
-    }
-
-    @Override
-    public List<ClassResponseDTO> getAllUserForStaff() {
-        return List.of();
-    }
-
-    @Transactional
-    public ClassResponseDTO toggleClass(Long classId) {
-        ClassRoom classRoom = classRoomRepository.findById(classId)
-                .orElseThrow(() -> new AppException("Lớp không tồn tại", HttpStatus.NOT_FOUND));
-
-        classRoom.setRegistrationOpen(!classRoom.isRegistrationOpen());
-        classRoomRepository.save(classRoom);
-
-        return ClassResponseDTO.builder()
-                .id(classRoom.getId())
-                .name(classRoom.getName())
-                .classCode(classRoom.getClassCode())
-                .semester(classRoom.getSemester())
-                .subjectName(classRoom.getSubject() != null ? classRoom.getSubject().getName() : "N/A")
-                .lecturerName(classRoom.getLecturer() != null ? classRoom.getLecturer().getFullName() : "Chưa phân công")
-                .isRegistrationOpen(classRoom.isRegistrationOpen())
-                .maxCapacity(classRoom.getMaxCapacity())
-                .studentCount(classRoom.getStudents() != null ? classRoom.getStudents().size() : 0)
-                .build();
-    }
-
-    //===================================Syllabus================================================
     @Override
     public Page<SyllabusListDTO> getSyllabusList(int page,
                                                  int size,
@@ -101,11 +60,10 @@ public class StaffService implements IStaffService {
                 .build();
     }
 
-    //===================================Subject================================================
     @Override
     public Page<SubjectDTO> getSubjects(int page, int size, String subjectCode, String name, String specialization) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "subjectCode"));
-        Page<Subject> result = subjectRepository.filter( subjectCode, name, specialization, pageable);
+        Page<Subject> result = subjectRepository.filter(subjectCode, name, specialization, pageable);
         return result.map(s -> SubjectDTO.builder()
                 .subjectCode(s.getSubjectCode())
                 .name(s.getName())
@@ -113,8 +71,9 @@ public class StaffService implements IStaffService {
                 .build()
         );
     }
+
     @Override
-    public Page<ClassResponseDTO> getClasses(int page, int size, Long id, String classCode, String name, String semester, String subjectName, String lecturerName, Boolean isRegistrationOpen){
+    public Page<ClassResponseDTO> getClasses(int page, int size, Long id, String classCode, String name, String semester, String subjectName, String lecturerName, Boolean isRegistrationOpen) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<ClassRoom> result = classRoomRepository.filter(
                 id,
@@ -140,22 +99,7 @@ public class StaffService implements IStaffService {
                 .build()
         );
     }
-    @Override
-    @Transactional
-    public void assignLecturer(Long cId,Long lId)
-    {
-        ClassRoom c=classRoomRepository.findById(cId).orElseThrow(() -> new AppException("Classroom not found",HttpStatus.NOT_FOUND));
-        User l = userRepository.findById(lId)
-                .filter(u -> u.getRole() == Role.LECTURER)
-                .orElseThrow(() -> new AppException("Giảng viên không hợp lệ", HttpStatus.NOT_FOUND));
-        c.setLecturer(l);
-        classRoomRepository.save(c);
-    }
-    public List<User> getListLecturer() {
-        return userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.LECTURER)
-                .collect(Collectors.toList());
-    }
+
     @Transactional
     @Override
     public ClassResponseDTO status(Long classId) {
@@ -179,4 +123,204 @@ public class StaffService implements IStaffService {
                 .build();
     }
 
+    @Transactional
+    @Override
+    public void assignLecturer(String classCode, String cccd) {
+        ClassRoom classroom = classRoomRepository.findByClassCode(classCode)
+                .orElseThrow(() -> new AppException("Không tìm thấy lớp học: " + classCode, HttpStatus.NOT_FOUND));
+
+        Lecturer lecturer = lecturerRepository.findByCCCD(cccd)
+                .orElseThrow(() -> new AppException("Không tìm thấy giảng viên có CCCD: " + cccd, HttpStatus.NOT_FOUND));
+
+        User lecturerUser = lecturer.getUser();
+
+        if (lecturerUser == null || lecturerUser.getRole() != Role.LECTURER) {
+            throw new AppException("Người dùng này không phải là giảng viên hợp lệ", HttpStatus.BAD_REQUEST);
+        }
+
+        classroom.setLecturer(lecturerUser);
+        classRoomRepository.save(classroom);
+    }
+
+    @Override
+    public List<StudentInClassDTO> getStudentInClass(String classCode) {
+        ClassRoom classRoom = classRoomRepository.findByClassCode(classCode)
+                .orElseThrow(() -> new AppException("Không tìm thấy lớp học", HttpStatus.NOT_FOUND));
+
+        return classRoom.getStudents().stream()
+                .map(user -> {
+                    Optional<Student> studentProfile = studentRepository.findByUser(user);
+
+                    String mssv = studentProfile.isPresent() ? studentProfile.get().getStudentId() : user.getCode();
+
+                    return new StudentInClassDTO(
+                            user.getFullName(),
+                            user.getEmail(),
+                            mssv
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TimeTableResponseDTO> getTimeTable(String classCode) {
+        ClassRoom classRoom = classRoomRepository.findByClassCode(classCode)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+
+        List<TimeTableResponseDTO> result = new ArrayList<>();
+
+        // Neo mốc về Thứ 2 của tuần chứa startDate
+        LocalDate anchorMonday = classRoom.getStartDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        for (TimeTable tt : classRoom.getTimeTables()) {
+            if (tt.getWeeks() == null || tt.getWeeks().isEmpty()) continue;
+
+            String[] weeks = tt.getWeeks().split(",");
+            for (String w : weeks) {
+                try {
+                    int weekNum = Integer.parseInt(w.trim()); // Dùng weekNum ở đây
+
+                    long daysOffset = (long) (weekNum - 1) * 7 + (tt.getDayOfWeek() - 2);
+                    LocalDate actualDate = anchorMonday.plusDays(daysOffset);
+
+                    result.add(TimeTableResponseDTO.builder()
+                            .date(actualDate)
+                            .dayOfWeek(tt.getDayOfWeek())
+                            .slot(tt.getSlot())
+                            .room(tt.getRoom())
+                            .className(classRoom.getName())
+                            .build());
+                } catch (NumberFormatException e) {
+                    // Bỏ qua nếu dữ liệu tuần trong file excel bị nhập sai định dạng
+                }
+            }
+        }
+
+        // Sắp xếp lại danh sách theo thứ tự thời gian từ cũ đến mới
+        return result.stream()
+                .sorted(Comparator.comparing(TimeTableResponseDTO::getDate))
+                .toList();
+    }
+
+    @Transactional
+    @Override
+    public ClassResponseDTO updateClassDate(String classCode, UpdateClassDateDTO dto) {
+        ClassRoom classRoom = classRoomRepository.findByClassCode(classCode)
+                .orElseThrow(() -> new AppException("Không tìm thấy lớp học mã: " + classCode, HttpStatus.NOT_FOUND));
+
+        if (dto.getStartDate() != null) {
+            classRoom.setStartDate(dto.getStartDate());
+        }
+
+        if (classRoom.getTimeTables() != null && !classRoom.getTimeTables().isEmpty()) {
+            List<TimeTableResponseDTO> sessions = getTimeTable(classCode);
+
+            if (!sessions.isEmpty()) {
+                LocalDate autoEndDate = sessions.get(sessions.size() - 1).getDate();
+                classRoom.setEndDate(autoEndDate);
+            }
+        }
+
+        ClassRoom updated = classRoomRepository.save(classRoom);
+
+        return ClassResponseDTO.builder()
+                .id(updated.getId())
+                .name(updated.getName())
+                .classCode(updated.getClassCode())
+                .semester(updated.getSemester())
+                .subjectName(updated.getSubject() != null ? updated.getSubject().getName() : "N/A")
+                .lecturerName(updated.getLecturer() != null ? updated.getLecturer().getFullName() : "N/A")
+                .isRegistrationOpen(updated.isRegistrationOpen())
+                .studentCount(updated.getStudents() != null ? updated.getStudents().size() : 0)
+                .maxCapacity(updated.getMaxCapacity())
+                .startDate(updated.getStartDate()) // Ngày bắt đầu mới
+                .endDate(updated.getEndDate())     // Ngày kết thúc vừa tự động tính
+                .build();
+    }
+    @Transactional
+    @Override
+    public SubjectDTO updateSubject(String subjectCode, UpdateSubjectDTO dto) {
+        System.out.println("SubjectCode: " + subjectCode);
+        System.out.println("New Name: " + dto.getName());
+        Subject subject = subjectRepository.findBySubjectCode(subjectCode)
+                .orElseThrow(() -> new AppException("Môn học " + subjectCode + " không tồn tại", HttpStatus.NOT_FOUND));
+
+        if (dto.getName() != null && !dto.getName().trim().isEmpty()) {
+            subject.setName(dto.getName());
+        }
+
+        if (dto.getSpecialization() != null && !dto.getSpecialization().trim().isEmpty()) {
+            subject.setSpecialization(dto.getSpecialization());
+        }
+
+        Subject updated = subjectRepository.save(subject);
+
+        return SubjectDTO.builder()
+                .subjectCode(updated.getSubjectCode())
+                .name(updated.getName())
+                .specialization(updated.getSpecialization())
+                .build();
+    }
+    // StaffService.java
+
+    @Override
+    public Page<StudentResponseDTO> getStudentList(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<Student> students = studentRepository.searchStudents(keyword, pageable);
+
+        return students.map(s -> {
+            User user = s.getUser();
+
+            return StudentResponseDTO.builder()
+                    .id(s.getId())
+                    .studentId(s.getStudentId())
+                    // Nếu user null thì hiện "Chưa cấp tài khoản", không bao giờ để sập code
+                    .fullName(user != null ? user.getFullName() : "Chưa cập nhật")
+                    .email(user != null ? user.getEmail() : "N/A")
+                    .major(s.getMajor() != null ? s.getMajor() : "Đại cương")
+                    .build();
+        });
+    }
+
+    @Override
+    public StudentDetailDTO getStudentDetail(Long id) {
+        Student s = studentRepository.findById(id)
+                .orElseThrow(() -> new AppException("Không tìm thấy sinh viên", HttpStatus.NOT_FOUND));
+
+        User u = s.getUser();
+
+        return StudentDetailDTO.builder()
+                .fullName(u.getFullName())
+                .email(u.getEmail())
+                .studentId(s.getStudentId())
+                .eduLevel(s.getEduLevel())
+                .batch(s.getBatch())
+                .faculty(s.getFaculty())
+                .specialization(s.getSpecialization())
+                .trainingType(s.getTrainingType())
+                .studentStatus(s.getStudentStatus())
+                .dob(s.getDob())
+                .admissionDate(s.getAdmissionDate())
+                .build();
+    }
+
+    @Override
+    public Page<LecturerResponseDTO> getLecturerList(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        Page<Lecturer> lecturers = lecturerRepository.searchLecturers(keyword, pageable);
+
+        return lecturers.map(l -> {
+            User user = l.getUser();
+
+            return LecturerResponseDTO.builder()
+                    .id(l.getId())
+                    .CCCD(l.getCCCD())
+                    .fullName(user != null ? user.getFullName() : "Chưa cập nhật")
+                    .email(user != null ? user.getEmail() : "N/A")
+                    .department(l.getDepartment() != null ? l.getDepartment() : "Chưa rõ")
+                    .degree(l.getDegree() != null ? l.getDegree() : "N/A")
+                    .build();
+        });
+    }
 }

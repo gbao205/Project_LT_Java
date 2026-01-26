@@ -9,14 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
-    // Có thể thêm hàm tìm kiếm theo tên lớp nếu cần
     boolean existsByName(String name);
 
     boolean existsByClassCode(String classcode);
-
+    Optional<ClassRoom> findByClassCode(String classCode);
     List<ClassRoom> findByStudents_Email(String email);
     @Query("SELECT c FROM ClassRoom c WHERE c.lecturer.email = :email")
     List<ClassRoom> findByLecturerEmail(String email);
@@ -24,7 +24,6 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
     @Query("SELECT COUNT(c) FROM ClassRoom c WHERE c.lecturer.email = :email")
     long countByLecturerEmail(String email);
 
-    // Đếm số lớp do giảng viên này phụ trách
     int countByLecturer(User lecturer);
 
     @Query("""
@@ -51,8 +50,6 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
     );
 
 
-    // "Lấy các lớp (c) có sinh viên này (s) NHƯNG ID lớp đó KHÔNG nằm trong 
-    // danh sách các lớp mà sinh viên này đang ở trong một nhóm (tm.team.classRoom.id)"
     @Query("SELECT c FROM ClassRoom c " +
             "JOIN c.students s " +
             "WHERE s.id = :studentId " +
@@ -61,4 +58,7 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
             "    WHERE tm.student.id = :studentId" +
             ")")
     List<ClassRoom> findClassesWithoutTeam(@Param("studentId") Long studentId);
+
+    @Query("SELECT c.students FROM ClassRoom c JOIN c.students WHERE c.classCode = :classCode")
+    List<User> findStudentsByClassCode(@Param("classCode") String classCode);
 }

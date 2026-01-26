@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Hook này phải được dùng bên dưới
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -21,10 +21,8 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { staffService } from "../../services/staffService";
 const ImportCenter = () => {
-  // 1. Khởi tạo navigate để hết lỗi ESLint "defined but never used"
   const navigate = useNavigate();
 
-  // 2. Lấy user từ localStorage để hiển thị tên
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const [importType, setImportType] = useState("");
@@ -51,7 +49,6 @@ const ImportCenter = () => {
 
     try {
       let response;
-      // GỌI SERVICE THAY VÌ GỌI AXIOS TRỰC TIẾP
       switch (importType) {
         case "USER":
           formData.append("role", role);
@@ -69,19 +66,19 @@ const ImportCenter = () => {
         case "SYLLABUS":
           response = await staffService.importSyllabus(formData);
           break;
+        case "TIMETABLE":
+          response = await staffService.importTimeTable(formData);
+          break;
         default:
           setLoading(false);
           return;
       }
-
-      // Response lúc này lấy từ data của service trả về
       setMessage({
         type: "success",
         text: response.data?.message || "Import thành công!",
       });
       setFile(null);
     } catch (error: any) {
-      // Xử lý lỗi lấy từ response của server thông qua interceptor của 'api'
       const errorMsg =
         error.response?.data?.message || "Lỗi hệ thống khi import";
       setMessage({ type: "error", text: errorMsg });
@@ -124,9 +121,7 @@ const ImportCenter = () => {
       </Box>
 
       <Container maxWidth="lg">
-        {/* Container Grid chính */}
         <Grid container spacing={4} sx={{ justifyContent: "center" }}>
-          {/* Dùng size thay vì item/xs/md để diệt lỗi Overload */}
           <Grid size={{ xs: 12, md: 8 }}>
             <Paper
               sx={{
@@ -170,6 +165,9 @@ const ImportCenter = () => {
                       <MenuItem value="CLASS">Lớp học</MenuItem>
                       <MenuItem value="SYLLABUS">Chương trình môn học</MenuItem>
                       <MenuItem value="SUBJECT">Môn học</MenuItem>
+                      <MenuItem value="TIMETABLE">
+                        Thời khóa biểu lớp học
+                      </MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
