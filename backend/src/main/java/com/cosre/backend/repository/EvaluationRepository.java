@@ -12,6 +12,8 @@ import java.util.List;
 @Repository
 public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
 
+    List<Evaluation> findByTeamId(Long teamId);
+
     // CHÚ Ý: AVG trả về Double, ta sẽ convert sang BigDecimal ở Service sau
     @Query("SELECT AVG(e.score) FROM Evaluation e WHERE e.team.id = :teamId AND e.type = :type")
     Double findAverageScoreByTeamIdAndType(@Param("teamId") Long teamId, @Param("type") EvaluationType type);
