@@ -18,8 +18,8 @@ import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import GoogleIcon from '@mui/icons-material/Google';
-import Visibility from '@mui/icons-material/Visibility';      // <-- Mới
-import VisibilityOff from '@mui/icons-material/VisibilityOff';// <-- Mới
+import Visibility from '@mui/icons-material/Visibility';      
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 const BACKGROUND_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop";
 
@@ -105,7 +105,7 @@ const Login = () => {
                 </Typography>
 
                 <Typography variant="body1" sx={{ mb: 4, color: '#555', fontStyle: 'italic' }}>
-                    Hệ thống quản lý đồ án nội bộ
+                    Hệ thống hỗ trợ việc học theo phương pháp Project-Based Learning
                 </Typography>
 
                 {loginError && (
