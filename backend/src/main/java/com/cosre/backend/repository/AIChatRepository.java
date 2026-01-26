@@ -12,4 +12,6 @@ public interface AIChatRepository extends JpaRepository<AIChatMessage, Long> {
 
     // xóa tất cả tin nhắn của 1 user
     void deleteByUserId(Long userId);
+
+    List<AIChatMessage> findTop3ByUserIdOrderByTimestampDesc(Long userId);
 }
