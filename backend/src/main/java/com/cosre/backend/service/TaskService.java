@@ -224,4 +224,10 @@ public class TaskService {
 
         return taskRepository.save(task);
     }
+
+    // lấy tổng task chưa hoàn thành
+    public long countAllActiveTasksForStudent() {
+        User currentUser = getCurrentUser();
+        return taskRepository.countByAssignedToIdAndStatusNot(currentUser.getId(), TaskStatus.DONE);
+    }
 }

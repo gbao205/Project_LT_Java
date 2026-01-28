@@ -63,5 +63,12 @@ public class TaskController {
         // TaskRequest đã có sẵn các field title, description, assignedToId, milestoneId, dueDate
         Task updatedTask = taskService.updateTask(id, request);
         return ResponseEntity.ok(updatedTask);
+    }   
+
+    // lấy tổng task chưa hoàn thành
+    @GetMapping("/student/count-active")
+    public ResponseEntity<Long> getActiveTaskCount() {
+        long count = taskService.countAllActiveTasksForStudent();
+        return ResponseEntity.ok(count);
     }
 }
