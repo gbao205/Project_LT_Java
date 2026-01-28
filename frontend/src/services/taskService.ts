@@ -58,6 +58,12 @@ const taskService = {
             throw error;
         }
     },
+
+    // lấy task chưa hoàn thành
+    getMyTaskCount: async () => {
+        const response = await api.get(`${TASK_URL}/student/count-active`);
+        return response.data;
+    },
 };
 
 export default taskService;

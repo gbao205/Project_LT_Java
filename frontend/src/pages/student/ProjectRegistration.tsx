@@ -111,9 +111,29 @@ const ProjectRegistration = () => {
         <StudentLayout title="Đăng Ký Đề Tài">
             <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
                 <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-                    <Box sx={{ p: 3, bgcolor: '#f8f9fa', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <AssignmentIcon color="primary" />
-                        <Typography variant="h5" fontWeight="bold">Đăng ký đề tài dự án</Typography>
+                    <Box sx={{ 
+                        p: 3, 
+                        bgcolor: '#f8f9fa', 
+                        borderBottom: '1px solid #e0e0e0', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        gap: 0.5 
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <AssignmentIcon color="primary" sx={{ fontSize: '2rem' }} />
+                            <Typography variant="h5" fontWeight="bold">
+                                Đăng ký đề tài dự án
+                            </Typography>
+                        </Box>
+                        <Typography 
+                            variant="caption" 
+                            color="error" 
+                            sx={{ 
+                                fontStyle: 'italic'
+                            }}
+                        >
+                            * Lưu ý: Chức năng chỉ dành cho nhóm trưởng
+                        </Typography>
                     </Box>
 
                     <Box sx={{ p: 4 }}>

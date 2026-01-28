@@ -27,6 +27,7 @@ import { getMyClasses } from "../../services/classService";
 import studentService from "../../services/studentService";
 import { getNotifications } from "../../services/notificationService";
 import { BASE_URL } from '../../services/api';
+import taskService from "../../services/taskService";
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -34,6 +35,7 @@ const StudentDashboard = () => {
     const [myClassCount, setMyClassCount] = useState(0);
     const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [taskCount, setTaskCount] = useState(0);
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -58,12 +60,14 @@ const StudentDashboard = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [profileData, classes] = await Promise.all([
+                const [profileData, classes, count] = await Promise.all([
                     studentService.getProfile(),
-                    getMyClasses()
+                    getMyClasses(),
+                    taskService.getMyTaskCount()
                 ]);
                 setProfile(profileData);
                 setMyClassCount(classes.length);
+                setTaskCount(count);
             } catch (error) {
                 console.error("Lỗi tải dữ liệu dashboard:", error);
             } finally {
@@ -303,7 +307,7 @@ const StudentDashboard = () => {
                             <StatCard title="Lớp Đang Học" value={myClassCount} icon={<ClassIcon fontSize="large" />} color="#2e7d32" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <StatCard title="Deadline Tuần Này" value="2" icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
+                            <StatCard title="Deadline" value={taskCount.toString() || 0} icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large" />} color="#1976d2" />
