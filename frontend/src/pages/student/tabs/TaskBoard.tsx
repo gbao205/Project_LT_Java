@@ -56,6 +56,7 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
     const [loading, setLoading] = useState(true);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const today = new Date().toISOString().split('T')[0];
 
     const { confirm } = useConfirm();
     const { showSuccess, showError } = useAppSnackbar();
@@ -443,7 +444,23 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
                                 ))}
                             </TextField>
 
-                            <TextField type="date" label="Hạn chót" fullWidth InputLabelProps={{ shrink: true }} {...register("dueDate")} />
+                            <TextField 
+                                type="date" 
+                                label="Hạn chót" 
+                                fullWidth 
+                                InputLabelProps={{ shrink: true }} 
+                                {...register("dueDate", {
+                                    validate: (value: any) => {
+                                        if (!value) return true;
+                                        return value >= today || "Hạn chót không được ở trong quá khứ";
+                                    }
+                                })} 
+                                inputProps={{ 
+                                    min: today
+                                }}
+                                error={!!errors.dueDate}
+                                helperText={errors.dueDate?.message}
+                            />
                         </Box>
                     </DialogContent>
                     <DialogActions>

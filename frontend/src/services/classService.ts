@@ -1,5 +1,13 @@
 import api from './api';
 
+export interface TimeTable {
+    id: number;
+    dayOfWeek: number;
+    slot: number;
+    room: string;
+    weeks: string;
+}
+
 export interface ClassRoom {
     id: number;
     name: string;
@@ -20,6 +28,8 @@ export interface ClassRoom {
             fullName: string;
             email: string;
         };
+    timeTables?: TimeTable[];
+    isRegistrationOpen?: boolean;
 }
 
 // Lấy danh sách lớp

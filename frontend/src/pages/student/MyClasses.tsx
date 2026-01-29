@@ -39,7 +39,6 @@ const MyClasses = () => {
                             <TableRow>
                                 <TableCell sx={{ fontWeight: 'bold' }}>STT</TableCell>
                                 <TableCell sx={{ fontWeight: 'bold' }}>Tên Lớp</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>Môn Học</TableCell>
                                 <TableCell sx={{ fontWeight: 'bold' }}>Giảng Viên</TableCell>
                                 <TableCell sx={{ fontWeight: 'bold' }}>Học Kỳ</TableCell>
                                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>Trạng Thái</TableCell>
@@ -55,10 +54,6 @@ const MyClasses = () => {
                                             onClick={() => navigate(`/class/${cls.id}`)}
                                         >
                                             {cls.name}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" fontWeight="600">{cls.subject?.name}</Typography>
-                                            <Typography variant="caption" color="textSecondary">{cls.subject?.subjectCode}</Typography>
                                         </TableCell>
                                         <TableCell>{cls.lecturer?.fullName || "Chưa phân công"}</TableCell>
                                         <TableCell>{cls.semester}</TableCell>

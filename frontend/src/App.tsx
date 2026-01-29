@@ -34,6 +34,7 @@ import ClassDetail from "./pages/class/ClassDetail";
 import MyTeams from "./pages/student/MyTeams";
 import ProjectRegistration from "./pages/student/ProjectRegistration";
 import NotificationPage from "./pages/NotificationPage";
+import StudentCalendar from "./pages/student/StudentCalendar";
 
 // Các trang giảng viên...
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
@@ -138,6 +139,7 @@ function App() {
               element={<ProjectRegistration />}
             />
             <Route path="/notedetail" element={<NotificationPage />} />
+            <Route path="/calendar" element={<StudentCalendar />} />
             {/* Lecturer Routes */}
             <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
             <Route

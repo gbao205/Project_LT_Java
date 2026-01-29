@@ -100,6 +100,7 @@ public class ClassController {
         classInfo.put("subjectCode", classRoom.getSubject() != null ? classRoom.getSubject().getSubjectCode() : "");
         classInfo.put("subjectName", classRoom.getSubject() != null ? classRoom.getSubject().getName() : "");
         classInfo.put("lecturerName", classRoom.getLecturer() != null ? classRoom.getLecturer().getFullName() : "N/A");
+        classInfo.put("semester", classRoom.getSemester());
 
         // Map Materials
         List<Map<String, Object>> materialsList = materials.stream().map(m -> {

@@ -83,6 +83,8 @@ public class ClassService {
             map.put("lecturer", clazz.getLecturer());
             map.put("maxCapacity", clazz.getMaxCapacity());
             map.put("currentEnrollment", clazz.getStudents().size());
+            map.put("timeTables", clazz.getTimeTables());
+            map.put("isRegistrationOpen", clazz.isRegistrationOpen());
             // Kiểm tra sinh viên này đã có trong danh sách chưa
             map.put("isRegistered", clazz.getStudents().contains(student));
             return map;

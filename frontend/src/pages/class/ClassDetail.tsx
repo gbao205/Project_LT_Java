@@ -7,7 +7,7 @@ import {
     CircularProgress, Grid, Card, CardContent, CardActions, FormControl,
     RadioGroup, FormControlLabel, Radio, Avatar, Tooltip, FormLabel,
     FormGroup, Checkbox, InputAdornment, Alert, DialogContentText,
-    Skeleton
+    Skeleton, AvatarGroup
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -732,23 +732,111 @@ const ClassDetail = () => {
                                                 const isMyTeamCard = myTeam && myTeam.id === team.id;
                                                 return (
                                                     <Grid size={{ xs: 12, md: 6, lg: 3 }} key={team.id}>
-                                                        <Card elevation={3} sx={{ width: 270, height: '100%', display: 'flex', flexDirection: 'column', border: isMyTeamCard ? '2px solid #2196f3' : 'none', position: 'relative' }}>
+                                                        <Card elevation={3} sx={{ 
+                                                            width: '100%', 
+                                                            height: '100%', 
+                                                            display: 'flex', 
+                                                            flexDirection: 'column', 
+                                                            border: isMyTeamCard ? '2px solid #2196f3' : 'none', 
+                                                            position: 'relative' 
+                                                        }}>
                                                             <CardContent sx={{ flexGrow: 1 }}>
                                                                 <Tooltip title={team.teamName || team.name} placement="top" arrow>
                                                                     <Box>
-                                                                        <Typography variant="h6" fontWeight="bold" color="primary" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                                        <Typography variant="h6" fontWeight="bold" color="primary" sx={{ 
+                                                                            display: '-webkit-box', 
+                                                                            WebkitLineClamp: 1, 
+                                                                            WebkitBoxOrient: 'vertical', 
+                                                                            overflow: 'hidden' 
+                                                                        }}>
                                                                             {team.teamName || team.name}
                                                                         </Typography>
-                                                                        <Typography variant="caption" fontWeight="bold" color="text.secondary">Mã tham gia: {team.joinCode}</Typography>
+                                                                        <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                                                                            Mã: {team.joinCode || 'null'}
+                                                                        </Typography>
                                                                     </Box>
                                                                 </Tooltip>
+
                                                                 <Divider sx={{ my: 1.5 }} />
-                                                                <Typography variant="caption" fontWeight="bold" color="text.secondary">Thành viên ({team.members?.length || 0})</Typography>
+
+                                                                {/* --- PHẦN HIỂN THỊ THÀNH VIÊN --- */}
+                                                                <Box mb={1.5}>
+                                                                    <Typography variant="caption" fontWeight="bold" color="text.secondary" display="block" mb={1}>
+                                                                        Thành viên ({team.members?.length || 0}):
+                                                                    </Typography>
+
+                                                                    <Box display="flex" flexDirection="column" gap={1.2}>
+                                                                        {team.members?.map((mem: any) => {
+                                                                            // Kiểm tra dữ liệu fullName từ API của bạn
+                                                                            const fullName = mem.fullName || mem.student?.fullName || "Thành viên";
+                                                                            const isLeader = mem.role === 'LEADER';
+
+                                                                            return (
+                                                                                <Box 
+                                                                                    key={mem.id} 
+                                                                                    display="flex" 
+                                                                                    alignItems="center" 
+                                                                                    gap={1.5}
+                                                                                    sx={{cursor: 'default'}}
+                                                                                >
+                                                                                    <Avatar 
+                                                                                        sx={{ 
+                                                                                            width: 24, 
+                                                                                            height: 24, 
+                                                                                            fontSize: '0.7rem', 
+                                                                                            bgcolor: isLeader ? '#ff9800' : '#bdbdbd',
+                                                                                            fontWeight: 'bold'
+                                                                                        }}
+                                                                                    >
+                                                                                        {fullName.charAt(0).toUpperCase()}
+                                                                                    </Avatar>
+                                                                                    
+                                                                                    <Typography 
+                                                                                        variant="body2" 
+                                                                                        sx={{ 
+                                                                                            fontSize: '0.85rem', 
+                                                                                            color: 'text.primary',
+                                                                                            fontWeight: isLeader ? 'bold' : 'normal',
+                                                                                            whiteSpace: 'nowrap',
+                                                                                            overflow: 'hidden',
+                                                                                            textOverflow: 'ellipsis'
+                                                                                        }}
+                                                                                    >
+                                                                                        {fullName}
+                                                                                        {isLeader && (
+                                                                                            <Typography 
+                                                                                                component="span" 
+                                                                                                sx={{ 
+                                                                                                    color: '#ff9800', 
+                                                                                                    fontSize: '0.7rem', 
+                                                                                                    ml: 0.5,
+                                                                                                    fontStyle: 'italic'
+                                                                                                }}
+                                                                                            >
+                                                                                                (Leader)
+                                                                                            </Typography>
+                                                                                        )}
+                                                                                    </Typography>
+                                                                                </Box>
+                                                                            );
+                                                                        })}
+                                                                    </Box>
+                                                                </Box>
+                                                                {/* -------------------------------- */}
+
                                                             </CardContent>
+                                                            
                                                             {!myTeam && (
-                                                                <CardActions sx={{ bgcolor: '#f5f5f5', justifyContent: 'center' }}>
-                                                                    <Button size="small" variant="contained" onClick={() => handleJoinTeam(team.id)} fullWidth>Tham Gia Nhóm</Button>
+                                                                <CardActions sx={{ bgcolor: '#f5f5f5', p: 1 }}>
+                                                                    <Button size="small" variant="contained" onClick={() => handleJoinTeam(team)} fullWidth>
+                                                                        Tham Gia Nhóm
+                                                                    </Button>
                                                                 </CardActions>
+                                                            )}
+                                                            {isMyTeamCard && (
+                                                                <Box sx={{ bgcolor: '#e3f2fd', p: 0.5, textAlign: 'center' }}>
+                                                                    <Typography variant="caption" color="primary" fontWeight="bold">Nhóm của bạn</Typography>
+                                                                </Box>
                                                             )}
                                                         </Card>
                                                     </Grid>

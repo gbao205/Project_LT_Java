@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @Builder
@@ -19,4 +20,5 @@ public class ClassResponseDTO {
     private int maxCapacity;
     private LocalDate startDate;
     private LocalDate endDate;
+    private Set<TimeTableResponseDTO> timeTables;
 }

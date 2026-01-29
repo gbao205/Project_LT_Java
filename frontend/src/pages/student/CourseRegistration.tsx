@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import {
     Typography, Box, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Paper, 
-    Button, Chip, CircularProgress, Grid, Divider,
+    Button, Chip, CircularProgress, Grid,
     Dialog, DialogTitle, DialogContent, DialogActions, 
 } from '@mui/material';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -10,7 +10,11 @@ import ClassIcon from '@mui/icons-material/Class';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import InfoIcon from '@mui/icons-material/Info';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import SchoolIcon from '@mui/icons-material/School';
+import PersonIcon from '@mui/icons-material/Person';
+import GroupsIcon from '@mui/icons-material/Groups';
 
 import StudentLayout from '../../components/layout/StudentLayout';
 import { useConfirm } from '../../context/ConfirmContext';
@@ -55,7 +59,7 @@ const CourseRegistration = () => {
 
     // Tách danh sách thành 2 phần: Đã đăng ký & Chưa đăng ký
     const { availableList, registeredList } = useMemo(() => {
-        const available = classes.filter(c => !c.isRegistered);
+        const available = classes.filter(c => !c.isRegistered && c.isRegistrationOpen);
         const registered = classes.filter(c => c.isRegistered);
         return { availableList: available, registeredList: registered };
     }, [classes]);
@@ -103,10 +107,9 @@ const CourseRegistration = () => {
         const isCurrentLoading = actionLoadingId === row.id;
         return (
             <TableRow hover onClick={() => handleOpenDetail(row)} sx={{ cursor: 'pointer' }}>
-                <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>{row.name}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>{row.classCode}</TableCell>
                 <TableCell>
                     <Typography variant="body2" fontWeight="bold">{row.subject?.name}</Typography>
-                    <Typography variant="caption" color="textSecondary">{row.subject?.subjectCode}</Typography>
                 </TableCell>
                 <TableCell>{row.lecturer?.fullName}</TableCell>
                 <TableCell>{row.semester}</TableCell>
@@ -219,95 +222,173 @@ const CourseRegistration = () => {
             )}
 
             {/* DIALOG HIỂN THỊ CHI TIẾT LỚP HỌC */}
-            <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="sm" fullWidth sx={{ cursor: 'default' }}>
+            <Dialog 
+                open={openDetail} 
+                onClose={handleCloseDetail} 
+                maxWidth="sm" 
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }
+                }}
+            >
                 {selectedClass && (
                     <>
-                        <DialogTitle sx={{ bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <InfoIcon color="primary" />
-                            <Typography variant="h6" fontWeight="bold">Thông Tin Chi Tiết Lớp Học</Typography>
+                        <DialogTitle sx={{ 
+                            p: 3, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1.5,
+                            background: 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
+                            color: 'white'
+                        }}>
+                            <InfoIcon />
+                            <Typography variant="h6" fontWeight="700">Chi Tiết Lớp Học</Typography>
                         </DialogTitle>
-                        <DialogContent dividers>
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle2" color="textSecondary">Tên lớp & Mã lớp</Typography>
-                                    <Typography variant="body1" fontWeight="bold">
-                                        {selectedClass.name} - {selectedClass.classCode || 'N/A'}
-                                    </Typography>
-                                </Grid>
+
+                        <DialogContent sx={{ p: 3, bgcolor: '#fcfcfc' }}>
+                            <Grid container spacing={2.5}>
                                 
+                                {/* Card 1: Thông tin chung */}
                                 <Grid size={{ xs: 12 }}>
-                                    <Divider />
+                                    <Box sx={{ p: 2, bgcolor: '#fff', borderRadius: 2, border: '1px solid #edf2f7' }}>
+                                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                                            <SchoolIcon color="primary" fontSize="small" />
+                                            <Typography variant="caption" fontWeight="700" color="textSecondary" sx={{ textTransform: 'uppercase' }}>Học phần</Typography>
+                                        </Box>
+                                        <Typography variant="h6" fontWeight="800" color="#2d3748">
+                                            {selectedClass.subject?.name}
+                                        </Typography>
+                                        <Typography variant="body2" color="primary" fontWeight="600">
+                                            {selectedClass.classCode} • {selectedClass.subject?.subjectCode}
+                                        </Typography>
+                                    </Box>
                                 </Grid>
 
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle2" color="textSecondary">Môn học</Typography>
-                                    <Typography variant="body1">
-                                        {selectedClass.subject?.name} ({selectedClass.subject?.subjectCode})
-                                    </Typography>
+                                {/* Card 2: Giảng viên & Học kỳ */}
+                                <Grid size={{ xs: 8 }}>
+                                    <Box sx={{ p: 2, bgcolor: '#fff', borderRadius: 2, border: '1px solid #edf2f7', height: '100%' }}>
+                                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                                            <PersonIcon color="primary" fontSize="small" />
+                                            <Typography variant="caption" fontWeight="700" color="textSecondary" sx={{ textTransform: 'uppercase' }}>Giảng viên</Typography>
+                                        </Box>
+                                        <Typography variant="body1" fontWeight="700">{selectedClass.lecturer?.fullName || 'Chưa phân công'}</Typography>
+                                        <Typography variant="caption" color="textSecondary">{selectedClass.lecturer?.email}</Typography>
+                                    </Box>
                                 </Grid>
 
-                                <Grid size={{ xs: 6 }}>
-                                    <Typography variant="subtitle2" color="textSecondary">Học kỳ</Typography>
-                                    <Typography variant="body1">{selectedClass.semester}</Typography>
+                                <Grid size={{ xs: 4 }}>
+                                    <Box sx={{ p: 2, bgcolor: '#fff', borderRadius: 2, border: '1px solid #edf2f7', height: '100%', textAlign: 'center' }}>
+                                        <Typography variant="caption" fontWeight="700" color="textSecondary" sx={{ textTransform: 'uppercase' }}>Học kỳ</Typography>
+                                        <Typography variant="h5" fontWeight="800" color="primary" sx={{ mt: 1 }}>{selectedClass.semester}</Typography>
+                                    </Box>
                                 </Grid>
 
-                                <Grid size={{ xs: 6 }}>
-                                    <Typography variant="subtitle2" color="textSecondary">Giảng viên</Typography>
-                                    <Typography variant="body1">{selectedClass.lecturer?.fullName || 'Chưa phân công'}</Typography>
-                                    <Typography variant="caption">{selectedClass.lecturer?.email}</Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <Divider />
-                                </Grid>
-
+                                {/* Card 3: Lịch học (Phần này quan trọng nhất) */}
                                 <Grid size={{ xs: 12 }}>
                                     <Box display="flex" alignItems="center" gap={1} mb={1}>
-                                        <CalendarTodayIcon fontSize="small" color="action" />
-                                        <Typography variant="subtitle1" fontWeight="bold">Thời gian học</Typography>
+                                        <AccessTimeFilledIcon color="primary" fontSize="small" />
+                                        <Typography variant="subtitle2" fontWeight="700">Lịch học chi tiết</Typography>
                                     </Box>
-                                    <Box display="flex" justifyContent="space-between" bgcolor="#fafafa" p={2} borderRadius={1}>
-                                        <Box>
-                                            <Typography variant="caption" display="block" color="textSecondary">Ngày bắt đầu</Typography>
-                                            <Typography variant="body2" fontWeight="bold">{selectedClass.startDate || 'Chưa xác định'}</Typography>
+
+                                    {selectedClass.timeTables && selectedClass.timeTables.length > 0 ? (
+                                        <Box sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(2, 1fr)',
+                                            gap: 1.5,
+                                            width: '100%',
+                                        }}>
+                                            {selectedClass.timeTables.map((item: any) => (
+                                                <Box key={item.id} sx={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'space-between',
+                                                    flex: '1 1 calc(50% - 12px)', 
+                                                    minWidth: '200px',
+                                                    p: 1.5, 
+                                                    bgcolor: '#eff6ff',
+                                                    borderRadius: 2,
+                                                    borderLeft: '4px solid #3b82f6',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                                    boxSizing: 'border-box'
+                                                }}>
+                                                    <Box>
+                                                        <Typography variant="body2" fontWeight="700">
+                                                            {item.dayOfWeek === 8 ? "Chủ Nhật" : `Thứ ${item.dayOfWeek}`}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="textSecondary">Ca {item.slot}</Typography>
+                                                    </Box>
+                                                    <Chip 
+                                                        icon={<LocationOnIcon sx={{ fontSize: '14px !important' }} />}
+                                                        label={item.room} 
+                                                        size="small" 
+                                                        sx={{ bgcolor: '#fff', fontWeight: 'bold', border: '1px solid #e2e8f0' }} 
+                                                    />
+                                                </Box>
+                                            ))}
                                         </Box>
-                                        <Box textAlign="right">
-                                            <Typography variant="caption" display="block" color="textSecondary">Ngày kết thúc</Typography>
-                                            <Typography variant="body2" fontWeight="bold">{selectedClass.endDate || 'Chưa xác định'}</Typography>
-                                        </Box>
+                                    ) : (
+                                        <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', p: 2, textAlign: 'center' }}>
+                                            Chưa cập nhật lịch học.
+                                        </Typography>
+                                    )}
+                                </Grid>
+
+                                {/* Card 4: Sĩ số & Thời gian */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Box sx={{ p: 2, bgcolor: '#ebf8ff', borderRadius: 2, border: '1px dashed #3182ce' }}>
+                                        <Grid container alignItems="center">
+                                            <Grid size={{ xs: 6 }}>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <GroupsIcon color="primary" />
+                                                    <Box>
+                                                        <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>Sĩ số lớp</Typography>
+                                                        <Typography variant="body2" fontWeight="700">
+                                                            {selectedClass.currentEnrollment} / {selectedClass.maxCapacity} sinh viên
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            </Grid>
+                                            <Grid size={{ xs: 6 }} sx={{ borderLeft: '1px solid #bee3f8', pl: 2 }}>
+                                                <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>Thời gian học</Typography>
+                                                <Typography variant="caption" fontWeight="700">
+                                                    {selectedClass.startDate} → {selectedClass.endDate}
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
                                     </Box>
                                 </Grid>
 
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle2" color="textSecondary">Tình trạng sĩ số</Typography>
-                                    <Typography variant="body1">
-                                        Đã đăng ký: <strong>{selectedClass.currentEnrollment}</strong> / {selectedClass.maxCapacity} sinh viên
-                                    </Typography>
-                                </Grid>
                             </Grid>
                         </DialogContent>
-                        <DialogActions sx={{ p: 2 }}>
+
+                        <DialogActions sx={{ p: 3, bgcolor: '#fcfcfc' }}>
                             <Button 
                                 onClick={handleCloseDetail} 
+                                variant="outlined" 
                                 color="inherit" 
+                                sx={{ borderRadius: 2, px: 3, fontWeight: 'bold', textTransform: 'none' }}
                             >
                                 Đóng
                             </Button>
-                            {selectedClass && (
-                                <Button 
-                                    variant="contained" 
-                                    color={selectedClass.isRegistered ? "error" : "primary"}
-                                    // Chỉ hiển thị load nếu ID trùng với lớp đang được mở trong Dialog
-                                    disabled={actionLoadingId === selectedClass.id || (!selectedClass.isRegistered && (selectedClass.currentEnrollment || 0) >= selectedClass.maxCapacity)}
-                                    startIcon={actionLoadingId === selectedClass.id ? <CircularProgress size={16} color="inherit" /> : null}
-                                    onClick={() => handleAction(selectedClass.id, selectedClass.isRegistered || false)}
-                                >
-                                    {actionLoadingId === selectedClass.id 
-                                        ? "Đang xử lý..." 
-                                        : (selectedClass.isRegistered ? "Hủy Đăng Ký" : "Đăng Ký Ngay")
-                                    }
-                                </Button>
-                            )}
+                            <Button 
+                                variant="contained" 
+                                color={selectedClass.isRegistered ? "error" : "primary"}
+                                disabled={actionLoadingId === selectedClass.id || (!selectedClass.isRegistered && (selectedClass.currentEnrollment || 0) >= selectedClass.maxCapacity)}
+                                onClick={() => handleAction(selectedClass.id, selectedClass.isRegistered || false)}
+                                sx={{ 
+                                    borderRadius: 2, 
+                                    px: 4, 
+                                    fontWeight: 'bold', 
+                                    textTransform: 'none',
+                                    boxShadow: selectedClass.isRegistered ? '0 4px 12px rgba(211, 47, 47, 0.3)' : '0 4px 12px rgba(25, 118, 210, 0.3)'
+                                }}
+                            >
+                                {actionLoadingId === selectedClass.id ? (
+                                    <CircularProgress size={20} color="inherit" />
+                                ) : (
+                                    selectedClass.isRegistered ? "Hủy Đăng Ký" : "Đăng Ký Ngay"
+                                )}
+                            </Button>
                         </DialogActions>
                     </>
                 )}
