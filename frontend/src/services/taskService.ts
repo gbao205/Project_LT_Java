@@ -64,6 +64,12 @@ const taskService = {
         const response = await api.get(`${TASK_URL}/student/count-active`);
         return response.data;
     },
+
+    // Lấy danh sách thông tin chi tiết các task chưa hoàn thành
+    getMyActiveTasks: async (): Promise<Task[]> => {
+        const response = await api.get<Task[]>(`${TASK_URL}/student/active-tasks`);
+        return response.data;
+    },
 };
 
 export default taskService;

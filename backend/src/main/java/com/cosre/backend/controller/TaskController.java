@@ -65,10 +65,9 @@ public class TaskController {
         return ResponseEntity.ok(updatedTask);
     }   
 
-    // lấy tổng task chưa hoàn thành
-    @GetMapping("/student/count-active")
-    public ResponseEntity<Long> getActiveTaskCount() {
-        long count = taskService.countAllActiveTasksForStudent();
-        return ResponseEntity.ok(count);
+    // lấy danh sách task chưa hoàn thành
+    @GetMapping("/student/active-tasks")
+    public ResponseEntity<List<Task>> getActiveTasks() {
+        return ResponseEntity.ok(taskService.getActiveTasksForStudent());
     }
 }

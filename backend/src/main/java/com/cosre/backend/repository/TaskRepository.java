@@ -13,6 +13,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     // Tìm kiếm Task theo Team ID
     List<Task> findByTeamId(Long teamId);
 
-    // Đếm số lượng nhiệm vụ theo Student ID và trạng thái không phải là DONE
-    long countByAssignedToIdAndStatusNot(Long userId, TaskStatus status);
+    // Lấy số lượng nhiệm vụ theo Student ID và trạng thái không phải là DONE
+    List<Task> findByAssignedToIdAndStatusNot(Long userId, TaskStatus status);
 }
