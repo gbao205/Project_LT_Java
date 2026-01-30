@@ -104,8 +104,8 @@ const Login = () => {
                     COLLAB SPHERE
                 </Typography>
 
-                <Typography variant="body1" sx={{ mb: 4, color: '#555', fontStyle: 'italic' }}>
-                    Hệ thống hỗ trợ việc học theo phương pháp Project-Based Learning
+                <Typography variant="body1" sx={{ mb: -1, color: '#555', fontStyle: 'italic', textAlign: 'center' }}>
+                    Hệ thống hỗ trợ việc học theo phương pháp Project-Based Learning (PBL)
                 </Typography>
 
                 {loginError && (
