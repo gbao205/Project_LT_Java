@@ -681,7 +681,6 @@ const ClassDetail = () => {
                                                                                         )}
                                                                                     </Box>
                                                                                 }
-                                                                                secondary={mem.student?.email}
                                                                             />
                                                                         </ListItem>
                                                                     ))}
