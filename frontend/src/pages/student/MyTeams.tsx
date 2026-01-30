@@ -54,7 +54,18 @@ const MyTeams = () => {
     const fetchTeams = async () => {
         try {
             const data = await studentService.getAllJoinedTeams();
-            setTeams(data);
+
+            // Lọc danh sách nhóm
+            const activeTeams = data.filter((team: any) => {
+                const classRoom = team?.classRoom;
+                const isRegistrationOpen = classRoom?.registrationOpen;
+
+                if (!classRoom) return false;
+                if(!isRegistrationOpen) return false;
+
+                return true;
+            });
+            setTeams(activeTeams);
         } catch (error) {
             console.error("Lỗi tải danh sách nhóm:", error);
         } finally {
