@@ -29,9 +29,17 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
 
+    private static final String[] SWAGGER_WHITELIST = {
+        "/swagger",
+        "/v3/api-docs/**",
+        "/swagger-ui/**",
+        "/swagger-ui.html"
+    };
+
     // 1. Cấu hình bộ lọc bảo mật
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF vì dùng JWT
                 .headers(headers -> headers
@@ -42,6 +50,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
                 .authorizeHttpRequests(auth -> auth
+                    // --- SWAGGER ---
+                    .requestMatchers(SWAGGER_WHITELIST).permitAll()
                     .requestMatchers("/api/workspace/download/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
                     // 1. Cho phép request lỗi và preflight (OPTIONS)
