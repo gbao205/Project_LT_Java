@@ -261,7 +261,7 @@ const StudentDashboard = () => {
                                                     { label: "Khóa học", value: profile?.batch },
                                                     { label: "Họ tên", value: profile?.user?.fullName },
                                                     { label: "Giới tính", value: profile?.profile?.gender},
-                                                    { label: "Ngày sinh", value: profile?.dob },
+                                                    { label: "Ngày sinh", value: profile?.dob ? profile.dob.split('-').reverse().join('-') : "" },
                                                     { label: "Bậc đào tạo", value: profile?.eduLevel },
                                                     { label: "Nơi sinh", value: profile?.profile?.placeOfBirth },
                                                     { label: "Loại hình đào tạo", value: profile?.trainingType },
