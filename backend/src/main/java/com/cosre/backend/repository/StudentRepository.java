@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -22,4 +24,4 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
             "LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR " +
             "LOWER(s.studentId) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
     Page<Student> searchStudents(@Param("keyword") String keyword, Pageable pageable);
-}
+    List<Student> findAllByStudentIdIn(Collection<String> studentIds);}

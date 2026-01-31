@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
@@ -70,6 +71,15 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
             ")")
     List<ClassRoom> findClassesWithoutTeam(@Param("studentId") Long studentId);
 
-    @Query("SELECT c.students FROM ClassRoom c JOIN c.students WHERE c.classCode = :classCode")
-    List<User> findStudentsByClassCode(@Param("classCode") String classCode);
+
+    @Query("""
+    SELECT s.studentId 
+    FROM Student s 
+    WHERE s.user IN (
+        SELECT u 
+        FROM ClassRoom c 
+        JOIN c.students u 
+        WHERE c.classCode = :classCode
+    )
+""")    Set<String> findStudentIdsByClassCode(@Param("classCode") String classCode);
 }

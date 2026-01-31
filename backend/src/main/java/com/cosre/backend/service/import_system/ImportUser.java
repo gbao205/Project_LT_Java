@@ -48,7 +48,6 @@ public class ImportUser extends BaseImportParser<UserImportDTO> {
         Role role = (Role) params[0];
         java.util.Set<String> processedEmails = new java.util.HashSet<>();
 
-        // CHIA NHÁNH QUYẾT ĐOÁN ĐỂ TỐI ƯU HIỆU NĂNG
         if (role == Role.STUDENT) {
             String admissionDateStr = (String) params[1];
             processStudentImport(data, processedEmails, admissionDateStr);
