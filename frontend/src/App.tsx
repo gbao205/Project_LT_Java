@@ -9,6 +9,7 @@ import {
 import { SnackbarProvider } from "./context/SnackbarContext";
 import { ConfirmProvider } from "./context/ConfirmContext";
 import ScrollToTop from "./components/common/ScrollToTop";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Components & Auth
 import Login from "./pages/auth/Login";
@@ -80,112 +81,116 @@ const ChatWrapper = () => {
   );
 };
 
+const queryClient = new QueryClient();
+
 function App() {
   return (
-      <SnackbarProvider>
-        <ConfirmProvider>
-          <Router>
-            <ScrollToTop />
-
-            <ReportDialog />
-
-            {/* Sử dụng Wrapper ở đây */}
-            <ChatWrapper />
-
-            <Routes>
-              {/* Public & Auth */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/change-password" element={<ChangePassword />} />
-
-              {/* Admin Routes */}
-              <Route path="/admin/users" element={<UserManager />} />
-              <Route path="/admin/reports" element={<ReportManager />} />
-              <Route path="/admin/subjects" element={<SubjectManager />} />
-              <Route path="/admin/classes" element={<StaffClassManager />} />
-
-              {/* Staff Routes */}
-              <Route
-                  path="/staff/*"
-                  element={
-                    <StaffThemeWrapper>
-                      <Routes>
-                        <Route path="import" element={<ImportCenter />} />
-                        <Route path="users" element={<UserStaff />} />
-                        <Route path="reports" element={<ReportManager />} />
-                        <Route path="subjects" element={<SubjectManager />} />
-                        <Route path="classes" element={<ClassStaff />} />
-                        <Route path="syllabus" element={<SyllabusStaff />} />
-                        <Route
-                            path="classes/assign/:classCode"
-                            element={<AssignManager />}
-                        />
-                      </Routes>
-                    </StaffThemeWrapper>
-                  }
-              />
-
-              {/* Student Routes */}
-              <Route
-                  path="/student/workspace/:teamId"
-                  element={<StudentWorkspace />}
-              />
-              <Route
-                  path="/student/registration"
-                  element={<CourseRegistration />}
-              />
-              <Route path="/student/classes" element={<MyClasses />} />
-              <Route path="/student/profile" element={<StudentProfile />} />
-              <Route path="/class/:id" element={<ClassDetail />} />
-              <Route path="student/my-teams" element={<MyTeams />} />
-              <Route
-                  path="/student/project-registration"
-                  element={<ProjectRegistration />}
-              />
-              <Route path="/notedetail" element={<NotificationPage />} />
-              <Route path="/calendar" element={<StudentCalendar />} />
-
-              {/* Lecturer Routes */}
-              <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
-              <Route
-                  path="/lecturer/classes"
-                  element={<LecturerClassManager />}
-              />
-              <Route path="/lecturer/teamdetail" element={<TeamDetail />} />
-              <Route
-                  path="/lecturer/schedule"
-                  element={<DetailedTeachingSchedule />}
-              />
-              <Route path="/lecturer/proposals" element={<ProposalApproval />} />
-              <Route path="/lecturer/reviews" element={<ReviewProjects />} />
-              <Route
-                  path="/lecturer/manage-proposals"
-                  element={<LecturerProposalManager />}
-              />
-
-              {/* ---  HEAD DEPARTMENT ROUTES --- */}
-              <Route path="/head/dashboard" element={<HeadDashboard />} />
-              <Route
-                  path="/head/approval"
-                  element={<HeadProposalApproval />}
-              />
-              {/* Giữ path cũ để tránh lỗi */}
-              <Route
-                  path="/head/proposal-approval"
-                  element={<HeadProposalApproval />}
-              />
-              <Route path="/head/lecturers" element={<HeadLecturerManager />} />
-
-              {/* [MỚI BỔ SUNG] Các route mới cho Dashboard của Head */}
-              <Route path="/head/classes" element={<ClassStaff />} />       {/* Tái sử dụng component của Staff */}
-              <Route path="/head/subjects" element={<SubjectManager />} />  {/* Tái sử dụng component của Admin/Staff */}
-              <Route path="/head/syllabi" element={<SyllabusStaff />} />    {/* Tái sử dụng component của Staff */}
-
-            </Routes>
-          </Router>
-        </ConfirmProvider>
-      </SnackbarProvider>
+      <QueryClientProvider client={queryClient}>
+        <SnackbarProvider>
+          <ConfirmProvider>
+            <Router>
+              <ScrollToTop />
+  
+              <ReportDialog />
+  
+              {/* Sử dụng Wrapper ở đây */}
+              <ChatWrapper />
+  
+              <Routes>
+                {/* Public & Auth */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/home" element={<Home />} />
+                <Route path="/change-password" element={<ChangePassword />} />
+  
+                {/* Admin Routes */}
+                <Route path="/admin/users" element={<UserManager />} />
+                <Route path="/admin/reports" element={<ReportManager />} />
+                <Route path="/admin/subjects" element={<SubjectManager />} />
+                <Route path="/admin/classes" element={<StaffClassManager />} />
+  
+                {/* Staff Routes */}
+                <Route
+                    path="/staff/*"
+                    element={
+                      <StaffThemeWrapper>
+                        <Routes>
+                          <Route path="import" element={<ImportCenter />} />
+                          <Route path="users" element={<UserStaff />} />
+                          <Route path="reports" element={<ReportManager />} />
+                          <Route path="subjects" element={<SubjectManager />} />
+                          <Route path="classes" element={<ClassStaff />} />
+                          <Route path="syllabus" element={<SyllabusStaff />} />
+                          <Route
+                              path="classes/assign/:classCode"
+                              element={<AssignManager />}
+                          />
+                        </Routes>
+                      </StaffThemeWrapper>
+                    }
+                />
+  
+                {/* Student Routes */}
+                <Route
+                    path="/student/workspace/:teamId"
+                    element={<StudentWorkspace />}
+                />
+                <Route
+                    path="/student/registration"
+                    element={<CourseRegistration />}
+                />
+                <Route path="/student/classes" element={<MyClasses />} />
+                <Route path="/student/profile" element={<StudentProfile />} />
+                <Route path="/class/:id" element={<ClassDetail />} />
+                <Route path="student/my-teams" element={<MyTeams />} />
+                <Route
+                    path="/student/project-registration"
+                    element={<ProjectRegistration />}
+                />
+                <Route path="/notedetail" element={<NotificationPage />} />
+                <Route path="/calendar" element={<StudentCalendar />} />
+  
+                {/* Lecturer Routes */}
+                <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
+                <Route
+                    path="/lecturer/classes"
+                    element={<LecturerClassManager />}
+                />
+                <Route path="/lecturer/teamdetail" element={<TeamDetail />} />
+                <Route
+                    path="/lecturer/schedule"
+                    element={<DetailedTeachingSchedule />}
+                />
+                <Route path="/lecturer/proposals" element={<ProposalApproval />} />
+                <Route path="/lecturer/reviews" element={<ReviewProjects />} />
+                <Route
+                    path="/lecturer/manage-proposals"
+                    element={<LecturerProposalManager />}
+                />
+  
+                {/* ---  HEAD DEPARTMENT ROUTES --- */}
+                <Route path="/head/dashboard" element={<HeadDashboard />} />
+                <Route
+                    path="/head/approval"
+                    element={<HeadProposalApproval />}
+                />
+                {/* Giữ path cũ để tránh lỗi */}
+                <Route
+                    path="/head/proposal-approval"
+                    element={<HeadProposalApproval />}
+                />
+                <Route path="/head/lecturers" element={<HeadLecturerManager />} />
+  
+                {/* [MỚI BỔ SUNG] Các route mới cho Dashboard của Head */}
+                <Route path="/head/classes" element={<ClassStaff />} />       {/* Tái sử dụng component của Staff */}
+                <Route path="/head/subjects" element={<SubjectManager />} />  {/* Tái sử dụng component của Admin/Staff */}
+                <Route path="/head/syllabi" element={<SyllabusStaff />} />    {/* Tái sử dụng component của Staff */}
+  
+              </Routes>
+            </Router>
+          </ConfirmProvider>
+        </SnackbarProvider>
+      </QueryClientProvider>
   );
 }
 
