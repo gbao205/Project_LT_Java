@@ -2,9 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import { 
     Container, Typography, Box, Grid, Divider, Paper,
     Avatar, Button, IconButton, Dialog,  DialogContent,
-    Tooltip, Popover, MenuItem, Grid as MuiGrid
+    Tooltip, Popover, Grid as MuiGrid
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { Client } from '@stomp/stompjs';
+import SockJS from "sockjs-client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import SchoolIcon from "@mui/icons-material/School";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -19,8 +23,6 @@ import EventIcon from '@mui/icons-material/Event';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LeftIcon from '@mui/icons-material/ChevronLeft';
 import RightIcon from '@mui/icons-material/ChevronRight';
-import { Client } from '@stomp/stompjs';
-import SockJS from "sockjs-client";
 
 import Header from "../../components/layout/Header";
 import { StatCard, MenuCard } from "../../components/common/DashboardCards";
@@ -33,85 +35,74 @@ import { SLOT_INFO } from './StudentCalendar';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
-    const [profile, setProfile] = useState<any>(null);
+    const queryClient = useQueryClient();
+
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [myClasses, setMyClasses] = useState<any[]>([]);
-    const [activeTasks, setActiveTasks] = useState<any[]>([]);
     const [selectedDateEvents, setSelectedDateEvents] = useState<{ classes: any[], deadlines: any[] }>({ classes: [], deadlines: [] });
     const [openEventDialog, setOpenEventDialog] = useState(false);
     const [selectedDateLabel, setSelectedDateLabel] = useState("");
     const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+
+    // Lấy Profile
+    const { data: profile } = useQuery({
+        queryKey: ['studentProfile'],
+        queryFn: () => studentService.getProfile(),
+        staleTime: 1000 * 60 * 5, // Dữ liệu cá nhân coi như "tươi" trong 5 phút
+    });
+
+    // Lấy Lớp học
+    const { data: myClasses = [] } = useQuery({
+        queryKey: ['myClasses'],
+        queryFn: getMyClasses,
+        staleTime: 1000 * 60 * 10,
+    });
+
+    // Lấy Task/Deadline
+    const { data: activeTasks = [] } = useQuery({
+        queryKey: ['activeTasks'],
+        queryFn: taskService.getMyActiveTasks,
+        staleTime: 1000 * 60 * 2, // Deadline cập nhật thường xuyên hơn (2 phút)
+    });
+
+    // Lấy Thông báo
+    const { data: initialNotifications = [] } = useQuery({
+        queryKey: ['notifications'],
+        queryFn: async () => {
+            const res = await getNotifications();
+            return res.data;
+        },
+        enabled: !!profile?.user?.id, // Chỉ chạy khi đã có profile
+    });
+
+    useEffect(() => {
+        let client: Client | null = null;
+
+        if (profile?.user?.id) {
+            client = new Client({
+                brokerURL: `${BASE_URL.replace('http', 'ws')}/ws`,
+                webSocketFactory: () => new SockJS(`${BASE_URL}/ws`),
+                onConnect: () => {
+                    client?.subscribe(`/topic/notifications/${profile.user.id}`, (msg) => {
+                        const newNotify = JSON.parse(msg.body);
+                        queryClient.setQueryData(['notifications'], (oldData: any) => {
+                            return oldData ? [newNotify, ...oldData] : [newNotify];
+                        });
+                    });
+                },
+            });
+            client.activate();
+        }
+
+        return () => {
+            if (client) client.deactivate();
+        };
+    }, [profile?.user?.id, queryClient]);
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
     const monthNames = ["tháng 1", "tháng 2", "tháng 3", "tháng 4", "tháng 5", "tháng 6",
                         "tháng 7", "tháng 8", "tháng 9", "tháng 10", "tháng 11", "tháng 12"];
-
-    useEffect(() => {
-        const loadNotifications = async () => {
-            if (profile?.user?.id) {
-                try {
-                    const res = await getNotifications();
-                    setNotifications(res.data);
-                } catch (error) {
-                    console.error("Lỗi tải thông báo:", error);
-                }
-            }
-        };
-        loadNotifications();
-    }, [profile?.user?.id]);
-
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [profileData, classes, tasks] = await Promise.all([
-                    studentService.getProfile(),
-                    getMyClasses(),
-                    taskService.getMyActiveTasks()
-                ]);
-                setProfile(profileData);
-                setMyClasses(classes);
-                setActiveTasks(tasks);
-            } catch (error) {
-                console.error("Lỗi tải dữ liệu dashboard:", error);
-            } finally {
-            }
-        };
-        loadData();
-    }, []);
-
-    useEffect(() => {
-        if (profile?.user?.id) {
-            const client = new Client({
-                brokerURL: `${BASE_URL.replace('http', 'ws')}/ws`,
-                webSocketFactory: () => new SockJS(`${BASE_URL}/ws`),
-                onConnect: () => {
-                    console.log("Kết nối thành công!");
-                    client.subscribe(`/topic/notifications/${profile.user.id}`, (msg) => {
-                        const newNotify = JSON.parse(msg.body);
-                        setNotifications(prev => [newNotify, ...prev]);
-                    });
-                },
-            });
-
-            client.activate(); 
-
-            return () => {
-                client.deactivate();
-            };
-        }
-    }, [profile?.user?.id]);
-
-    // Hàm xử lý chuyển tháng
-    const handlePrevMonth = () => {
-        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-    };
-
-    const handleNextMonth = () => {
-        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-    };
 
     // Lấy danh sách ngày trong tháng hiện tại
     const days = useMemo(() => {
@@ -136,6 +127,7 @@ const StudentDashboard = () => {
         return daysArr;
     }, [currentDate]);
 
+    // Hàm lấy sự kiện trong ngày
     const getDayEvents = (date: Date) => {
         if (!date) return { dayClasses: [], dayDeadlines: [] };
 
@@ -145,7 +137,7 @@ const StudentDashboard = () => {
         const dayOfWeek = date.getDay() === 0 ? 8 : date.getDay() + 1;
 
         // Lọc tất cả các lớp có lịch vào ngày này
-        const dayClasses = myClasses.filter(cls => {
+        const dayClasses = myClasses.filter((cls: any) => {
             const start = new Date(cls.startDate);
             start.setHours(0, 0, 0, 0);
             const end = new Date(cls.endDate);
@@ -161,32 +153,12 @@ const StudentDashboard = () => {
         return { dayClasses, dayDeadlines };
     };
 
-    const handleDateClick = (date: Date) => {
-        if (!date) return;
-        const { dayClasses, dayDeadlines } = getDayEvents(date);
-        if (dayClasses.length === 0 && dayDeadlines.length === 0) return;
-
-        const dayOfWeekStr = date.getDay() === 0 ? "chủ nhật" : `thứ ${
-            date.getDay() === 1 ? "hai" : 
-            date.getDay() === 2 ? "ba" : 
-            date.getDay() === 3 ? "tư" : 
-            date.getDay() === 4 ? "năm" : 
-            date.getDay() === 5 ? "sáu" : "bảy"
-        }`;
-        
-        const label = `${dayOfWeekStr}, ngày ${date.toLocaleDateString('vi-VN')}`;
-        setSelectedDateLabel(label);
-
-        setSelectedDateEvents({ classes: dayClasses, deadlines: dayDeadlines });
-        setOpenEventDialog(true);
-    };
-
+    // Tính tổng số buổi học trong tuần hiện tại
     const weeklyClassCount = useMemo(() => {
         // 1. Xác định ngày bắt đầu (Thứ 2) và kết thúc (Chủ nhật) của tuần hiện tại
         const now = new Date();
-        const day = now.getDay(); // 0: CN, 1: T2...
+        const day = now.getDay();
         const diffToMonday = now.getDate() - (day === 0 ? 6 : day - 1);
-        
         const startOfWeek = new Date(now.setDate(diffToMonday));
         startOfWeek.setHours(0, 0, 0, 0);
         
@@ -197,7 +169,7 @@ const StudentDashboard = () => {
         let totalSessions = 0;
 
         // 2. Duyệt qua từng lớp học của sinh viên
-        myClasses.forEach(cls => {
+        myClasses.forEach((cls: any) => {
             const classStart = new Date(cls.startDate);
             const classEnd = new Date(cls.endDate);
 
@@ -222,19 +194,54 @@ const StudentDashboard = () => {
         return totalSessions;
     }, [myClasses]);
 
+    // Hàm xử lý chuyển tháng
+    const handlePrevMonth = () => {
+        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    };
+
+    // Hàm xử lý chuyển tháng
+    const handleNextMonth = () => {
+        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    };
+
+    // Xử lý khi click vào ngày trong lịch
+    const handleDateClick = (date: Date) => {
+        if (!date) return;
+        const { dayClasses, dayDeadlines } = getDayEvents(date);
+        if (dayClasses.length === 0 && dayDeadlines.length === 0) return;
+
+        const dayOfWeekStr = date.getDay() === 0 ? "chủ nhật" : `thứ ${
+            date.getDay() === 1 ? "hai" : 
+            date.getDay() === 2 ? "ba" : 
+            date.getDay() === 3 ? "tư" : 
+            date.getDay() === 4 ? "năm" : 
+            date.getDay() === 5 ? "sáu" : "bảy"
+        }`;
+        
+        const label = `${dayOfWeekStr}, ngày ${date.toLocaleDateString('vi-VN')}`;
+        setSelectedDateLabel(label);
+
+        setSelectedDateEvents({ classes: dayClasses, deadlines: dayDeadlines });
+        setOpenEventDialog(true);
+    };
+
+    // Xử lý mở Popover chọn tháng
     const handleOpenPicker = (event: React.MouseEvent<HTMLDivElement>) => {
         setAnchorEl(event.currentTarget);
     };
 
+    // Xử lý đóng Popover chọn tháng
     const handleClosePicker = () => {
         setAnchorEl(null);
     };
 
+    // Xử lý chọn tháng
     const handleSelectMonth = (monthIndex: number) => {
         setCurrentDate(new Date(currentDate.getFullYear(), monthIndex, 1));
         handleClosePicker();
     };
 
+    // Xử lý thay đổi năm
     const handleYearChange = (offset: number) => {
         setCurrentDate(new Date(currentDate.getFullYear() + offset, currentDate.getMonth(), 1));
     };
@@ -310,7 +317,7 @@ const StudentDashboard = () => {
                                 }}>
                                     <Box sx={{ position: "relative", zIndex: 1 }}>
                                         <Typography variant="subtitle2" fontWeight="bold">Thông báo mới</Typography>
-                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{notifications.length}</Typography>
+                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{initialNotifications.length}</Typography>
                                         <Button onClick={() => navigate('/notedetail')} sx={{ color: "red", p: 0, textTransform: 'none' }}>
                                             Xem chi tiết
                                         </Button>
@@ -320,7 +327,7 @@ const StudentDashboard = () => {
                                             right: 16, 
                                             bottom: 58, 
                                             fontSize: 28, 
-                                            color: notifications.length ? "red" : "#2e7d32",
+                                            color: initialNotifications.length ? "red" : "#2e7d32",
                                             transition: 'color 0.3s ease'
                                         }}
                                     />
@@ -477,7 +484,7 @@ const StudentDashboard = () => {
 
                                     const tooltipContent = (
                                         <Box sx={{ p: 0.5 }}>
-                                            {dayClasses.map((cls, idx) => (
+                                            {dayClasses.map((cls: any, idx: number) => (
                                                 <Typography key={`tt-cls-${idx}`} variant="caption" display="block" sx={{ color: '#b9f6ca', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                     <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4caf50' }} />
                                                     {cls.name}
@@ -512,7 +519,7 @@ const StudentDashboard = () => {
                                             </Typography>
                                             
                                             <Box sx={{ display: 'flex', gap: 0.4, mt: 0.5 }}>
-                                                {dayClasses.map((_, i) => (
+                                                {dayClasses.map((_: any, i: number) => (
                                                     <Box key={`c-${i}`} sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#4caf50' }} />
                                                 ))}
                                                 {dayDeadlines.map((_, i) => (
