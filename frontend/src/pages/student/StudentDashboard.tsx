@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { 
     Container, Typography, Box, Grid, Divider, Paper,
     Avatar, Button, IconButton, Dialog,  DialogContent,
-    Tooltip
+    Tooltip, Popover, MenuItem, Grid as MuiGrid
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SchoolIcon from "@mui/icons-material/School";
@@ -34,13 +34,14 @@ import { SLOT_INFO } from './StudentCalendar';
 const StudentDashboard = () => {
     const navigate = useNavigate();
     const [profile, setProfile] = useState<any>(null);
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [notifications, setNotifications] = useState<any[]>([]);
     const [myClasses, setMyClasses] = useState<any[]>([]);
     const [activeTasks, setActiveTasks] = useState<any[]>([]);
     const [selectedDateEvents, setSelectedDateEvents] = useState<{ classes: any[], deadlines: any[] }>({ classes: [], deadlines: [] });
     const [openEventDialog, setOpenEventDialog] = useState(false);
     const [selectedDateLabel, setSelectedDateLabel] = useState("");
+    const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -221,6 +222,25 @@ const StudentDashboard = () => {
         return totalSessions;
     }, [myClasses]);
 
+    const handleOpenPicker = (event: React.MouseEvent<HTMLDivElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleClosePicker = () => {
+        setAnchorEl(null);
+    };
+
+    const handleSelectMonth = (monthIndex: number) => {
+        setCurrentDate(new Date(currentDate.getFullYear(), monthIndex, 1));
+        handleClosePicker();
+    };
+
+    const handleYearChange = (offset: number) => {
+        setCurrentDate(new Date(currentDate.getFullYear() + offset, currentDate.getMonth(), 1));
+    };
+
+    const open = Boolean(anchorEl);
+
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f1f8e9" }}>
             <Header />
@@ -342,23 +362,78 @@ const StudentDashboard = () => {
                                     </IconButton>
                                     
                                     {/* Ant Design Style Picker Input */}
-                                    <Box sx={{
-                                        fontSize: '13.5px',
-                                        fontWeight: 600,
-                                        color: 'rgb(26, 60, 52)',
-                                        border: '1px solid rgb(209, 213, 219)',
-                                        borderRadius: '4px',
-                                        bgcolor: '#fff',
-                                        px: 1, py: 0.5,
-                                        width: '140px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        cursor: 'pointer'
-                                    }}>
+                                    <Box 
+                                        onClick={handleOpenPicker}
+                                        sx={{
+                                            fontSize: '13.5px',
+                                            fontWeight: 600,
+                                            color: 'rgb(26, 60, 52)',
+                                            border: '1px solid rgb(209, 213, 219)',
+                                            borderRadius: '4px',
+                                            bgcolor: '#fff',
+                                            px: 1.5, py: 0.5,
+                                            width: '140px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            cursor: 'pointer',
+                                            '&:hover': { borderColor: '#2e7d32' }
+                                        }}
+                                    >
                                         {`${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
                                         <CalendarMonthIcon sx={{ fontSize: '16px', color: '#999' }} />
                                     </Box>
+
+                                    <Popover
+                                        open={open}
+                                        anchorEl={anchorEl}
+                                        onClose={handleClosePicker}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        PaperProps={{
+                                            sx: { mt: 1, p: 0, borderRadius: '8px', boxShadow: '0 6px 16px rgba(0,0,0,0.08)', width: '280px' }
+                                        }}
+                                    >
+                                        {/* Header của bảng chọn */}
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: '1px solid #f0f0f0' }}>
+                                            <IconButton size="small" onClick={() => handleYearChange(-1)}><LeftIcon fontSize="small" /></IconButton>
+                                            <Typography sx={{ fontWeight: 700, fontSize: '14px', cursor: 'default' }}>
+                                                {currentDate.getFullYear()}
+                                            </Typography>
+                                            <IconButton size="small" onClick={() => handleYearChange(1)}><RightIcon fontSize="small" /></IconButton>
+                                        </Box>
+
+                                        <Box sx={{ p: 1 }}>
+                                            <MuiGrid container spacing={1}>
+                                                {monthNames.map((month, index) => {
+                                                    const isSelected = index === currentDate.getMonth();
+                                                    return (
+                                                        <MuiGrid key={month} size={4}> 
+                                                            <Box
+                                                                onClick={() => handleSelectMonth(index)}
+                                                                sx={{
+                                                                    py: 1.5,
+                                                                    textAlign: 'center',
+                                                                    borderRadius: '4px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '13px',
+                                                                    transition: 'all 0.2s',
+                                                                    bgcolor: isSelected ? '#e6f7ff' : 'transparent',
+                                                                    color: isSelected ? '#1677ff' : 'rgba(0,0,0,0.88)',
+                                                                    fontWeight: isSelected ? 600 : 400,
+                                                                    '&:hover': {
+                                                                        bgcolor: isSelected ? '#bae0ff' : '#f5f5f5'
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {`Th ${String(index + 1).padStart(2, '0')}`}
+                                                            </Box>
+                                                        </MuiGrid>
+                                                    );
+                                                })}
+                                            </MuiGrid>
+                                        </Box>
+                                    </Popover>
 
                                     <IconButton size="small" onClick={handleNextMonth} sx={{ color: '#1A3C34' }}>
                                         <RightIcon fontSize="small" />
@@ -479,7 +554,7 @@ const StudentDashboard = () => {
                 </Grid>
 
                 <Box mb={5}>
-                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: "#2e7d32" }}>
+                    <Typography variant="h4" fontWeight="700" gutterBottom sx={{ color: "#2e7d32" }}>
                         Góc Học Tập
                     </Typography>
                     <Grid container spacing={3}>

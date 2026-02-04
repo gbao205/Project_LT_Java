@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Typography, Box, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Paper, 
@@ -22,30 +23,91 @@ import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 import { getRegistrationClasses, enrollClass, cancelClass, type ClassRoom } from '../../services/classService';
 
 const CourseRegistration = () => {
-    const [classes, setClasses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
-
+    const queryClient = useQueryClient();
     const [selectedClass, setSelectedClass] = useState<ClassRoom | null>(null);
     const [openDetail, setOpenDetail] = useState(false);
 
     const { confirm } = useConfirm();
     const { showSuccess, showError } = useAppSnackbar();
 
-    const fetchData = async () => {
-        try {
-            const data = await getRegistrationClasses();
-            setClasses(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
+    // 1. Lấy danh sách lớp học
+    const { data: classes = [], isLoading } = useQuery({
+        queryKey: ['registration-classes'], // Key này dùng để định danh dữ liệu trong cache
+        queryFn: getRegistrationClasses,    // Hàm gọi API của bạn
+        staleTime: 60000,                   // Dữ liệu được coi là "tươi mới" trong 60 giây
+    });
+
+    // Mutation để Đăng ký lớp
+    const enrollMutation = useMutation({
+        mutationFn: (classId: number) => enrollClass(classId),
+        // Khi bắt đầu nhấn nút Đăng ký
+        onMutate: async (classId) => {
+            await queryClient.cancelQueries({ queryKey: ['registration-classes'] });
+            const previousClasses = queryClient.getQueryData(['registration-classes']);
+            queryClient.setQueryData(['registration-classes'], (old: any[]) => 
+                old.map(c => c.id === classId ? { ...c, isRegistered: true, currentEnrollment: c.currentEnrollment + 1 } : c)
+            );
+            return { previousClasses };
+        },
+        onError: (err, classId, context) => {
+            // Nếu lỗi thì hoàn tác dữ liệu cũ
+            queryClient.setQueryData(['registration-classes'], context?.previousClasses);
+            if (openDetail) setOpenDetail(false);
+            showError("Đăng ký thất bại!");
+
+        },
+        onSuccess: () => {
+            if (openDetail) setOpenDetail(false);
+            showSuccess("Đăng ký thành công!");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['registration-classes'] });
+        }
+    });
+
+    // Mutation để Hủy lớp
+    const cancelMutation = useMutation({
+        mutationFn: (classId: number) => cancelClass(classId),
+        onMutate: async (classId) => {
+            await queryClient.cancelQueries({ queryKey: ['registration-classes'] });
+            const previousClasses = queryClient.getQueryData(['registration-classes']);
+            queryClient.setQueryData(['registration-classes'], (old: any[]) => 
+                old.map(c => c.id === classId ? { ...c, isRegistered: false, currentEnrollment: c.currentEnrollment - 1 } : c)
+            );
+            return { previousClasses };
+        },
+        onError: (err, classId, context) => {
+            queryClient.setQueryData(['registration-classes'], context?.previousClasses);
+            if (openDetail) setOpenDetail(false);
+            showError("Hủy thất bại!");
+        },
+        onSuccess: () => {
+            if (openDetail) setOpenDetail(false);
+            showSuccess("Đã hủy đăng ký!");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['registration-classes'] });
+        }
+    });
+
+    // Tách danh sách thành 2 phần: Đã đăng ký & Chưa đăng ký
+    const { availableList, registeredList } = useMemo(() => {
+        const available = classes.filter((c: any) => !c.isRegistered && c.isRegistrationOpen);
+        const registered = classes.filter((c: any) => c.isRegistered);
+        return { availableList: available, registeredList: registered };
+    }, [classes]);
+
+    const handleAction = (classId: number, isRegistered: boolean) => {
+        if (isRegistered) {
+            confirm({
+                title: "Xác nhận hủy",
+                message: "Bạn có chắc muốn hủy đăng ký?",
+                onConfirm: () => cancelMutation.mutate(classId)
+            });
+        } else {
+            enrollMutation.mutate(classId);
         }
     };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const handleOpenDetail = (cls: ClassRoom) => {
         setSelectedClass(cls);
@@ -57,54 +119,13 @@ const CourseRegistration = () => {
         setSelectedClass(null);
     };
 
-    // Tách danh sách thành 2 phần: Đã đăng ký & Chưa đăng ký
-    const { availableList, registeredList } = useMemo(() => {
-        const available = classes.filter(c => !c.isRegistered && c.isRegistrationOpen);
-        const registered = classes.filter(c => c.isRegistered);
-        return { availableList: available, registeredList: registered };
-    }, [classes]);
-
-    const handleAction = async (classId: number, isRegistered: boolean) => {
-        try {
-            if (isRegistered) {
-                confirm({
-                    title: "Xác nhận hủy",
-                    message: "Bạn có chắc muốn hủy đăng ký lớp học này không?",
-                    onConfirm: async () => {
-                        try {
-                            setActionLoadingId(classId);
-                            await cancelClass(classId);
-                            showSuccess('Đã hủy đăng ký thành công!');
-                            await fetchData();
-                            if (openDetail) setOpenDetail(false);
-                        } catch (error: any) {
-                            showError(error.response?.data?.message || "Lỗi thao tác!");
-                        } finally {
-                            setActionLoadingId(null);
-                        }
-                    }
-                });
-            } else {
-                try {
-                    setActionLoadingId(classId);
-                    await enrollClass(classId);
-                    showSuccess('Đăng ký môn học thành công!');
-                    await fetchData();
-                    if (openDetail) setOpenDetail(false);
-                } catch (error: any) {
-                    showError(error.response?.data?.message || "Lỗi thao tác!");
-                } finally {
-                    setActionLoadingId(null); 
-                }
-            }
-        } catch (error: any) {
-            showError(error.response?.data?.message || "Lỗi thao tác!");
-        }
-    };
+    const processingId = enrollMutation.isPending ? enrollMutation.variables : 
+                     cancelMutation.isPending ? cancelMutation.variables : null;
 
     // Component con để render từng dòng (tránh lặp code)
     const ClassRow = ({ row, isRegisteredTable }: { row: any, isRegisteredTable: boolean }) => {
-        const isCurrentLoading = actionLoadingId === row.id;
+        const isCurrentLoading = processingId === row.id;
+
         return (
             <TableRow hover onClick={() => handleOpenDetail(row)} sx={{ cursor: 'pointer' }}>
                 <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>{row.classCode}</TableCell>
@@ -126,7 +147,7 @@ const CourseRegistration = () => {
                         variant={isRegisteredTable ? "outlined" : "contained"}
                         color={isRegisteredTable ? "error" : "primary"}
                         size="small"
-                        disabled={isCurrentLoading || (!isRegisteredTable && (row.currentEnrollment || 0) >= row.maxCapacity)}
+                        disabled={!!processingId || (!isRegisteredTable && row.currentEnrollment >= row.maxCapacity)}
                         startIcon={isCurrentLoading ? <CircularProgress size={16} color="inherit" /> : (isRegisteredTable ? <CancelIcon /> : <AddCircleOutlineIcon />)}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -143,7 +164,7 @@ const CourseRegistration = () => {
     return (
         <StudentLayout title="Đăng Ký Môn Học">
 
-            {loading ? (
+            {isLoading ? (
                 <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>
             ) : (
                 <Box display="flex" flexDirection="column" gap={5}>
@@ -170,7 +191,7 @@ const CourseRegistration = () => {
                                 </TableHead>
                                 <TableBody>
                                     {availableList.length > 0 ? (
-                                        availableList.map((row) => <ClassRow key={row.id} row={row} isRegisteredTable={false} />)
+                                        availableList.map((row: any) => <ClassRow key={row.id} row={row} isRegisteredTable={false} />)
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.secondary' }}>
@@ -205,7 +226,7 @@ const CourseRegistration = () => {
                                 </TableHead>
                                 <TableBody>
                                     {registeredList.length > 0 ? (
-                                        registeredList.map((row) => <ClassRow key={row.id} row={row} isRegisteredTable={true} />)
+                                        registeredList.map((row: any) => <ClassRow key={row.id} row={row} isRegisteredTable={true} />)
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.secondary' }}>
@@ -373,7 +394,10 @@ const CourseRegistration = () => {
                             <Button 
                                 variant="contained" 
                                 color={selectedClass.isRegistered ? "error" : "primary"}
-                                disabled={actionLoadingId === selectedClass.id || (!selectedClass.isRegistered && (selectedClass.currentEnrollment || 0) >= selectedClass.maxCapacity)}
+                                disabled={
+                                    !!processingId || 
+                                    (!selectedClass.isRegistered && (selectedClass.currentEnrollment ?? 0) >= (selectedClass.maxCapacity ?? 0))
+                                }
                                 onClick={() => handleAction(selectedClass.id, selectedClass.isRegistered || false)}
                                 sx={{ 
                                     borderRadius: 2, 
@@ -383,7 +407,7 @@ const CourseRegistration = () => {
                                     boxShadow: selectedClass.isRegistered ? '0 4px 12px rgba(211, 47, 47, 0.3)' : '0 4px 12px rgba(25, 118, 210, 0.3)'
                                 }}
                             >
-                                {actionLoadingId === selectedClass.id ? (
+                                {processingId === selectedClass.id ? (
                                     <CircularProgress size={20} color="inherit" />
                                 ) : (
                                     selectedClass.isRegistered ? "Hủy Đăng Ký" : "Đăng Ký Ngay"

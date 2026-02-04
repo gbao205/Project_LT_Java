@@ -21,6 +21,13 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
     @Query("SELECT c FROM ClassRoom c WHERE c.lecturer.email = :email")
     List<ClassRoom> findByLecturerEmail(String email);
 
+    // Thêm phương thức để lấy các lớp có đăng ký mở
+    @Query("SELECT DISTINCT c FROM ClassRoom c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.lecturer " +
+           "WHERE c.isRegistrationOpen = true")
+    List<ClassRoom> findAllActiveRegistrationClasses();
+
     @Query("SELECT COUNT(c) FROM ClassRoom c WHERE c.lecturer.email = :email")
     long countByLecturerEmail(String email);
 
