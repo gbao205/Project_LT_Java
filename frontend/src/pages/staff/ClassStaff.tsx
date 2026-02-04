@@ -31,13 +31,15 @@ import SchoolIcon from "@mui/icons-material/School";
 import SearchIcon from "@mui/icons-material/Search";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import ToggleOffIcon from "@mui/icons-material/ToggleOff";
-import PeopleIcon from "@mui/icons-material/People"; // Icon mới để xem sinh viên
+import PeopleIcon from "@mui/icons-material/People";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import EditCalendarIcon from "@mui/icons-material/EditCalendar";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // [MỚI] Import icon Back
 
 import { staffService } from "../../services/staffService";
 import { useAppSnackbar } from "../../hooks/useAppSnackbar";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import EditCalendarIcon from "@mui/icons-material/EditCalendar";
+
 // --- Định nghĩa Interfaces ---
 interface ClassData {
   id: number;
@@ -72,6 +74,22 @@ const ClassManager = () => {
   const { showSuccess, showError } = useAppSnackbar();
   const navigate = useNavigate();
 
+  // --- 1. LẤY ROLE ĐỂ CẤU HÌNH MÀU SẮC ---
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isHead = user.role === "HEAD_DEPARTMENT";
+
+  // Cấu hình Theme động
+  const theme = {
+    primary: isHead ? "#ea580c" : "#9c27b0",       // Cam đậm / Tím
+    secondary: isHead ? "#f97316" : "#ba68c8",     // Cam sáng / Tím nhạt
+    bgGradient: isHead
+        ? "linear-gradient(135deg, #c2410c 0%, #fb923c 100%)" // Gradient Cam
+        : "linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%)", // Gradient Tím
+    lightBg: isHead ? "#fff7ed" : "#f8fafc",       // Nền rất nhạt
+    headerText: isHead ? "#9a3412" : "#4a148c",    // Màu chữ Header bảng
+    iconBg: "rgba(255,255,255,0.2)"
+  };
+
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -101,6 +119,7 @@ const ClassManager = () => {
   const [openDateModal, setOpenDateModal] = useState(false);
   const [newStartDate, setNewStartDate] = useState("");
   const [processingDate, setProcessingDate] = useState(false);
+
   // 1. Logic lấy thời khóa biểu
   const handleViewTimetable = async (classCode: string) => {
     setSelectedClassCode(classCode);
@@ -126,10 +145,10 @@ const ClassManager = () => {
         startDate: newStartDate,
       });
       showSuccess(
-        "Cập nhật ngày thành công! Ngày kết thúc đã được tự động tính toán.",
+          "Cập nhật ngày thành công! Ngày kết thúc đã được tự động tính toán.",
       );
       setOpenDateModal(false);
-      loadData(); // Tải lại danh sách lớp để cập nhật dữ liệu mới
+      loadData();
     } catch {
       showError("Lỗi khi cập nhật ngày học");
     } finally {
@@ -183,15 +202,15 @@ const ClassManager = () => {
       const updatedData = response.data;
 
       setClasses((prevClasses) =>
-        prevClasses.map((cls) => {
-          if (Number(cls.id) === Number(id)) {
-            return {
-              ...cls,
-              registrationOpen: updatedData.registrationOpen,
-            };
-          }
-          return cls;
-        }),
+          prevClasses.map((cls) => {
+            if (Number(cls.id) === Number(id)) {
+              return {
+                ...cls,
+                registrationOpen: updatedData.registrationOpen,
+              };
+            }
+            return cls;
+          }),
       );
 
       const statusText = updatedData.registrationOpen ? "Mở" : "Khóa";
@@ -214,549 +233,564 @@ const ClassManager = () => {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 4 }}>
-      <Container maxWidth="xl">
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={5}
-        >
-          <Box display="flex" alignItems="center" gap={2}>
-            <Avatar
-              sx={{
-                bgcolor: "#f3e5f5",
-                color: "#9c27b0",
-                width: 56,
-                height: 56,
-              }}
-            >
-              <SchoolIcon fontSize="large" />
-            </Avatar>
-            <Box>
-              <Typography
-                variant="h4"
-                fontWeight={900}
-                sx={{ letterSpacing: -1 }}
-              >
-                Quản Lý Lớp Học
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Danh sách lớp và trạng thái đăng ký học phần
-              </Typography>
+      // Áp dụng màu nền động theo Role
+      <Box sx={{ minHeight: "100vh", bgcolor: theme.lightBg, py: isHead ? 0 : 4 }}>
+
+        {/* --- BANNER ĐỘNG (CAM HOẶC TÍM) --- */}
+        <Box sx={{
+          minHeight: 140,
+          background: theme.bgGradient,
+          pt: 4, pb: 6, mb: -4,
+          display: 'block'
+        }}>
+          <Container maxWidth="xl">
+            <Box display="flex" justifyContent="space-between" alignItems="center" color="white">
+              <Box display="flex" alignItems="center" gap={2}>
+
+                {/* [MỚI] NÚT QUAY LẠI */}
+                <IconButton
+                    onClick={() => navigate(-1)}
+                    sx={{
+                      color: "white",
+                      bgcolor: theme.iconBg,
+                      "&:hover": { bgcolor: "rgba(255,255,255,0.3)" }
+                    }}
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+
+                <Avatar sx={{ bgcolor: theme.iconBg, width: 64, height: 64 }}>
+                  <SchoolIcon fontSize="large" />
+                </Avatar>
+                <Box>
+                  <Typography variant="h4" fontWeight={900}>QUẢN LÝ LỚP HỌC</Typography>
+                  <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                    {isHead ? "Theo dõi tiến độ và sĩ số các lớp" : "Quản lý mở lớp và xếp lịch"}
+                  </Typography>
+                </Box>
+              </Box>
+              {/* Chỉ Staff mới hiện nút Import, Head chỉ xem */}
+              {!isHead && (
+                  <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={() => navigate("/staff/import")}
+                          sx={{ bgcolor: 'white', color: theme.primary, fontWeight: 800, '&:hover': { bgcolor: '#f3e5f5' } }}>
+                    IMPORT DỮ LIỆU
+                  </Button>
+              )}
             </Box>
-          </Box>
-          <Button
-            variant="outlined"
-            startIcon={<CloudUploadIcon />}
-            onClick={() => navigate("/staff/import")}
-            sx={{
-              borderRadius: 3,
-              fontWeight: 700,
-              color: "#9c27b0",
-              borderColor: "#9c27b0",
-            }}
-          >
-            Đến Trung Tâm Import
-          </Button>
+          </Container>
         </Box>
 
-        {/* Search */}
-        <Paper
-          sx={{ p: 2.5, mb: 4, borderRadius: 4, border: "1px solid #f1f5f9" }}
-        >
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
-              <TextField
-                label="Mã lớp"
-                size="small"
-                fullWidth
-                value={searchInputs.classCode}
-                onChange={(e) =>
-                  setSearchInputs({
-                    ...searchInputs,
-                    classCode: e.target.value,
-                  })
-                }
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
-              <TextField
-                label="Tên lớp"
-                size="small"
-                fullWidth
-                value={searchInputs.name}
-                onChange={(e) =>
-                  setSearchInputs({ ...searchInputs, name: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
-              <TextField
-                label="Học kỳ"
-                size="small"
-                fullWidth
-                value={searchInputs.semester}
-                onChange={(e) =>
-                  setSearchInputs({ ...searchInputs, semester: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={handleSearch}
-                  startIcon={<SearchIcon />}
-                  sx={{ bgcolor: "#9c27b0", fontWeight: 700 }}
-                >
-                  Tìm kiếm
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleReset}
-                  sx={{ fontWeight: 700, color: "#64748b" }}
-                >
-                  Reset
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
-        </Paper>
+        <Container maxWidth="xl" sx={{ mt: 8 }}> {/* Thêm margin top để nội dung không bị che bởi banner */}
 
-        <TableContainer
-          component={Paper}
-          sx={{ borderRadius: 5, boxShadow: "0 10px 30px rgba(0,0,0,0.03)" }}
-        >
-          <Table>
-            <TableHead sx={{ bgcolor: "#f3e5f5" }}>
-              <TableRow>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>
-                  MÃ LỚP
-                </TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>TÊN LỚP</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>
-                  GIẢNG VIÊN
-                </TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>MÔN HỌC</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>
-                  HỌC KỲ
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>
-                  SĨ SỐ
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>
-                  TRẠNG THÁI
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>
-                  THAO TÁC
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
+          {/* Search */}
+          <Paper
+              sx={{ p: 2.5, mb: 4, borderRadius: 4, border: "1px solid #f1f5f9" }}
+          >
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={4} md={3}>
+                <TextField
+                    label="Mã lớp"
+                    size="small"
+                    fullWidth
+                    value={searchInputs.classCode}
+                    onChange={(e) =>
+                        setSearchInputs({
+                          ...searchInputs,
+                          classCode: e.target.value,
+                        })
+                    }
+                />
+              </Grid>
+              <Grid item xs={12} sm={4} md={3}>
+                <TextField
+                    label="Tên lớp"
+                    size="small"
+                    fullWidth
+                    value={searchInputs.name}
+                    onChange={(e) =>
+                        setSearchInputs({ ...searchInputs, name: e.target.value })
+                    }
+                />
+              </Grid>
+              <Grid item xs={12} sm={4} md={3}>
+                <TextField
+                    label="Học kỳ"
+                    size="small"
+                    fullWidth
+                    value={searchInputs.semester}
+                    onChange={(e) =>
+                        setSearchInputs({ ...searchInputs, semester: e.target.value })
+                    }
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={handleSearch}
+                      startIcon={<SearchIcon />}
+                      sx={{ bgcolor: theme.primary, fontWeight: 700 }} // Màu nút tìm kiếm động
+                  >
+                    Tìm kiếm
+                  </Button>
+                  <Button
+                      variant="outlined"
+                      onClick={handleReset}
+                      sx={{ fontWeight: 700, color: "#64748b", borderColor: '#e2e8f0' }}
+                  >
+                    Reset
+                  </Button>
+                </Stack>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 5, boxShadow: "0 10px 30px rgba(0,0,0,0.03)" }}
+          >
+            <Table>
+              {/* Header Table đổi màu theo Role */}
+              <TableHead sx={{ bgcolor: isHead ? '#fff7ed' : "#f3e5f5" }}>
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
-                    <CircularProgress color="secondary" />
+                  <TableCell align="center" sx={{ fontWeight: 800, color: theme.headerText }}>
+                    MÃ LỚP
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: theme.headerText }}>TÊN LỚP</TableCell>
+
+                  {/* [SỬA] Bỏ align="center" để căn trái cột Giảng viên */}
+                  <TableCell sx={{ fontWeight: 800, color: theme.headerText }}>
+                    GIẢNG VIÊN
+                  </TableCell>
+
+                  <TableCell sx={{ fontWeight: 800, color: theme.headerText }}>MÔN HỌC</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800, color: theme.headerText }}>
+                    HỌC KỲ
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800, color: theme.headerText }}>
+                    SĨ SỐ
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800, color: theme.headerText }}>
+                    TRẠNG THÁI
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800, color: theme.headerText }}>
+                    THAO TÁC
                   </TableCell>
                 </TableRow>
-              ) : (
-                classes.map((cls) => (
-                  <TableRow key={cls.id} hover>
-                    <TableCell
-                      align="center"
-                      sx={{ fontWeight: 800, color: "#6a1b9a" }}
-                    >
-                      {cls.classCode}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{cls.name}</TableCell>
-                    <TableCell>
-                      <Stack
-                        direction="row"
-                        spacing={1.5}
-                        alignItems="center"
-                        justifyContent="center"
-                      >
-                        <Avatar
-                          sx={{
-                            width: 30,
-                            height: 30,
-                            bgcolor: "#f3e5f5",
-                            color: "#9c27b0",
-                            fontSize: "0.875rem",
-                          }}
-                        >
-                          {cls.lecturerName ? cls.lecturerName.charAt(0) : "?"}
-                        </Avatar>
-                        <Typography variant="body2" fontWeight={500}>
-                          {cls.lecturerName || "Chưa phân công"}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{cls.subjectName}</TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={`HK ${cls.semester}`}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2" fontWeight={700}>
-                        {cls.studentCount} / {cls.maxCapacity}
-                      </Typography>
-                      <Box
-                        sx={{
-                          width: "100%",
-                          mt: 0.5,
-                          height: 4,
-                          bgcolor: "#e2e8f0",
-                          borderRadius: 1,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: `${(cls.studentCount / cls.maxCapacity) * 100}%`,
-                            height: "100%",
-                            bgcolor:
-                              cls.studentCount >= cls.maxCapacity
-                                ? "#ef4444"
-                                : "#9c27b0",
-                          }}
-                        />
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={cls.registrationOpen ? "Đang mở" : "Đã khóa"}
-                        color={cls.registrationOpen ? "success" : "error"}
-                        size="small"
-                        sx={{ fontWeight: 700, minWidth: 80 }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="center"
-                        alignItems="center"
-                      >
-                        {/* 1. NÚT XEM SINH VIÊN - LUÔN LUÔN CHO XEM */}
-                        <Tooltip title="Danh sách sinh viên">
-                          <IconButton
-                            onClick={() => handleViewStudents(cls.classCode)}
-                            sx={{
-                              width: 40, // Fix cứng kích thước để đều nhau
-                              height: 40,
-                              color: "#10b981",
-                              bgcolor: "#ecfdf5",
-                              "&:hover": { bgcolor: "#d1fae5" },
-                            }}
-                          >
-                            <PeopleIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-
-                        {/* 2. NÚT GÁN NHÂN SỰ - CHỈ VÔ HIỆU HÓA NÚT NÀY */}
-                        <Tooltip
-                          title={
-                            cls.registrationOpen
-                              ? "Gán nhân sự"
-                              : "Lớp đã khóa gán"
-                          }
-                        >
-                          <span>
-                            <IconButton
-                              disabled={!cls.registrationOpen}
-                              onClick={() =>
-                                navigate(
-                                  `/staff/classes/assign/${cls.classCode}`,
-                                )
-                              }
-                              sx={{
-                                width: 40, // Fix cứng kích thước
-                                height: 40,
-                                color: cls.registrationOpen
-                                  ? "#9c27b0"
-                                  : "rgba(0, 0, 0, 0.26)",
-                                bgcolor: cls.registrationOpen
-                                  ? "#f3e5f5"
-                                  : "#f5f5f5",
-                                "&.Mui-disabled": {
-                                  color: "rgba(0, 0, 0, 0.26)",
-                                  bgcolor: "#f5f5f5",
-                                },
-                                "&:hover": {
-                                  bgcolor: cls.registrationOpen
-                                    ? "#e1bee7"
-                                    : "#f5f5f5",
-                                },
-                              }}
-                            >
-                              <AssignmentIndIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-
-                        {/* 3. NÚT STATUS - FIX LẠI KÍCH THƯỚC CHO ĐỀU 2 NÚT TRÊN */}
-                        <Tooltip
-                          title={
-                            cls.registrationOpen ? "Khóa đăng ký" : "Mở đăng ký"
-                          }
-                        >
-                          <IconButton
-                            onClick={() => handleToggleStatus(cls.id)}
-                            sx={{
-                              width: 40, // Đưa về cùng kích thước 40px
-                              height: 40,
-                              color: cls.registrationOpen
-                                ? "#10b981"
-                                : "#ef4444",
-                              bgcolor: cls.registrationOpen
-                                ? "#ecfdf5"
-                                : "#fef2f2",
-                              "&:hover": {
-                                bgcolor: cls.registrationOpen
-                                  ? "#d1fae5"
-                                  : "#fee2e2",
-                              },
-                            }}
-                          >
-                            {cls.registrationOpen ? (
-                              <ToggleOnIcon sx={{ fontSize: 28 }} /> // Chỉnh size icon bên trong cho vừa vặn
-                            ) : (
-                              <ToggleOffIcon sx={{ fontSize: 28 }} />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                        {/* 4. NÚT XEM THỜI KHÓA BIỂU */}
-                        <Tooltip title="Xem thời khóa biểu">
-                          <IconButton
-                            onClick={() => handleViewTimetable(cls.classCode)}
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              color: "#3b82f6",
-                              bgcolor: "#eff6ff",
-                              "&:hover": { bgcolor: "#dbeafe" },
-                            }}
-                          >
-                            <CalendarMonthIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-
-                        {/* 5. NÚT SỬA NGÀY NHẬP HỌC */}
-                        <Tooltip
-                          title={
-                            cls.registrationOpen
-                              ? "Cập nhật ngày nhập học"
-                              : "Lớp đã khóa, không thể sửa ngày"
-                          }
-                        >
-                          <span>
-                            {" "}
-                            {/* Bọc span để Tooltip hiện được khi disabled */}
-                            <IconButton
-                              disabled={!cls.registrationOpen} // KHÓA NÚT Ở ĐÂY
-                              onClick={() => {
-                                setSelectedClassCode(cls.classCode);
-                                setNewStartDate(cls.startDate || "");
-                                setOpenDateModal(true);
-                              }}
-                              sx={{
-                                width: 40,
-                                height: 40,
-                                color: cls.registrationOpen
-                                  ? "#f59e0b"
-                                  : "rgba(0, 0, 0, 0.26)",
-                                bgcolor: cls.registrationOpen
-                                  ? "#fffbeb"
-                                  : "#f5f5f5",
-                                "&:hover": {
-                                  bgcolor: cls.registrationOpen
-                                    ? "#fef3c7"
-                                    : "#f5f5f5",
-                                },
-                                "&.Mui-disabled": {
-                                  color: "rgba(0, 0, 0, 0.26)",
-                                  bgcolor: "#f5f5f5",
-                                },
-                              }}
-                            >
-                              <EditCalendarIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box display="flex" justifyContent="center" py={4}>
-          <Pagination
-            count={totalPages}
-            page={page + 1}
-            color="secondary"
-            shape="rounded"
-            onChange={(_, v) => setPage(v - 1)}
-          />
-        </Box>
-
-        {/* DIALOG (TRANG NỔI) HIỂN THỊ SINH VIÊN */}
-        <Dialog
-          open={openStudentModal}
-          onClose={() => setOpenStudentModal(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
-        >
-          <DialogTitle
-            sx={{ fontWeight: 800, color: "#1e293b", bgcolor: "#f8fafc" }}
-          >
-            Sinh viên lớp:{" "}
-            <span style={{ color: "#9c27b0" }}>{selectedClassCode}</span>
-          </DialogTitle>
-          <DialogContent dividers sx={{ p: 0 }}>
-            {loadingStudents ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-                <CircularProgress size={40} color="secondary" />
-              </Box>
-            ) : studentList.length > 0 ? (
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: "#f1f5f9" }}>
-                      MSSV
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: "#f1f5f9" }}>
-                      Họ Tên
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: "#f1f5f9" }}>
-                      Email
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {studentList.map((st: any, idx: number) => (
-                    <TableRow key={idx} hover>
-                      <TableCell sx={{ color: "#9c27b0", fontWeight: 700 }}>
-                        {st.studentId}
-                      </TableCell>
-
-                      {/* Đã sửa: Thêm dấu ngoặc kép quanh "200px" và xóa comment gây lỗi cú pháp */}
-                      <TableCell
-                        sx={{
-                          fontWeight: 600,
-                          whiteSpace: "nowrap",
-                          minWidth: "200px",
-                        }}
-                      >
-                        {st.fullName}
-                      </TableCell>
-
-                      <TableCell sx={{ color: "#64748b", fontSize: "0.85rem" }}>
-                        {st.email}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <Box sx={{ p: 6, textAlign: "center" }}>
-                <Typography color="text.secondary">
-                  Lớp này hiện chưa có sinh viên đăng ký.
-                </Typography>
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 2, bgcolor: "#f8fafc" }}>
-            <Button
-              onClick={() => setOpenStudentModal(false)}
-              variant="contained"
-              color="inherit"
-              sx={{ textTransform: "none", borderRadius: 2 }}
-            >
-              Đóng
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={openTimetableModal}
-          onClose={() => setOpenTimetableModal(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle sx={{ fontWeight: 800 }}>
-            Thời khóa biểu: {selectedClassCode}
-          </DialogTitle>
-          <DialogContent>
-            {loadingTimetable ? (
-              <CircularProgress />
-            ) : (
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead sx={{ bgcolor: "#f8fafc" }}>
+              </TableHead>
+              <TableBody>
+                {isLoading ? (
                     <TableRow>
-                      <TableCell>Ngày</TableCell>
-                      <TableCell>Thứ</TableCell>
-                      <TableCell>Ca</TableCell>
-                      <TableCell>Phòng</TableCell>
+                      <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                        <CircularProgress sx={{ color: theme.primary }} />
+                      </TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {timetableList.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{item.date}</TableCell>
-                        <TableCell>Thứ {item.dayOfWeek}</TableCell>
-                        <TableCell>Ca {item.slot}</TableCell>
-                        <TableCell>{item.room}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DialogContent>
-        </Dialog>
-        <Dialog open={openDateModal} onClose={() => setOpenDateModal(false)}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Cập nhật ngày học</DialogTitle>
-          <DialogContent sx={{ minWidth: 300, pt: 2 }}>
-            <Typography variant="body2" mb={2} color="text.secondary">
-              Chọn ngày bắt đầu mới, hệ thống sẽ tự động tính toán lại ngày kết
-              thúc dựa trên thời khóa biểu đã import.
-            </Typography>
-            <TextField
-              fullWidth
-              type="date"
-              label="Ngày bắt đầu mới"
-              InputLabelProps={{ shrink: true }}
-              value={newStartDate}
-              onChange={(e) => setNewStartDate(e.target.value)}
+                ) : (
+                    classes.map((cls) => (
+                        <TableRow key={cls.id} hover>
+                          <TableCell
+                              align="center"
+                              sx={{ fontWeight: 800, color: theme.primary }} // Màu mã lớp động
+                          >
+                            {cls.classCode}
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{cls.name}</TableCell>
+
+                          {/* [SỬA] Bỏ justifyContent="center" để nội dung căn trái */}
+                          <TableCell>
+                            <Stack
+                                direction="row"
+                                spacing={1.5}
+                                alignItems="center"
+                                // justifyContent="center" <-- Đã xóa dòng này
+                            >
+                              <Avatar
+                                  sx={{
+                                    width: 30,
+                                    height: 30,
+                                    bgcolor: isHead ? '#ffedd5' : "#f3e5f5", // Màu avatar động
+                                    color: theme.primary,
+                                    fontSize: "0.875rem",
+                                  }}
+                              >
+                                {cls.lecturerName ? cls.lecturerName.charAt(0) : "?"}
+                              </Avatar>
+                              <Typography variant="body2" fontWeight={500}>
+                                {cls.lecturerName || "Chưa phân công"}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+
+                          <TableCell>{cls.subjectName}</TableCell>
+                          <TableCell align="center">
+                            <Chip
+                                label={`HK ${cls.semester}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontWeight: 600, borderColor: isHead ? '#fed7aa' : undefined, color: isHead ? '#9a3412' : undefined }}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" fontWeight={700}>
+                              {cls.studentCount} / {cls.maxCapacity}
+                            </Typography>
+                            <Box
+                                sx={{
+                                  width: "100%",
+                                  mt: 0.5,
+                                  height: 4,
+                                  bgcolor: "#e2e8f0",
+                                  borderRadius: 1,
+                                  overflow: "hidden",
+                                }}
+                            >
+                              <Box
+                                  sx={{
+                                    width: `${(cls.studentCount / cls.maxCapacity) * 100}%`,
+                                    height: "100%",
+                                    bgcolor:
+                                        cls.studentCount >= cls.maxCapacity
+                                            ? "#ef4444"
+                                            : theme.primary, // Thanh tiến độ màu động
+                                  }}
+                              />
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                                label={cls.registrationOpen ? "Đang mở" : "Đã khóa"}
+                                color={cls.registrationOpen ? "success" : "error"}
+                                size="small"
+                                sx={{ fontWeight: 700, minWidth: 80 }}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack
+                                direction="row"
+                                spacing={1}
+                                justifyContent="center"
+                                alignItems="center"
+                            >
+                              {/* 1. NÚT XEM SINH VIÊN */}
+                              <Tooltip title="Danh sách sinh viên">
+                                <IconButton
+                                    onClick={() => handleViewStudents(cls.classCode)}
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      color: "#10b981",
+                                      bgcolor: "#ecfdf5",
+                                      "&:hover": { bgcolor: "#d1fae5" },
+                                    }}
+                                >
+                                  <PeopleIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+
+                              {/* HEAD CHỈ XEM, STAFF MỚI SỬA ĐƯỢC CÁC NÚT DƯỚI ĐÂY */}
+                              {!isHead && (
+                                  <>
+                                    {/* 2. NÚT GÁN NHÂN SỰ */}
+                                    <Tooltip
+                                        title={
+                                          cls.registrationOpen
+                                              ? "Gán nhân sự"
+                                              : "Lớp đã khóa gán"
+                                        }
+                                    >
+                                <span>
+                                    <IconButton
+                                        disabled={!cls.registrationOpen}
+                                        onClick={() =>
+                                            navigate(
+                                                `/staff/classes/assign/${cls.classCode}`,
+                                            )
+                                        }
+                                        sx={{
+                                          width: 40,
+                                          height: 40,
+                                          color: cls.registrationOpen
+                                              ? "#9c27b0"
+                                              : "rgba(0, 0, 0, 0.26)",
+                                          bgcolor: cls.registrationOpen
+                                              ? "#f3e5f5"
+                                              : "#f5f5f5",
+                                          "&.Mui-disabled": {
+                                            color: "rgba(0, 0, 0, 0.26)",
+                                            bgcolor: "#f5f5f5",
+                                          },
+                                          "&:hover": {
+                                            bgcolor: cls.registrationOpen
+                                                ? "#e1bee7"
+                                                : "#f5f5f5",
+                                          },
+                                        }}
+                                    >
+                                    <AssignmentIndIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                                    </Tooltip>
+
+                                    {/* 3. NÚT STATUS */}
+                                    <Tooltip
+                                        title={
+                                          cls.registrationOpen ? "Khóa đăng ký" : "Mở đăng ký"
+                                        }
+                                    >
+                                      <IconButton
+                                          onClick={() => handleToggleStatus(cls.id)}
+                                          sx={{
+                                            width: 40,
+                                            height: 40,
+                                            color: cls.registrationOpen
+                                                ? "#10b981"
+                                                : "#ef4444",
+                                            bgcolor: cls.registrationOpen
+                                                ? "#ecfdf5"
+                                                : "#fef2f2",
+                                            "&:hover": {
+                                              bgcolor: cls.registrationOpen
+                                                  ? "#d1fae5"
+                                                  : "#fee2e2",
+                                            },
+                                          }}
+                                      >
+                                        {cls.registrationOpen ? (
+                                            <ToggleOnIcon sx={{ fontSize: 28 }} />
+                                        ) : (
+                                            <ToggleOffIcon sx={{ fontSize: 28 }} />
+                                        )}
+                                      </IconButton>
+                                    </Tooltip>
+                                  </>
+                              )}
+
+                              {/* 4. NÚT XEM THỜI KHÓA BIỂU (Ai cũng xem được) */}
+                              <Tooltip title="Xem thời khóa biểu">
+                                <IconButton
+                                    onClick={() => handleViewTimetable(cls.classCode)}
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      color: "#3b82f6",
+                                      bgcolor: "#eff6ff",
+                                      "&:hover": { bgcolor: "#dbeafe" },
+                                    }}
+                                >
+                                  <CalendarMonthIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+
+                              {/* 5. NÚT SỬA NGÀY NHẬP HỌC (Chỉ Staff) */}
+                              {!isHead && (
+                                  <Tooltip
+                                      title={
+                                        cls.registrationOpen
+                                            ? "Cập nhật ngày nhập học"
+                                            : "Lớp đã khóa, không thể sửa ngày"
+                                      }
+                                  >
+                            <span>
+                                <IconButton
+                                    disabled={!cls.registrationOpen}
+                                    onClick={() => {
+                                      setSelectedClassCode(cls.classCode);
+                                      setNewStartDate(cls.startDate || "");
+                                      setOpenDateModal(true);
+                                    }}
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      color: cls.registrationOpen
+                                          ? "#f59e0b"
+                                          : "rgba(0, 0, 0, 0.26)",
+                                      bgcolor: cls.registrationOpen
+                                          ? "#fffbeb"
+                                          : "#f5f5f5",
+                                      "&:hover": {
+                                        bgcolor: cls.registrationOpen
+                                            ? "#fef3c7"
+                                            : "#f5f5f5",
+                                      },
+                                      "&.Mui-disabled": {
+                                        color: "rgba(0, 0, 0, 0.26)",
+                                        bgcolor: "#f5f5f5",
+                                      },
+                                    }}
+                                >
+                                <EditCalendarIcon fontSize="small" />
+                                </IconButton>
+                            </span>
+                                  </Tooltip>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                    ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Box display="flex" justifyContent="center" py={4}>
+            <Pagination
+                count={totalPages}
+                page={page + 1}
+                color="secondary"
+                shape="rounded"
+                onChange={(_, v) => setPage(v - 1)}
+                sx={{ '& .Mui-selected': { bgcolor: theme.primary + ' !important' } }}
             />
-          </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setOpenDateModal(false)} color="inherit">
-              Hủy
-            </Button>
-            <Button
-              onClick={handleUpdateDate}
-              variant="contained"
-              disabled={processingDate}
-              sx={{ bgcolor: "#9c27b0" }}
+          </Box>
+
+          {/* DIALOG (TRANG NỔI) HIỂN THỊ SINH VIÊN */}
+          <Dialog
+              open={openStudentModal}
+              onClose={() => setOpenStudentModal(false)}
+              maxWidth="md"
+              fullWidth
+              PaperProps={{ sx: { borderRadius: 3 } }}
+          >
+            <DialogTitle
+                sx={{ fontWeight: 800, color: theme.headerText, bgcolor: theme.lightBg }}
             >
-              {processingDate ? <CircularProgress size={24} /> : "Lưu thay đổi"}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
-    </Box>
+              Sinh viên lớp:{" "}
+              <span style={{ color: theme.primary }}>{selectedClassCode}</span>
+            </DialogTitle>
+            <DialogContent dividers sx={{ p: 0 }}>
+              {loadingStudents ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
+                    <CircularProgress size={40} sx={{color: theme.primary}} />
+                  </Box>
+              ) : studentList.length > 0 ? (
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: "#f1f5f9" }}>
+                          MSSV
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: "#f1f5f9" }}>
+                          Họ Tên
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: "#f1f5f9" }}>
+                          Email
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {studentList.map((st: any, idx: number) => (
+                          <TableRow key={idx} hover>
+                            <TableCell sx={{ color: theme.primary, fontWeight: 700 }}>
+                              {st.studentId}
+                            </TableCell>
+
+                            <TableCell
+                                sx={{
+                                  fontWeight: 600,
+                                  whiteSpace: "nowrap",
+                                  minWidth: "200px",
+                                }}
+                            >
+                              {st.fullName}
+                            </TableCell>
+
+                            <TableCell sx={{ color: "#64748b", fontSize: "0.85rem" }}>
+                              {st.email}
+                            </TableCell>
+                          </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+              ) : (
+                  <Box sx={{ p: 6, textAlign: "center" }}>
+                    <Typography color="text.secondary">
+                      Lớp này hiện chưa có sinh viên đăng ký.
+                    </Typography>
+                  </Box>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ p: 2, bgcolor: "#f8fafc" }}>
+              <Button
+                  onClick={() => setOpenStudentModal(false)}
+                  variant="contained"
+                  color="inherit"
+                  sx={{ textTransform: "none", borderRadius: 2 }}
+              >
+                Đóng
+              </Button>
+            </DialogActions>
+          </Dialog>
+          <Dialog
+              open={openTimetableModal}
+              onClose={() => setOpenTimetableModal(false)}
+              maxWidth="sm"
+              fullWidth
+          >
+            <DialogTitle sx={{ fontWeight: 800 }}>
+              Thời khóa biểu: {selectedClassCode}
+            </DialogTitle>
+            <DialogContent>
+              {loadingTimetable ? (
+                  <CircularProgress sx={{color: theme.primary}} />
+              ) : (
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                        <TableRow>
+                          <TableCell>Ngày</TableCell>
+                          <TableCell>Thứ</TableCell>
+                          <TableCell>Ca</TableCell>
+                          <TableCell>Phòng</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {timetableList.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{item.date}</TableCell>
+                              <TableCell>Thứ {item.dayOfWeek}</TableCell>
+                              <TableCell>Ca {item.slot}</TableCell>
+                              <TableCell>{item.room}</TableCell>
+                            </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+              )}
+            </DialogContent>
+          </Dialog>
+          <Dialog open={openDateModal} onClose={() => setOpenDateModal(false)}>
+            <DialogTitle sx={{ fontWeight: 800 }}>Cập nhật ngày học</DialogTitle>
+            <DialogContent sx={{ minWidth: 300, pt: 2 }}>
+              <Typography variant="body2" mb={2} color="text.secondary">
+                Chọn ngày bắt đầu mới, hệ thống sẽ tự động tính toán lại ngày kết
+                thúc dựa trên thời khóa biểu đã import.
+              </Typography>
+              <TextField
+                  fullWidth
+                  type="date"
+                  label="Ngày bắt đầu mới"
+                  InputLabelProps={{ shrink: true }}
+                  value={newStartDate}
+                  onChange={(e) => setNewStartDate(e.target.value)}
+              />
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setOpenDateModal(false)} color="inherit">
+                Hủy
+              </Button>
+              <Button
+                  onClick={handleUpdateDate}
+                  variant="contained"
+                  disabled={processingDate}
+                  sx={{ bgcolor: theme.primary }}
+              >
+                {processingDate ? <CircularProgress size={24} /> : "Lưu thay đổi"}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Container>
+      </Box>
   );
 };
 

@@ -2,7 +2,11 @@ package com.cosre.backend.controller;
 
 import com.cosre.backend.dto.head.HeadDashboardStats;
 import com.cosre.backend.dto.head.HeadLecturerDTO;
+import com.cosre.backend.dto.head.HeadProjectDTO; // [MỚI] Import DTO update đề tài
 import com.cosre.backend.dto.head.LecturerSubmissionDTO;
+import com.cosre.backend.dto.staff.ClassResponseDTO; // [MỚI] Import DTO lớp học
+import com.cosre.backend.dto.staff.SubjectDTO;       // [MỚI] Import DTO môn học
+import com.cosre.backend.dto.staff.SyllabusListDTO;  // [MỚI] Import DTO đề cương
 import com.cosre.backend.service.HeadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -64,6 +68,41 @@ public class HeadController {
         headService.assignReviewer(request.getProjectId(), request.getReviewerId());
         return ResponseEntity.ok(Map.of("message", "Phân công phản biện thành công!"));
     }
+
+    // ==================================================================================
+    // [MỚI BỔ SUNG] CÁC API QUẢN LÝ LỚP HỌC, MÔN HỌC, ĐỀ CƯƠNG VÀ CẬP NHẬT ĐỀ TÀI
+    // ==================================================================================
+
+    // 1. Xem danh sách tất cả lớp học
+    @GetMapping("/classes")
+    @PreAuthorize("hasRole('HEAD_DEPARTMENT')")
+    public ResponseEntity<List<ClassResponseDTO>> getAllClasses() {
+        return ResponseEntity.ok(headService.getAllClasses());
+    }
+
+    // 2. Xem danh sách tất cả môn học
+    @GetMapping("/subjects")
+    @PreAuthorize("hasRole('HEAD_DEPARTMENT')")
+    public ResponseEntity<List<SubjectDTO>> getAllSubjects() {
+        return ResponseEntity.ok(headService.getAllSubjects());
+    }
+
+    // 3. Xem danh sách tất cả đề cương (Syllabus)
+    @GetMapping("/syllabi")
+    @PreAuthorize("hasRole('HEAD_DEPARTMENT')")
+    public ResponseEntity<List<SyllabusListDTO>> getAllSyllabi() {
+        return ResponseEntity.ok(headService.getAllSyllabi());
+    }
+
+    // 4. Cập nhật thông tin đề tài (kể cả sau khi đã duyệt)
+    @PutMapping("/proposals/{id}")
+    @PreAuthorize("hasRole('HEAD_DEPARTMENT')")
+    public ResponseEntity<?> updateProject(@PathVariable Long id, @RequestBody HeadProjectDTO projectDTO) {
+        headService.updateApprovedProject(id, projectDTO);
+        return ResponseEntity.ok(Map.of("message", "Cập nhật đề tài thành công"));
+    }
+
+    // ==================================================================================
 
     // DTO hứng request
     @lombok.Data

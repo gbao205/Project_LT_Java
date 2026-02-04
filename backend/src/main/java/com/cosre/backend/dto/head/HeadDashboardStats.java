@@ -6,6 +6,11 @@ import lombok.Data;
 @Data
 @Builder
 public class HeadDashboardStats {
-    private long pendingProposals; // Số đề tài chờ duyệt
-    private long totalLecturers;   // Tổng số giảng viên
+    private long pendingProposals;
+    private long totalLecturers;
+
+    private long totalClasses;
+
+    private long totalSubjects;
+    private long totalSyllabi;
 }

@@ -11,11 +11,20 @@ import AdminLayout from '../../components/layout/AdminLayout';
 import AssignmentLateIcon from '@mui/icons-material/AssignmentLate';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+// [MỚI] Import thêm icons cho các mục mới
+import ClassIcon from '@mui/icons-material/Class';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
 // Interface khớp với DTO HeadDashboardStats từ Backend
 interface DashboardStats {
     pendingProposals: number; // Số đề tài chờ duyệt
     totalLecturers: number;   // Tổng số giảng viên
+
+    // [MỚI] Các trường bổ sung
+    totalClasses: number;     // Tổng số lớp học
+    totalSubjects: number;    // Tổng số môn học
+    totalSyllabi: number;     // Tổng số đề cương
 }
 
 const HeadDashboard = () => {
@@ -88,27 +97,65 @@ const HeadDashboard = () => {
                 </Box>
 
                 <Grid container spacing={3}>
-                    {/* THẺ 1: ĐỀ TÀI CẦN DUYỆT (Số liệu thật) */}
-                    <Grid item xs={12} sm={6} md={6}>
+                    {/* --- HÀNG 1: CÁC CHỈ SỐ QUAN TRỌNG (3 CỘT) --- */}
+
+                    {/* THẺ 1: ĐỀ TÀI CẦN DUYỆT */}
+                    <Grid item xs={12} sm={6} md={4}>
                         <StatWidget
                             title="Đề tài chờ duyệt"
-                            value={stats?.pendingProposals} // Biến này lấy từ Database
+                            value={stats?.pendingProposals}
                             icon={<AssignmentLateIcon fontSize="large" />}
                             color="#ef4444" // Màu đỏ
                             onClick={() => navigate('/head/approval')}
                         />
                     </Grid>
 
-                    {/* THẺ 2: TỔNG SỐ GIẢNG VIÊN (Số liệu thật) */}
-                    <Grid item xs={12} sm={6} md={6}>
+                    {/* THẺ 2: TỔNG SỐ GIẢNG VIÊN */}
+                    <Grid item xs={12} sm={6} md={4}>
                         <StatWidget
                             title="Giảng viên bộ môn"
-                            value={stats?.totalLecturers} // Biến này lấy từ Database
+                            value={stats?.totalLecturers}
                             icon={<PeopleAltIcon fontSize="large" />}
-                            color="#3b82f6" // Màu xanh
+                            color="#3b82f6" // Màu xanh dương
                             onClick={() => navigate('/head/lecturers')}
                         />
                     </Grid>
+
+                    {/* [MỚI] THẺ 3: TỔNG SỐ LỚP HỌC */}
+                    <Grid item xs={12} sm={6} md={4}>
+                        <StatWidget
+                            title="Lớp học đang mở"
+                            value={stats?.totalClasses}
+                            icon={<ClassIcon fontSize="large" />}
+                            color="#10b981" // Màu xanh lá
+                            onClick={() => navigate('/head/classes')}
+                        />
+                    </Grid>
+
+                    {/* --- HÀNG 2: THÔNG TIN ĐÀO TẠO (2 CỘT) --- */}
+
+                    {/* [MỚI] THẺ 4: TỔNG SỐ MÔN HỌC */}
+                    <Grid item xs={12} sm={6} md={6}>
+                        <StatWidget
+                            title="Môn học chuyên ngành"
+                            value={stats?.totalSubjects}
+                            icon={<MenuBookIcon fontSize="large" />}
+                            color="#f59e0b" // Màu vàng cam
+                            onClick={() => navigate('/head/subjects')}
+                        />
+                    </Grid>
+
+                    {/* [MỚI] THẺ 5: TỔNG SỐ ĐỀ CƯƠNG */}
+                    <Grid item xs={12} sm={6} md={6}>
+                        <StatWidget
+                            title="Đề cương chi tiết"
+                            value={stats?.totalSyllabi}
+                            icon={<AssignmentIcon fontSize="large" />}
+                            color="#8b5cf6" // Màu tím
+                            onClick={() => navigate('/head/syllabi')}
+                        />
+                    </Grid>
+
                 </Grid>
             </Container>
         </AdminLayout>
