@@ -54,6 +54,7 @@ public class SecurityConfig {
                     .requestMatchers(SWAGGER_WHITELIST).permitAll()
                     .requestMatchers("/api/workspace/download/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/uploads/**").permitAll()
                     // 1. Cho phép request lỗi và preflight (OPTIONS)
                     .requestMatchers("/error").permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
