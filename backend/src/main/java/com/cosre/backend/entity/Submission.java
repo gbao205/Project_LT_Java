@@ -19,6 +19,8 @@ public class Submission {
     private Long id;
 
     private String fileUrl; // Link bài làm
+
+    private String submissionText; // Nội dung bài làm
     private String studentComment;
 
     @Builder.Default

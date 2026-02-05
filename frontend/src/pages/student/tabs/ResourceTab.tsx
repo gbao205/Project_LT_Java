@@ -60,7 +60,7 @@ const ResourceTab = ({ teamId }: { teamId: number }) => {
         } catch (error: any) {
             // Xử lý lỗi bảo mật hoặc lỗi dung lượng
             const message = error.response?.data?.message || "Lỗi khi tải lên tài liệu";
-            showError(error.response?.data?.message || "Lỗi khi tải lên");
+            showError(message || "Lỗi khi tải lên");
             console.error("Upload error:", error);
         }
     };
