@@ -17,7 +17,11 @@ public interface ClassRoomRepository extends JpaRepository<ClassRoom, Long> {
 
     boolean existsByClassCode(String classcode);
     Optional<ClassRoom> findByClassCode(String classCode);
-    List<ClassRoom> findByStudents_Email(String email);
+ 
+    // Lấy các lớp mà sinh viên đã đăng ký và đang mở đăng ký
+    @Query("SELECT c FROM ClassRoom c JOIN c.students s WHERE s.email = :email AND c.isRegistrationOpen = true")
+    List<ClassRoom> findActiveClassesByStudentEmail(@Param("email") String email);
+
     @Query("SELECT c FROM ClassRoom c WHERE c.lecturer.email = :email")
     List<ClassRoom> findByLecturerEmail(String email);
 

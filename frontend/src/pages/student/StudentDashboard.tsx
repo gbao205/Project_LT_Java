@@ -47,21 +47,21 @@ const StudentDashboard = () => {
     const { data: profile } = useQuery({
         queryKey: ['studentProfile'],
         queryFn: () => studentService.getProfile(),
-        staleTime: 1000 * 60 * 5, // Dữ liệu cá nhân coi như "tươi" trong 5 phút
+        staleTime: 1000 * 60 * 5, // Dữ liệu cá nhân coi như "mới" trong 5 phút
     });
 
     // Lấy Lớp học
     const { data: myClasses = [] } = useQuery({
         queryKey: ['myClasses'],
         queryFn: getMyClasses,
-        staleTime: 1000 * 60 * 10,
+        staleTime: 1000, // Lớp học cập nhật mỗi 1 giây
     });
 
     // Lấy Task/Deadline
     const { data: activeTasks = [] } = useQuery({
         queryKey: ['activeTasks'],
         queryFn: taskService.getMyActiveTasks,
-        staleTime: 1000 * 60 * 2, // Deadline cập nhật thường xuyên hơn (2 phút)
+        staleTime: 1000, // Task cập nhật mỗi 1 giây
     });
 
     // Lấy Thông báo
@@ -245,6 +245,15 @@ const StudentDashboard = () => {
     const handleYearChange = (offset: number) => {
         setCurrentDate(new Date(currentDate.getFullYear() + offset, currentDate.getMonth(), 1));
     };
+
+    // Tính số lượng deadline chưa quá hạn
+    const upcomingDeadlinesCount = useMemo(() => {
+        const now = new Date();
+        return activeTasks.filter(task => {
+            if (!task.dueDate) return false;
+            return new Date(task.dueDate) > now;
+        }).length;
+    }, [activeTasks]);
 
     const open = Boolean(anchorEl);
 
@@ -569,7 +578,7 @@ const StudentDashboard = () => {
                             <StatCard title="Lớp Đang Học" value={myClasses.length.toString() || 0} icon={<ClassIcon fontSize="large" />} color="#2e7d32" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <StatCard title="Deadline" value={activeTasks.length.toString() || 0} icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
+                            <StatCard title="Deadline" value={upcomingDeadlinesCount.toString() || "0"} icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large" />} color="#1976d2" />

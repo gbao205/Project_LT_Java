@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -50,6 +52,7 @@ public class ClassRoom {
     private Integer maxCapacity = 60;
 
     @Builder.Default
+    @JsonProperty("isRegistrationOpen")
     private boolean isRegistrationOpen = false;
 
 
