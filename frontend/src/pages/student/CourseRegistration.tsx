@@ -34,7 +34,7 @@ const CourseRegistration = () => {
     const { data: classes = [], isLoading } = useQuery({
         queryKey: ['registration-classes'], // Key này dùng để định danh dữ liệu trong cache
         queryFn: getRegistrationClasses,    // Hàm gọi API của bạn
-        staleTime: 60000,                   // Dữ liệu được coi là "tươi mới" trong 60 giây
+        staleTime: 60000,                   // Dữ liệu được coi là "mới" trong 60 giây
     });
 
     // Mutation để Đăng ký lớp
@@ -93,7 +93,9 @@ const CourseRegistration = () => {
     // Tách danh sách thành 2 phần: Đã đăng ký & Chưa đăng ký
     const { availableList, registeredList } = useMemo(() => {
         const available = classes.filter((c: any) => !c.isRegistered && c.isRegistrationOpen);
-        const registered = classes.filter((c: any) => c.isRegistered);
+        const registered = classes
+            .filter((c: any) => c.isRegistered)
+            .sort((a: any, b: any) => a.id - b.id);
         return { availableList: available, registeredList: registered };
     }, [classes]);
 
@@ -123,14 +125,15 @@ const CourseRegistration = () => {
                      cancelMutation.isPending ? cancelMutation.variables : null;
 
     // Component con để render từng dòng (tránh lặp code)
-    const ClassRow = ({ row, isRegisteredTable }: { row: any, isRegisteredTable: boolean }) => {
+    const ClassRow = ({ row, isRegisteredTable, index }: { row: any, isRegisteredTable: boolean, index: number }) => {
         const isCurrentLoading = processingId === row.id;
 
         return (
             <TableRow hover onClick={() => handleOpenDetail(row)} sx={{ cursor: 'pointer' }}>
+                <TableCell align="center">{index + 1}</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>{row.classCode}</TableCell>
                 <TableCell>
-                    <Typography variant="body2" fontWeight="bold">{row.subject?.name}</Typography>
+                    <Typography variant="body2" fontWeight="bold">{row.name}</Typography>
                 </TableCell>
                 <TableCell>{row.lecturer?.fullName}</TableCell>
                 <TableCell>{row.semester}</TableCell>
@@ -181,8 +184,9 @@ const CourseRegistration = () => {
                             <Table stickyHeader>
                                 <TableHead>
                                     <TableRow>
+                                        <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', width: 60 }}>STT</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Mã Lớp</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Môn Học</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Tên lớp</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Giảng Viên</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Học Kỳ</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Sĩ Số</TableCell>
@@ -191,7 +195,7 @@ const CourseRegistration = () => {
                                 </TableHead>
                                 <TableBody>
                                     {availableList.length > 0 ? (
-                                        availableList.map((row: any) => <ClassRow key={row.id} row={row} isRegisteredTable={false} />)
+                                        availableList.map((row: any, index: number) => <ClassRow key={row.id} row={row} isRegisteredTable={false} index={index} />)
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.secondary' }}>
@@ -216,6 +220,7 @@ const CourseRegistration = () => {
                             <Table>
                                 <TableHead>
                                     <TableRow>
+                                        <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9', width: 60 }}>STT</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Mã Lớp</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Môn Học</TableCell>
                                         <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f8e9' }}>Giảng Viên</TableCell>
@@ -226,7 +231,7 @@ const CourseRegistration = () => {
                                 </TableHead>
                                 <TableBody>
                                     {registeredList.length > 0 ? (
-                                        registeredList.map((row: any) => <ClassRow key={row.id} row={row} isRegisteredTable={true} />)
+                                        registeredList.map((row: any, index: number) => <ClassRow key={row.id} row={row} isRegisteredTable={true} index={index} />)
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.secondary' }}>

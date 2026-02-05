@@ -133,6 +133,6 @@ public class ClassService {
 
     // 4. Lấy danh sách lớp của sinh viên đang đăng nhập
     public List<ClassRoom> getMyClasses(String studentEmail) {
-        return classRoomRepository.findByStudents_Email(studentEmail);
+        return classRoomRepository.findActiveClassesByStudentEmail(studentEmail);
     }
 }
