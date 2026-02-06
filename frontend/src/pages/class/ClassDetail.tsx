@@ -57,6 +57,7 @@ const ClassDetail = () => {
 
     // Form Data & Search
     const [formData, setFormData] = useState({ title: '', description: '', url: '', deadline: '' });
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // State lưu file được chọn từ máy tính
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -328,6 +329,7 @@ const ClassDetail = () => {
             return;
         }
         try {
+            setIsProcessing(true);
             await studentService.createTeam({
                 teamName,
                 classId: Number(id),
@@ -340,6 +342,8 @@ const ClassDetail = () => {
             fetchTeamData();
         } catch (error: any) {
             showError(error.response?.data?.message || "Lỗi tạo nhóm");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -349,6 +353,7 @@ const ClassDetail = () => {
             return;
         }
         try {
+            setIsProcessing(true);
             await studentService.joinTeam(joinCode.trim());
             showSuccess("Tham gia nhóm thành công!");
             setOpenJoinDialog(false);
@@ -357,11 +362,18 @@ const ClassDetail = () => {
             fetchTeamData();
         } catch (error: any) {
             showError(error.response?.data?.message || "Lỗi tham gia nhóm");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     const handleRegisterProject = async () => {
+        if (!projectForm.projectName.trim()) {
+            showWarning("Vui lòng nhập tên đề tài!");
+            return;
+        }
         try {
+            setIsProcessing(true);
             await studentService.registerProject({
                 classId: Number(id),
                 projectName: projectForm.projectName,
@@ -372,6 +384,8 @@ const ClassDetail = () => {
             fetchTeamData();
         } catch (error: any) {
             showError(error.response?.data?.message || "Lỗi đăng ký đề tài");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -382,11 +396,14 @@ const ClassDetail = () => {
             content: "Bạn có chắc chắn muốn tham gia nhóm này không?",
             onConfirm: async () => {
                 try {
+                    setIsProcessing(true);
                     await studentService.joinTeam(team.joinCode);
                     showSuccess("Tham gia thành công!");
                     fetchTeamData();
                 } catch (error: any) {
                     showError(error.response?.data?.message || "Lỗi tham gia");
+                } finally {
+                    setIsProcessing(false);
                 }
             }
         });
@@ -426,6 +443,7 @@ const ClassDetail = () => {
 
     const executeLeaveTeam = async () => {
         try {
+            setIsProcessing(true);
             await studentService.leaveTeam({ teamId: myTeam.id });
             showSuccess("Đã rời nhóm thành công!");
             setMyTeam(null);
@@ -433,6 +451,8 @@ const ClassDetail = () => {
             setOpenLeaderDialog(false);
         } catch (error: any) {
             showError(error.response?.data?.message || "Lỗi khi rời nhóm");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -442,10 +462,13 @@ const ClassDetail = () => {
             return;
         }
         try {
+            setIsProcessing(true);
             await studentService.assignLeader({ teamId: myTeam.id, newLeaderId: selectedNewLeaderId });
             await executeLeaveTeam();
         } catch (error: any) {
             showError(error.response?.data?.message || "Lỗi khi chuyển quyền");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -1221,7 +1244,7 @@ const ClassDetail = () => {
             </Dialog>
 
             {/* --- DIALOG CHUYỂN TRƯỞNG NHÓM VÀ RỜI NHÓM --- */}
-            <Dialog open={openLeaderDialog} onClose={() => setOpenLeaderDialog(false)} fullWidth maxWidth="xs">
+            <Dialog open={openLeaderDialog} onClose={() => !isProcessing && setOpenLeaderDialog(false)} fullWidth maxWidth="xs">
                 <DialogTitle>Chọn Trưởng Nhóm Mới</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" gutterBottom>
@@ -1249,8 +1272,14 @@ const ClassDetail = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenLeaderDialog(false)}>Hủy</Button>
-                    <Button variant="contained" color="primary" onClick={handleConfirmTransferAndLeave} disabled={!selectedNewLeaderId}>
-                        Chuyển & Rời Nhóm
+                    <Button 
+                        onClick={handleConfirmTransferAndLeave} 
+                        variant="contained" 
+                        color="primary" 
+                        disabled={!selectedNewLeaderId || isProcessing}
+                        startIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : null}
+                    >
+                        {isProcessing ? "Đang xử lý..." : "Chuyển & Rời Nhóm"}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -1320,8 +1349,8 @@ const ClassDetail = () => {
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3 }}>
                     <Button onClick={() => setOpenCreateTeam(false)} color="inherit">Hủy</Button>
-                    <Button onClick={handleCreateTeam} variant="contained" disabled={!teamName.trim()}>
-                        Tạo Nhóm {selectedMemberIds.length > 0 && `(+${selectedMemberIds.length})`}
+                    <Button onClick={handleCreateTeam} variant="contained" disabled={!teamName.trim() || isProcessing}>
+                        {isProcessing ? "Đang tạo..." : `Tạo Nhóm ${selectedMemberIds.length > 0 ? `(+${selectedMemberIds.length})` : ''}`}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -1349,9 +1378,9 @@ const ClassDetail = () => {
                     <Button
                         onClick={handleJoinByCode}
                         variant="contained"
-                        disabled={!joinCode.trim()}
+                        disabled={!joinCode.trim() || isProcessing}
                     >
-                        Tham Gia
+                        {isProcessing ? "Đang xử lý..." : "Tham Gia"}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -1397,6 +1426,7 @@ const ClassDetail = () => {
                     <TextField
                         label="Tên Đề Tài"
                         fullWidth margin="normal"
+                        disabled={isProcessing}
                         value={projectForm.projectName}
                         onChange={(e) => setProjectForm({...projectForm, projectName: e.target.value})}
                     />
@@ -1404,13 +1434,22 @@ const ClassDetail = () => {
                         label="Mô tả chi tiết / Yêu cầu"
                         fullWidth margin="normal"
                         multiline rows={4}
+                        disabled={isProcessing}
                         value={projectForm.description}
                         onChange={(e) => setProjectForm({...projectForm, description: e.target.value})}
                     />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenRegisterProject(false)}>Hủy</Button>
-                    <Button onClick={handleRegisterProject} variant="contained" color="secondary">Đăng Ký</Button>
+                    <Button 
+                        onClick={handleRegisterProject} 
+                        variant="contained" 
+                        color="secondary"
+                        disabled={isProcessing || !projectForm.projectName.trim()}
+                        startIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : null}
+                    >
+                        {isProcessing ? "Đang xử lý..." : "Đăng Ký"}
+                    </Button>
                 </DialogActions>
             </Dialog>
 

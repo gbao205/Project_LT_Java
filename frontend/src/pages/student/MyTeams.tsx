@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { 
     Box, Typography, Grid, Card, CardContent, 
     CardActions, Button, Chip, CircularProgress, 
@@ -8,6 +8,7 @@ import {
     InputAdornment, Paper, FormGroup, FormControlLabel, Checkbox
 
 } from '@mui/material';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import GroupsIcon from '@mui/icons-material/Groups';
 import ClassIcon from '@mui/icons-material/Class';
 import LoginIcon from '@mui/icons-material/Login';
@@ -22,156 +23,120 @@ import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 import studentService from '../../services/studentService';
 
 const MyTeams = () => {
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { showSuccess, showError } = useAppSnackbar();
+
     const userStr = localStorage.getItem('user');
     const currentUser = userStr ? JSON.parse(userStr) : null;
     const currentUserId = currentUser?.id || currentUser?.user?.id;
-
-    const [teams, setTeams] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const { showSuccess, showError } = useAppSnackbar();
     
     // --- State cho chức năng Tạo/Tham gia nhóm ---
-    const [availableClasses, setAvailableClasses] = useState<any[]>([]);
     const [openCreate, setOpenCreate] = useState(false);
     const [openJoin, setOpenJoin] = useState(false);
 
     // Form Tạo nhóm
     const [selectedClassId, setSelectedClassId] = useState<string>('');
     const [teamName, setTeamName] = useState("");
-    const [studentsNoTeam, setStudentsNoTeam] = useState<any[]>([]);
     const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
     // Form Tham gia nhóm
     const [joinCode, setJoinCode] = useState("");
     
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        fetchTeams();
-    }, []);
-
-    const fetchTeams = async () => {
-        try {
+    // --- 1. Query: Lấy danh sách nhóm đã tham gia ---
+    const { data: teams = [], isLoading: loadingTeams } = useQuery({
+        queryKey: ['joinedTeams'],
+        queryFn: async () => {
             const data = await studentService.getAllJoinedTeams();
+            return data.filter((team: any) => team?.classRoom?.registrationOpen);
+        },
+        staleTime: 1000, // Dữ liệu được coi là mới trong 1 giây
+    });
 
-            // Lọc danh sách nhóm
-            const activeTeams = data.filter((team: any) => {
-                const classRoom = team?.classRoom;
-                const isRegistrationOpen = classRoom?.registrationOpen;
+    // --- 2. Query: Lấy danh sách lớp có thể tạo nhóm (chỉ fetch khi mở Dialog) ---
+    const { data: availableClasses = [] } = useQuery({
+        queryKey: ['classesWithoutTeam'],
+        queryFn: () => studentService.getClassesWithoutTeam(),
+        enabled: openCreate, // Chỉ kích hoạt query khi Dialog tạo nhóm mở
+    });
 
-                if (!classRoom) return false;
-                if(!isRegistrationOpen) return false;
-
-                return true;
-            });
-            setTeams(activeTeams);
-        } catch (error) {
-            console.error("Lỗi tải danh sách nhóm:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchAvailableClasses = async () => {
-        try {
-            const data = await studentService.getClassesWithoutTeam();
-            setAvailableClasses(data);
-        } catch (error) {
-            console.error("Lỗi tải danh sách lớp:", error);
-        }
-    };
-
-    // Chỉ gọi API khi mở hộp thoại tạo nhóm
-    useEffect(() => {
-        if (openCreate) {
-            fetchAvailableClasses();
-        }
-    }, [openCreate]);
-
-    // Khi chọn lớp trong Dialog Tạo nhóm -> Tải danh sách SV chưa có nhóm của lớp đó
-    useEffect(() => {
-        if (selectedClassId) {
-            const loadStudents = async () => {
-                try {
-                    const data = await studentService.getStudentsNoTeam(Number(selectedClassId));
-                    // Lọc bỏ bản thân khỏi danh sách (đã xử lý ở backend nhưng lọc lại cho chắc)
-                    const userStr = localStorage.getItem('user');
-                    const currentUser = userStr ? JSON.parse(userStr) : null;
-                    setStudentsNoTeam(data.filter((s: any) => s.id !== currentUser?.id && s.id !== currentUser?.user?.id));
-                } catch (error) {
-                    console.error("Lỗi tải sinh viên:", error);
-                    setStudentsNoTeam([]);
-                }
-            };
-            loadStudents();
-        } else {
-            setStudentsNoTeam([]);
-        }
-        setSelectedMemberIds([]); 
-    }, [selectedClassId]);
+    // --- 3. Query: Lấy danh sách sinh viên chưa có nhóm của lớp đã chọn ---
+    const { data: studentsNoTeam = [], isLoading: loadingStudents } = useQuery({
+        queryKey: ['studentsNoTeam', selectedClassId],
+        queryFn: async () => {
+            const data = await studentService.getStudentsNoTeam(Number(selectedClassId));
+            return data.filter((s: any) => s.id !== currentUserId);
+        },
+        enabled: !!selectedClassId, // Chỉ fetch khi đã chọn classId
+    });
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         showSuccess(`Đã sao chép mã nhóm: ${text}`);
     };
 
-    // Xử lý tạo nhóm
-    const handleCreateTeam = async () => {
+    // --- Mutation: TẠO NHÓM MỚI ---
+    const createTeamMutation = useMutation({
+        mutationFn: (newTeam: any) => studentService.createTeam(newTeam),
+        onSuccess: () => {
+            showSuccess("Tạo nhóm thành công!");
+            queryClient.invalidateQueries({ queryKey: ['joinedTeams'] }); // Làm mới danh sách nhóm
+            setOpenCreate(false);
+            resetCreateForm();
+        },
+        onError: (error: any) => {
+            showError(error.response?.data?.message || "Lỗi tạo nhóm");
+        }
+    });
+
+    // --- Mutation: THAM GIA NHÓM ---
+    const joinTeamMutation = useMutation({
+        mutationFn: (code: string) => studentService.joinTeam(code),
+        onSuccess: () => {
+            showSuccess("Tham gia nhóm thành công!");
+            queryClient.invalidateQueries({ queryKey: ['joinedTeams'] });
+            setOpenJoin(false);
+            setJoinCode("");
+        },
+        onError: (error: any) => {
+            showError(error.response?.data?.message || "Lỗi tham gia nhóm");
+        }
+    });
+
+    const resetCreateForm = () => {
+        setTeamName("");
+        setSelectedClassId("");
+        setSelectedMemberIds([]);
+    };
+
+    const handleCreateTeam = () => {
         if (!teamName.trim() || !selectedClassId) {
             showError("Vui lòng chọn lớp và nhập tên nhóm!");
             return;
         }
-        try {
-            await studentService.createTeam({
-                teamName,
-                classId: Number(selectedClassId),
-                memberIds: selectedMemberIds
-            });
-            showSuccess("Tạo nhóm thành công!");
-            setOpenCreate(false);
-            setTeamName("");
-            setSelectedClassId("");
-            setSelectedMemberIds([]);
-            fetchTeams(); // Reload lại danh sách nhóm
-        } catch (error: any) {
-            showError(error.response?.data?.message || "Lỗi tạo nhóm");
-        }
+        createTeamMutation.mutate({
+            teamName,
+            classId: Number(selectedClassId),
+            memberIds: selectedMemberIds
+        });
     };
 
-    // Xử lý tham gia nhóm (Cần Backend hỗ trợ API joinByCode, hiện tại dùng placeholder logic)
-    const handleJoinTeam = async () => {
-        // 1. Kiểm tra đầu vào
+    const handleJoinTeam = () => {
         if (!joinCode.trim()) {
             showError("Vui lòng nhập mã nhóm!");
             return;
         }
-
-        try {
-            // 2. Gọi API tham gia nhóm
-            await studentService.joinTeam(joinCode.trim());
-            
-            // 3. Thành công: Thông báo & Cập nhật giao diện
-            showSuccess("Tham gia nhóm thành công!");
-            setOpenJoin(false);     // Đóng hộp thoại
-            setJoinCode("");        // Reset ô nhập
-            fetchTeams();           // Tải lại danh sách nhóm để hiện nhóm mới
-
-        } catch (error: any) {
-            // 4. Thất bại: Hiện thông báo lỗi từ Backend (VD: "Mã nhóm sai", "Đã có nhóm rồi")
-            console.error("Lỗi tham gia nhóm:", error);
-            const errorMessage = error.response?.data?.message || "Lỗi tham gia nhóm. Vui lòng thử lại.";
-            showError(errorMessage);
-        }
+        joinTeamMutation.mutate(joinCode.trim());
     };
 
     // Lọc danh sách sinh viên trong Dialog
     const filteredStudents = studentsNoTeam
-        .filter((st) => {
+        .filter((st: any) => {
             const lowerSearch = searchTerm.toLowerCase();
             return ( (st.fullName?.toLowerCase().includes(lowerSearch) || st.email?.toLowerCase().includes(lowerSearch)) && st.id != currentUserId);
         })
-        .sort((a, b) => {
+        .sort((a: any, b: any) => {
             const aSelected = selectedMemberIds.includes(a.id);
             const bSelected = selectedMemberIds.includes(b.id);
             if (aSelected && !bSelected) return -1;
@@ -187,7 +152,7 @@ const MyTeams = () => {
 
     return (
         <StudentLayout title="Nhóm Của Tôi">
-            {loading ? (
+            {loadingTeams ? (
                 <Box display="flex" justifyContent="center" mt={5}>
                     <CircularProgress />
                 </Box>
@@ -224,7 +189,7 @@ const MyTeams = () => {
                         </Typography>
                     ) : (
                         <Grid container spacing={3}>
-                            {teams.map((team) => (
+                            {teams.map((team: any) => (
                                 <Grid size={{ xs: 12, md: 6, lg: 3 }} key={team.id}>
                                     <Card 
                                         elevation={3} 
@@ -273,17 +238,42 @@ const MyTeams = () => {
                                             </Box>
 
                                             {/* Đề tài (nếu có) */}
-                                            <Box mt={2} bgcolor="#f5f5f5" p={1} borderRadius={1}>
-                                                <Typography variant="caption" display="block" color="textSecondary">
-                                                    Đề tài:
-                                                </Typography>
-                                                <Typography variant="body2" fontWeight="medium" sx={{
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    {team.project ? team.project.name : "(Chưa đăng ký)"}
+                                            <Box mt={2} bgcolor="#f8f9fa" p={1.5} borderRadius={2} border="1px solid #edf2f7">
+                                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                                                    <Typography variant="caption" fontWeight="bold" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                        Đề tài
+                                                    </Typography>
+                                                    
+                                                    {team.project && (
+                                                        <Chip 
+                                                            label={team.project.status === 'PENDING' ? "Chờ duyệt" : "Đã duyệt"} 
+                                                            size="small" 
+                                                            variant="outlined" 
+                                                            color={team.project.status === 'PENDING' ? "warning" : "success"}
+                                                            sx={{ 
+                                                                height: 20, 
+                                                                fontSize: '0.65rem', 
+                                                                fontWeight: 'bold',
+                                                                bgcolor: team.project.status === 'PENDING' ? '#fff9db' : '#ebfbee'
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+
+                                                <Typography 
+                                                    variant="body2" 
+                                                    fontWeight={team.project ? "600" : "400"} 
+                                                    color={team.project ? "text.primary" : "text.disabled"}
+                                                    sx={{
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 2,
+                                                        WebkitBoxOrient: 'vertical',
+                                                        overflow: 'hidden',
+                                                        lineHeight: 1.4,
+                                                        minHeight: team.project ? 'auto' : '40px'
+                                                    }}
+                                                >
+                                                    {team.project ? team.project.name : "Chưa đăng ký đề tài"}
                                                 </Typography>
                                             </Box>
                                         </CardContent>
@@ -318,7 +308,7 @@ const MyTeams = () => {
                                     label="Chọn Lớp Học"
                                     onChange={(e) => setSelectedClassId(e.target.value)}
                                 >
-                                    {availableClasses.map((cls) => (
+                                    {availableClasses.map((cls: any) => (
                                         <MenuItem key={cls.id} value={cls.id}>
                                             {cls.name} ({cls.subjectName})
                                         </MenuItem>
@@ -346,30 +336,43 @@ const MyTeams = () => {
                                         InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>) }}
                                         sx={{ mb: 2 }}
                                     />
-                                    <Paper variant="outlined" sx={{ height: 200, overflow: 'auto', p: 1, bgcolor: '#f9f9f9' }}>
-                                        {studentsNoTeam.length === 0 ? (
-                                            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                                                <Typography variant="body2" color="textSecondary">Lớp này không còn sinh viên chưa có nhóm.</Typography>
-                                            </Box>
-                                        ) : (
-                                            <FormGroup>
-                                                {filteredStudents.map((st) => (
-                                                    <FormControlLabel
-                                                        key={st.id}
-                                                        control={<Checkbox size="small" checked={selectedMemberIds.includes(st.id)} onChange={() => handleToggleStudent(st.id)} />}
-                                                        label={`${st.fullName} (${st.email})`}
-                                                    />
-                                                ))}
-                                            </FormGroup>
-                                        )}
-                                    </Paper>
+
+                                    {loadingStudents ? (
+                                        <Box display="flex" justifyContent="center" mt={5}>
+                                            <CircularProgress />
+                                        </Box>
+                                    ) : (
+                                        <Paper variant="outlined" sx={{ height: 200, overflow: 'auto', p: 1, bgcolor: '#f9f9f9' }}>
+                                            {studentsNoTeam.length === 0 ? (
+                                                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                                                    <Typography variant="body2" color="textSecondary">Lớp này không còn sinh viên chưa có nhóm.</Typography>
+                                                </Box>
+                                            ) : (
+                                                <FormGroup>
+                                                    {filteredStudents.map((st: any) => (
+                                                        <FormControlLabel
+                                                            key={st.id}
+                                                            control={<Checkbox size="small" checked={selectedMemberIds.includes(st.id)} onChange={() => handleToggleStudent(st.id)} />}
+                                                            label={`${st.fullName} (${st.email})`}
+                                                        />
+                                                    ))}
+                                                </FormGroup>
+                                            )}
+                                        </Paper>
+                                    )}
+                                    
                                 </>
                             )}
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => setOpenCreate(false)}>Hủy</Button>
-                            <Button onClick={handleCreateTeam} variant="contained" disabled={!teamName.trim() || !selectedClassId}>
-                                Tạo Nhóm
+                            <Button 
+                                onClick={handleCreateTeam} 
+                                variant="contained" 
+                                disabled={createTeamMutation.isPending || !teamName.trim() || !selectedClassId}
+                                startIcon={createTeamMutation.isPending ? <CircularProgress size={20} color="inherit" /> : null}
+                            >
+                                {createTeamMutation.isPending ? "Đang tạo..." : "Tạo Nhóm"}
                             </Button>
                         </DialogActions>
                     </Dialog>
@@ -387,8 +390,13 @@ const MyTeams = () => {
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => setOpenJoin(false)}>Hủy</Button>
-                            <Button variant="contained" disabled={!joinCode.trim()} onClick={() => handleJoinTeam()}>
-                                Tham Gia
+                            <Button 
+                                onClick={() => handleJoinTeam()}
+                                variant="contained" 
+                                disabled={joinTeamMutation.isPending || !joinCode.trim()}
+                                startIcon={joinTeamMutation.isPending ? <CircularProgress size={20} color="inherit" /> : null}
+                            >
+                                {joinTeamMutation.isPending ? "Đang xử lý..." : "Tham Gia"}
                             </Button>
                         </DialogActions>
                     </Dialog>
