@@ -143,6 +143,11 @@ const studentService = {
         const response = await api.get('/student/classes/no-team');
         return response.data;
     },
+
+    getTeamMembers: async (teamId: number) => {
+        const response = await api.get(`/student/team-members/${teamId}`);
+        return response.data;
+    }
 };
 
 export default studentService;

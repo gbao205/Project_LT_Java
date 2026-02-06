@@ -6,7 +6,9 @@ import com.cosre.backend.entity.Student;
 import com.cosre.backend.entity.Team;
 import com.cosre.backend.exception.AppException;
 import com.cosre.backend.service.StudentService;
+import com.cosre.backend.dto.TeamMemberDTO;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -114,5 +116,11 @@ public class StudentController {
     public ResponseEntity<Team> getTeamDetail(@PathVariable Long teamId) {
         // Logic: Tìm team theo ID và kiểm tra xem sinh viên hiện tại có thuộc team đó không
         return ResponseEntity.ok(studentService.getTeamById(teamId));
+    }
+
+    // Lấy danh sách thành viên trong một nhóm
+    @GetMapping("/team-members/{teamId}")
+    public ResponseEntity<List<TeamMemberDTO>> getTeamMembers(@PathVariable Long teamId) {
+        return ResponseEntity.ok(studentService.getTeamMembers(teamId));
     }
 }

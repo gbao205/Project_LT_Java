@@ -63,4 +63,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
            "LEFT JOIN FETCH t.project " +   // Lấy luôn thông tin đề tài
            "WHERE tm.student.id = :studentId")
     List<TeamMember> findByStudentIdWithEagerTeam(@Param("studentId") Long studentId);
+
+    // Lấy danh sách thành viên của 1 team (Dùng cho StudentController)
+    List<TeamMember> findByTeamId(Long teamId);
 }
