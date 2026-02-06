@@ -4,6 +4,8 @@ import com.cosre.backend.entity.TeamMember;
 import com.cosre.backend.entity.TeamRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +31,14 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     List<TeamMember> findByStudent_IdAndRole(Long studentId, TeamRole role);
 
     // Tìm thành viên trong lớp cụ thể
-    Optional<TeamMember> findByStudent_IdAndTeam_ClassRoom_Id(Long studentId, Long classId);
+    @Query("SELECT tm FROM TeamMember tm " +
+           "JOIN FETCH tm.team t " +
+           "LEFT JOIN FETCH t.classRoom cr " +
+           "LEFT JOIN FETCH t.project p " +
+           "LEFT JOIN FETCH t.members all_m " + // Lấy luôn các thành viên khác trong team để hiển thị
+           "LEFT JOIN FETCH all_m.student " +    // Lấy thông tin user của các thành viên đó
+           "WHERE tm.student.id = :studentId AND cr.id = :classId")
+    Optional<TeamMember> findByStudent_IdAndTeam_ClassRoom_Id(@Param("studentId") Long studentId, @Param("classId") Long classId);
 
     // Tìm thành viên dựa trên Team ID và User ID (trong entity TeamMember, field là 'student' kiểu User)
     Optional<TeamMember> findByTeam_IdAndStudent_Id(Long teamId, Long studentId);
@@ -38,8 +47,11 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     // Tìm thành viên cụ thể trong 1 nhóm (Dùng để chấm điểm cá nhân)
     Optional<TeamMember> findByStudent_IdAndTeam_Id(Long studentId, Long teamId);
 
-    // Lấy danh sách thành viên của 1 team
-    List<TeamMember> findByTeam_Id(Long teamId);
+    // Lấy danh sách thành viên của 1 team  
+    @Query("SELECT tm FROM TeamMember tm " +
+           "JOIN FETCH tm.student s " +
+           "WHERE tm.team.id = :teamId")
+    List<TeamMember> findByTeam_Id(@Param("teamId") Long teamId);
 
     // Tìm tất cả các nhóm mà studentId tham gia
     List<TeamMember> findByStudent_Id(Long studentId);
