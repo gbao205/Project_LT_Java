@@ -4,6 +4,7 @@ import {
     Table, TableBody, TableCell, TableContainer,
     Button, TextField, CircularProgress, TableRow
 } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -29,23 +30,17 @@ export const SLOT_INFO: Record<number, { text: string; time: string }> = {
 const StudentCalendar = () => {
     const navigate = useNavigate();
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [myClasses, setMyClasses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
-    // 1. Lấy dữ liệu thật từ API khi component mount
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const data = await getMyClasses();
-                setMyClasses(data);
-            } catch (error) {
-                console.error("Lỗi tải lịch học:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadData();
-    }, []);
+    // Fetch dữ liệu lớp học của sinh viên
+    const { 
+        data: myClasses = [], 
+        isLoading
+    } = useQuery({
+        queryKey: ['my-classes'], 
+        queryFn: getMyClasses,
+        staleTime: 1000, // Dữ liệu được coi là "mới" trong 5 phút, không fetch lại khi switch tab
+        gcTime: 1000 * 60 * 30,   // Giữ trong bộ nhớ đệm 30 phút
+    });
 
     // 2. Logic tính toán các ngày trong tuần đang xem
     const weekDays = useMemo(() => {
@@ -81,7 +76,7 @@ const StudentCalendar = () => {
         const dayOfWeek = dayDate.getDay() === 0 ? 8 : dayDate.getDay() + 1; // Quy đổi CN=8, T2=2
 
         // Tìm lớp học thỏa mãn: nằm trong thời gian bắt đầu-kết thúc và đúng Thứ/Ca
-        const classItem = myClasses.find(cls => {
+        const classItem = myClasses.find((cls: any) => {
             const start = new Date(cls.startDate);
             const end = new Date(cls.endDate);
             const isInRange = dayDate >= start && dayDate <= end;
@@ -217,7 +212,7 @@ const StudentCalendar = () => {
         );
     };
 
-    if (loading) return <Box display="flex" justifyContent="center" py={10}><CircularProgress /></Box>;
+    if (isLoading) return <Box display="flex" justifyContent="center" py={10}><CircularProgress /></Box>;
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f1f8e9" }}>
