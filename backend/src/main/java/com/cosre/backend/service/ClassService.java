@@ -69,7 +69,12 @@ public class ClassService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
 
-        List<ClassRoom> allClass = classRoomRepository.findAll();
+        List<ClassRoom> allClass = classRoomRepository.findAllActiveRegistrationClasses();
+
+        List<Long> registeredClassIds = allClass.stream()
+            .filter(c -> c.getStudents().contains(student))
+            .map(ClassRoom::getId)
+            .collect(Collectors.toList());
 
         return allClass.stream().map(clazz -> {
             Map<String, Object> map = new HashMap<>();
@@ -86,7 +91,7 @@ public class ClassService {
             map.put("timeTables", clazz.getTimeTables());
             map.put("isRegistrationOpen", clazz.isRegistrationOpen());
             // Kiểm tra sinh viên này đã có trong danh sách chưa
-            map.put("isRegistered", clazz.getStudents().contains(student));
+            map.put("isRegistered", registeredClassIds.contains(clazz.getId()));
             return map;
         }).collect(Collectors.toList());
     }
@@ -128,6 +133,6 @@ public class ClassService {
 
     // 4. Lấy danh sách lớp của sinh viên đang đăng nhập
     public List<ClassRoom> getMyClasses(String studentEmail) {
-        return classRoomRepository.findByStudents_Email(studentEmail);
+        return classRoomRepository.findActiveClassesByStudentEmail(studentEmail);
     }
 }

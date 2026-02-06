@@ -44,6 +44,8 @@ export interface StudentProfileData {
 
 export interface Student {
     id: number;
+    avatarUrl?: string;
+    fullName: string;
     user: {
         id: number;
         email: string;

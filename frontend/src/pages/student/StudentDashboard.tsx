@@ -2,9 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import { 
     Container, Typography, Box, Grid, Divider, Paper,
     Avatar, Button, IconButton, Dialog,  DialogContent,
-    Tooltip
+    Tooltip, Popover, Grid as MuiGrid
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { Client } from '@stomp/stompjs';
+import SockJS from "sockjs-client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import SchoolIcon from "@mui/icons-material/School";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -19,8 +23,6 @@ import EventIcon from '@mui/icons-material/Event';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LeftIcon from '@mui/icons-material/ChevronLeft';
 import RightIcon from '@mui/icons-material/ChevronRight';
-import { Client } from '@stomp/stompjs';
-import SockJS from "sockjs-client";
 
 import Header from "../../components/layout/Header";
 import { StatCard, MenuCard } from "../../components/common/DashboardCards";
@@ -33,84 +35,74 @@ import { SLOT_INFO } from './StudentCalendar';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
-    const [profile, setProfile] = useState<any>(null);
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [myClasses, setMyClasses] = useState<any[]>([]);
-    const [activeTasks, setActiveTasks] = useState<any[]>([]);
+    const queryClient = useQueryClient();
+
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDateEvents, setSelectedDateEvents] = useState<{ classes: any[], deadlines: any[] }>({ classes: [], deadlines: [] });
     const [openEventDialog, setOpenEventDialog] = useState(false);
     const [selectedDateLabel, setSelectedDateLabel] = useState("");
+    const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+
+    // Lấy Profile
+    const { data: profile } = useQuery({
+        queryKey: ['studentProfile'],
+        queryFn: () => studentService.getProfile(),
+        staleTime: 1000 * 60 * 5, // Dữ liệu cá nhân coi như "mới" trong 5 phút
+    });
+
+    // Lấy Lớp học
+    const { data: myClasses = [] } = useQuery({
+        queryKey: ['myClasses'],
+        queryFn: getMyClasses,
+        staleTime: 1000, // Lớp học cập nhật mỗi 1 giây
+    });
+
+    // Lấy Task/Deadline
+    const { data: activeTasks = [] } = useQuery({
+        queryKey: ['activeTasks'],
+        queryFn: taskService.getMyActiveTasks,
+        staleTime: 1000, // Task cập nhật mỗi 1 giây
+    });
+
+    // Lấy Thông báo
+    const { data: initialNotifications = [] } = useQuery({
+        queryKey: ['notifications'],
+        queryFn: async () => {
+            const res = await getNotifications();
+            return res.data;
+        },
+        enabled: !!profile?.user?.id, // Chỉ chạy khi đã có profile
+    });
+
+    useEffect(() => {
+        let client: Client | null = null;
+
+        if (profile?.user?.id) {
+            client = new Client({
+                brokerURL: `${BASE_URL.replace('http', 'ws')}/ws`,
+                webSocketFactory: () => new SockJS(`${BASE_URL}/ws`),
+                onConnect: () => {
+                    client?.subscribe(`/topic/notifications/${profile.user.id}`, (msg) => {
+                        const newNotify = JSON.parse(msg.body);
+                        queryClient.setQueryData(['notifications'], (oldData: any) => {
+                            return oldData ? [newNotify, ...oldData] : [newNotify];
+                        });
+                    });
+                },
+            });
+            client.activate();
+        }
+
+        return () => {
+            if (client) client.deactivate();
+        };
+    }, [profile?.user?.id, queryClient]);
 
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
     const monthNames = ["tháng 1", "tháng 2", "tháng 3", "tháng 4", "tháng 5", "tháng 6",
                         "tháng 7", "tháng 8", "tháng 9", "tháng 10", "tháng 11", "tháng 12"];
-
-    useEffect(() => {
-        const loadNotifications = async () => {
-            if (profile?.user?.id) {
-                try {
-                    const res = await getNotifications();
-                    setNotifications(res.data);
-                } catch (error) {
-                    console.error("Lỗi tải thông báo:", error);
-                }
-            }
-        };
-        loadNotifications();
-    }, [profile?.user?.id]);
-
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [profileData, classes, tasks] = await Promise.all([
-                    studentService.getProfile(),
-                    getMyClasses(),
-                    taskService.getMyActiveTasks()
-                ]);
-                setProfile(profileData);
-                setMyClasses(classes);
-                setActiveTasks(tasks);
-            } catch (error) {
-                console.error("Lỗi tải dữ liệu dashboard:", error);
-            } finally {
-            }
-        };
-        loadData();
-    }, []);
-
-    useEffect(() => {
-        if (profile?.user?.id) {
-            const client = new Client({
-                brokerURL: `${BASE_URL.replace('http', 'ws')}/ws`,
-                webSocketFactory: () => new SockJS(`${BASE_URL}/ws`),
-                onConnect: () => {
-                    console.log("Kết nối thành công!");
-                    client.subscribe(`/topic/notifications/${profile.user.id}`, (msg) => {
-                        const newNotify = JSON.parse(msg.body);
-                        setNotifications(prev => [newNotify, ...prev]);
-                    });
-                },
-            });
-
-            client.activate(); 
-
-            return () => {
-                client.deactivate();
-            };
-        }
-    }, [profile?.user?.id]);
-
-    // Hàm xử lý chuyển tháng
-    const handlePrevMonth = () => {
-        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-    };
-
-    const handleNextMonth = () => {
-        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-    };
 
     // Lấy danh sách ngày trong tháng hiện tại
     const days = useMemo(() => {
@@ -135,6 +127,7 @@ const StudentDashboard = () => {
         return daysArr;
     }, [currentDate]);
 
+    // Hàm lấy sự kiện trong ngày
     const getDayEvents = (date: Date) => {
         if (!date) return { dayClasses: [], dayDeadlines: [] };
 
@@ -144,7 +137,7 @@ const StudentDashboard = () => {
         const dayOfWeek = date.getDay() === 0 ? 8 : date.getDay() + 1;
 
         // Lọc tất cả các lớp có lịch vào ngày này
-        const dayClasses = myClasses.filter(cls => {
+        const dayClasses = myClasses.filter((cls: any) => {
             const start = new Date(cls.startDate);
             start.setHours(0, 0, 0, 0);
             const end = new Date(cls.endDate);
@@ -160,32 +153,12 @@ const StudentDashboard = () => {
         return { dayClasses, dayDeadlines };
     };
 
-    const handleDateClick = (date: Date) => {
-        if (!date) return;
-        const { dayClasses, dayDeadlines } = getDayEvents(date);
-        if (dayClasses.length === 0 && dayDeadlines.length === 0) return;
-
-        const dayOfWeekStr = date.getDay() === 0 ? "chủ nhật" : `thứ ${
-            date.getDay() === 1 ? "hai" : 
-            date.getDay() === 2 ? "ba" : 
-            date.getDay() === 3 ? "tư" : 
-            date.getDay() === 4 ? "năm" : 
-            date.getDay() === 5 ? "sáu" : "bảy"
-        }`;
-        
-        const label = `${dayOfWeekStr}, ngày ${date.toLocaleDateString('vi-VN')}`;
-        setSelectedDateLabel(label);
-
-        setSelectedDateEvents({ classes: dayClasses, deadlines: dayDeadlines });
-        setOpenEventDialog(true);
-    };
-
+    // Tính tổng số buổi học trong tuần hiện tại
     const weeklyClassCount = useMemo(() => {
         // 1. Xác định ngày bắt đầu (Thứ 2) và kết thúc (Chủ nhật) của tuần hiện tại
         const now = new Date();
-        const day = now.getDay(); // 0: CN, 1: T2...
+        const day = now.getDay();
         const diffToMonday = now.getDate() - (day === 0 ? 6 : day - 1);
-        
         const startOfWeek = new Date(now.setDate(diffToMonday));
         startOfWeek.setHours(0, 0, 0, 0);
         
@@ -196,7 +169,7 @@ const StudentDashboard = () => {
         let totalSessions = 0;
 
         // 2. Duyệt qua từng lớp học của sinh viên
-        myClasses.forEach(cls => {
+        myClasses.forEach((cls: any) => {
             const classStart = new Date(cls.startDate);
             const classEnd = new Date(cls.endDate);
 
@@ -220,6 +193,69 @@ const StudentDashboard = () => {
 
         return totalSessions;
     }, [myClasses]);
+
+    // Hàm xử lý chuyển tháng
+    const handlePrevMonth = () => {
+        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    };
+
+    // Hàm xử lý chuyển tháng
+    const handleNextMonth = () => {
+        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    };
+
+    // Xử lý khi click vào ngày trong lịch
+    const handleDateClick = (date: Date) => {
+        if (!date) return;
+        const { dayClasses, dayDeadlines } = getDayEvents(date);
+        if (dayClasses.length === 0 && dayDeadlines.length === 0) return;
+
+        const dayOfWeekStr = date.getDay() === 0 ? "chủ nhật" : `thứ ${
+            date.getDay() === 1 ? "hai" : 
+            date.getDay() === 2 ? "ba" : 
+            date.getDay() === 3 ? "tư" : 
+            date.getDay() === 4 ? "năm" : 
+            date.getDay() === 5 ? "sáu" : "bảy"
+        }`;
+        
+        const label = `${dayOfWeekStr}, ngày ${date.toLocaleDateString('vi-VN')}`;
+        setSelectedDateLabel(label);
+
+        setSelectedDateEvents({ classes: dayClasses, deadlines: dayDeadlines });
+        setOpenEventDialog(true);
+    };
+
+    // Xử lý mở Popover chọn tháng
+    const handleOpenPicker = (event: React.MouseEvent<HTMLDivElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    // Xử lý đóng Popover chọn tháng
+    const handleClosePicker = () => {
+        setAnchorEl(null);
+    };
+
+    // Xử lý chọn tháng
+    const handleSelectMonth = (monthIndex: number) => {
+        setCurrentDate(new Date(currentDate.getFullYear(), monthIndex, 1));
+        handleClosePicker();
+    };
+
+    // Xử lý thay đổi năm
+    const handleYearChange = (offset: number) => {
+        setCurrentDate(new Date(currentDate.getFullYear() + offset, currentDate.getMonth(), 1));
+    };
+
+    // Tính số lượng deadline chưa quá hạn
+    const upcomingDeadlinesCount = useMemo(() => {
+        const now = new Date();
+        return activeTasks.filter(task => {
+            if (!task.dueDate) return false;
+            return new Date(task.dueDate) > now;
+        }).length;
+    }, [activeTasks]);
+
+    const open = Boolean(anchorEl);
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f1f8e9" }}>
@@ -290,7 +326,7 @@ const StudentDashboard = () => {
                                 }}>
                                     <Box sx={{ position: "relative", zIndex: 1 }}>
                                         <Typography variant="subtitle2" fontWeight="bold">Thông báo mới</Typography>
-                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{notifications.length}</Typography>
+                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{initialNotifications.length}</Typography>
                                         <Button onClick={() => navigate('/notedetail')} sx={{ color: "red", p: 0, textTransform: 'none' }}>
                                             Xem chi tiết
                                         </Button>
@@ -300,7 +336,7 @@ const StudentDashboard = () => {
                                             right: 16, 
                                             bottom: 58, 
                                             fontSize: 28, 
-                                            color: notifications.length ? "red" : "#2e7d32",
+                                            color: initialNotifications.length ? "red" : "#2e7d32",
                                             transition: 'color 0.3s ease'
                                         }}
                                     />
@@ -342,23 +378,78 @@ const StudentDashboard = () => {
                                     </IconButton>
                                     
                                     {/* Ant Design Style Picker Input */}
-                                    <Box sx={{
-                                        fontSize: '13.5px',
-                                        fontWeight: 600,
-                                        color: 'rgb(26, 60, 52)',
-                                        border: '1px solid rgb(209, 213, 219)',
-                                        borderRadius: '4px',
-                                        bgcolor: '#fff',
-                                        px: 1, py: 0.5,
-                                        width: '140px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        cursor: 'pointer'
-                                    }}>
+                                    <Box 
+                                        onClick={handleOpenPicker}
+                                        sx={{
+                                            fontSize: '13.5px',
+                                            fontWeight: 600,
+                                            color: 'rgb(26, 60, 52)',
+                                            border: '1px solid rgb(209, 213, 219)',
+                                            borderRadius: '4px',
+                                            bgcolor: '#fff',
+                                            px: 1.5, py: 0.5,
+                                            width: '140px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            cursor: 'pointer',
+                                            '&:hover': { borderColor: '#2e7d32' }
+                                        }}
+                                    >
                                         {`${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
                                         <CalendarMonthIcon sx={{ fontSize: '16px', color: '#999' }} />
                                     </Box>
+
+                                    <Popover
+                                        open={open}
+                                        anchorEl={anchorEl}
+                                        onClose={handleClosePicker}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        PaperProps={{
+                                            sx: { mt: 1, p: 0, borderRadius: '8px', boxShadow: '0 6px 16px rgba(0,0,0,0.08)', width: '280px' }
+                                        }}
+                                    >
+                                        {/* Header của bảng chọn */}
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: '1px solid #f0f0f0' }}>
+                                            <IconButton size="small" onClick={() => handleYearChange(-1)}><LeftIcon fontSize="small" /></IconButton>
+                                            <Typography sx={{ fontWeight: 700, fontSize: '14px', cursor: 'default' }}>
+                                                {currentDate.getFullYear()}
+                                            </Typography>
+                                            <IconButton size="small" onClick={() => handleYearChange(1)}><RightIcon fontSize="small" /></IconButton>
+                                        </Box>
+
+                                        <Box sx={{ p: 1 }}>
+                                            <MuiGrid container spacing={1}>
+                                                {monthNames.map((month, index) => {
+                                                    const isSelected = index === currentDate.getMonth();
+                                                    return (
+                                                        <MuiGrid key={month} size={4}> 
+                                                            <Box
+                                                                onClick={() => handleSelectMonth(index)}
+                                                                sx={{
+                                                                    py: 1.5,
+                                                                    textAlign: 'center',
+                                                                    borderRadius: '4px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '13px',
+                                                                    transition: 'all 0.2s',
+                                                                    bgcolor: isSelected ? '#e6f7ff' : 'transparent',
+                                                                    color: isSelected ? '#1677ff' : 'rgba(0,0,0,0.88)',
+                                                                    fontWeight: isSelected ? 600 : 400,
+                                                                    '&:hover': {
+                                                                        bgcolor: isSelected ? '#bae0ff' : '#f5f5f5'
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {`Th ${String(index + 1).padStart(2, '0')}`}
+                                                            </Box>
+                                                        </MuiGrid>
+                                                    );
+                                                })}
+                                            </MuiGrid>
+                                        </Box>
+                                    </Popover>
 
                                     <IconButton size="small" onClick={handleNextMonth} sx={{ color: '#1A3C34' }}>
                                         <RightIcon fontSize="small" />
@@ -402,7 +493,7 @@ const StudentDashboard = () => {
 
                                     const tooltipContent = (
                                         <Box sx={{ p: 0.5 }}>
-                                            {dayClasses.map((cls, idx) => (
+                                            {dayClasses.map((cls: any, idx: number) => (
                                                 <Typography key={`tt-cls-${idx}`} variant="caption" display="block" sx={{ color: '#b9f6ca', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                     <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4caf50' }} />
                                                     {cls.name}
@@ -437,7 +528,7 @@ const StudentDashboard = () => {
                                             </Typography>
                                             
                                             <Box sx={{ display: 'flex', gap: 0.4, mt: 0.5 }}>
-                                                {dayClasses.map((_, i) => (
+                                                {dayClasses.map((_: any, i: number) => (
                                                     <Box key={`c-${i}`} sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#4caf50' }} />
                                                 ))}
                                                 {dayDeadlines.map((_, i) => (
@@ -479,7 +570,7 @@ const StudentDashboard = () => {
                 </Grid>
 
                 <Box mb={5}>
-                    <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: "#2e7d32" }}>
+                    <Typography variant="h4" fontWeight="700" gutterBottom sx={{ color: "#2e7d32" }}>
                         Góc Học Tập
                     </Typography>
                     <Grid container spacing={3}>
@@ -487,7 +578,7 @@ const StudentDashboard = () => {
                             <StatCard title="Lớp Đang Học" value={myClasses.length.toString() || 0} icon={<ClassIcon fontSize="large" />} color="#2e7d32" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <StatCard title="Deadline" value={activeTasks.length.toString() || 0} icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
+                            <StatCard title="Deadline" value={upcomingDeadlinesCount.toString() || "0"} icon={<AccessTimeIcon fontSize="large" />} color="#ed6c02" />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <StatCard title="Điểm TB Tích Lũy" value="8.5" icon={<SchoolIcon fontSize="large" />} color="#1976d2" />

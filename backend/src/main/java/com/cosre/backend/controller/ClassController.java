@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/classes")
@@ -108,8 +109,17 @@ public class ClassController {
             map.put("id", m.getId());
             map.put("title", m.getTitle());
             map.put("description", m.getDescription());
-            map.put("fileUrl", m.getFileUrl());
             map.put("uploadDate", m.getUploadDate()); 
+
+            String rawUrl = m.getFileUrl();
+            if (rawUrl != null) {
+                String fileName = rawUrl.replace("/uploads/", "")
+                                    .replace("uploads/", "")
+                                    .replace("/api/", "")
+                                    .replace("/", "");
+                
+                map.put("fileUrl", "/uploads/" + fileName);
+            }
             return map;
         }).collect(Collectors.toList());
 
@@ -133,6 +143,20 @@ public class ClassController {
                 } else {
                     map.put("score", null);
                     map.put("feedback", null);
+                }
+
+                Submission sub = submissionRepository
+                    .findFirstByAssignment_IdAndStudent_IdOrderBySubmittedAtDesc(a.getId(), student.getId())
+                    .orElse(null);
+        
+                if (sub != null) {
+                    Map<String, Object> subData = new HashMap<>();
+                    subData.put("submissionText", sub.getSubmissionText());
+                    subData.put("fileUrl", sub.getFileUrl());
+                    subData.put("submittedAt", sub.getSubmittedAt());
+                    map.put("submission", subData);
+                } else {
+                    map.put("submission", null);
                 }
             }
             return map;
@@ -173,8 +197,15 @@ public class ClassController {
     // =================================================================
     // 4. API NỘP BÀI TẬP (CHO SINH VIÊN)
     // =================================================================
-    @PostMapping("/assignments/{assignmentId}/submit")
-    public ResponseEntity<?> submitAssignment(@PathVariable Long assignmentId, @RequestBody Map<String, String> body) {
+    @PostMapping(value = "/assignments/{assignmentId}/submit", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> submitAssignment(
+            @PathVariable Long assignmentId,
+            @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "submissionText", required = false) String submissionText,
+            @RequestParam(value = "comment", required = false) String comment,
+            // Nhận thêm cờ xóa file từ Frontend
+            @RequestParam(value = "deleteOldFile", defaultValue = "false") boolean deleteOldFile) {
+
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User student = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Sinh viên không tồn tại"));
@@ -182,15 +213,67 @@ public class ClassController {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Bài tập không tồn tại"));
 
-        Submission submission = Submission.builder()
-                .student(student)
-                .assignment(assignment)
-                .fileUrl(body.get("fileUrl"))
-                .studentComment(body.get("comment"))
-                .submittedAt(LocalDateTime.now())
-                .build();
+        Optional<Submission> existingSubmission = submissionRepository
+                .findFirstByAssignment_IdAndStudent_IdOrderBySubmittedAtDesc(assignmentId, student.getId());
+
+        Submission submission;
+        String finalFileUrl;
+
+        if (existingSubmission.isPresent()) {
+            submission = existingSubmission.get();
+            finalFileUrl = submission.getFileUrl(); 
+        } else {
+            submission = new Submission();
+            submission.setStudent(student);
+            submission.setAssignment(assignment);
+            finalFileUrl = null;
+        }
+        
+        // TH1: Sinh viên upload file mới
+        if (file != null && !file.isEmpty()) {
+            try {
+                // Xóa file cũ trên đĩa nếu tồn tại
+                if (submission.getFileUrl() != null) {
+                    deletePhysicalFile(submission.getFileUrl());
+                }
+
+                // Lưu file mới
+                String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+                java.nio.file.Path path = java.nio.file.Paths.get("uploads/" + fileName);
+                java.nio.file.Files.createDirectories(path.getParent());
+                java.nio.file.Files.copy(file.getInputStream(), path);
+                finalFileUrl = "/uploads/" + fileName;
+            } catch (java.io.IOException e) {
+                return ResponseEntity.status(500).body("Lỗi khi lưu file");
+            }
+        } 
+        // TH2: Không có file mới nhưng sinh viên chủ động nhấn "Xóa file cũ"
+        else if (deleteOldFile) {
+            if (submission.getFileUrl() != null) {
+                deletePhysicalFile(submission.getFileUrl());
+            }
+            finalFileUrl = null;
+        }
+
+        // Cập nhật thông tin nộp bài
+        submission.setFileUrl(finalFileUrl);
+        submission.setSubmissionText(submissionText);
+        submission.setStudentComment(comment);
+        submission.setSubmittedAt(LocalDateTime.now());
 
         submissionRepository.save(submission);
-        return ResponseEntity.ok(Map.of("message", "Nộp bài thành công!"));
+        
+        String msg = existingSubmission.isPresent() ? "Cập nhật bài làm thành công!" : "Nộp bài thành công!";
+        return ResponseEntity.ok(Map.of("message", msg));
+    }
+
+    private void deletePhysicalFile(String fileUrl) {
+        try {
+            // fileUrl thường là "/uploads/name.pdf", cần bỏ dấu "/" ở đầu để Path hiểu
+            java.nio.file.Path path = java.nio.file.Paths.get(fileUrl.substring(1));
+            java.nio.file.Files.deleteIfExists(path);
+        } catch (Exception e) {
+            System.err.println("Không thể xóa file cũ: " + e.getMessage());
+        }
     }
 }

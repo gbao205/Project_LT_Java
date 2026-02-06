@@ -7,7 +7,7 @@ import {
     CircularProgress, Grid, Card, CardContent, CardActions, FormControl,
     RadioGroup, FormControlLabel, Radio, Avatar, Tooltip, FormLabel,
     FormGroup, Checkbox, InputAdornment, Alert, DialogContentText,
-    Skeleton, AvatarGroup
+    Skeleton
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -20,12 +20,14 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from '@mui/icons-material/Warning';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
-import AttachFileIcon from '@mui/icons-material/AttachFile'; // Icon kẹp ghim
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'; 
+import EventNoteIcon from '@mui/icons-material/EventNote';
 
 import StudentLayout from '../../components/layout/StudentLayout';
 import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 import studentService from '../../services/studentService';
-import api from '../../services/api';
+import api, { BASE_URL } from '../../services/api';
 
 const ClassDetail = () => {
     const { id } = useParams();
@@ -42,6 +44,8 @@ const ClassDetail = () => {
     const [openAssignment, setOpenAssignment] = useState(false);
     const [openSubmit, setOpenSubmit] = useState(false);
     const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
+    const [originalSubmission, setOriginalSubmission] = useState<{text: string, comment: string} | null>(null);
+    const [deleteOldFile, setDeleteOldFile] = useState(false);
 
     // State Dialog Team
     const [openCreateTeam, setOpenCreateTeam] = useState(false);
@@ -205,19 +209,85 @@ const ClassDetail = () => {
         }
     };
 
-    // --- HÀM NỘP BÀI (Sinh viên) ---
+    // --- HÀM NỘP BÀI  ---
     const handleSubmitAssignment = async () => {
         if (!selectedAssignmentId) return;
         try {
-            await api.post(`/classes/assignments/${selectedAssignmentId}/submit`, {
-                fileUrl: formData.url, // Hiện tại đang nộp Link
-                comment: formData.description
+            const data = new FormData();
+            data.append('submissionText', formData.url || '');
+            data.append('comment', formData.description || '');
+            data.append('deleteOldFile', deleteOldFile.toString());
+
+            if (selectedFile) {
+                data.append('file', selectedFile);
+            }
+
+            await api.post(`/classes/assignments/${selectedAssignmentId}/submit`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-            showSuccess("Nộp bài thành công!");
+
+            showSuccess(originalSubmission ? "Cập nhật thành công!" : "Nộp bài thành công!");
             setOpenSubmit(false);
+            resetForm();
+            fetchData();
         } catch (error) {
             showError("Lỗi nộp bài");
         }
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB tính bằng bytes
+
+        if (file) {
+            if (file.size > MAX_FILE_SIZE) {
+                alert("File quá lớn! Vui lòng chọn file dưới 10MB.");
+                
+                event.target.value = ''; 
+                return;
+            }
+
+            setSelectedFile(file);
+        }
+    };
+
+    // Mở Dialog nộp bài và điền dữ liệu cũ nếu đã nộp
+    const handleOpenSubmitDialog = (ass: any) => {
+        setSelectedAssignmentId(ass.id);
+        setDeleteOldFile(false);
+        setSelectedFile(null);
+        if (ass.submission) {
+            setFormData({
+                ...formData,
+                url: ass.submission.submissionText || '',
+                description: ass.submission.studentComment || ''
+            });
+            setOriginalSubmission({
+                text: ass.submission.submissionText || '',
+                comment: ass.submission.studentComment || ''
+            });
+        } else {
+            resetForm();
+            setOriginalSubmission(null);
+        }
+        setOpenSubmit(true);
+    };
+
+    // Logic kiểm tra xem có sự thay đổi nào không
+    const hasChanges = () => {
+        // 1. Nếu chọn file mới -> Chắc chắn có thay đổi
+        if (selectedFile || deleteOldFile) return true;
+        
+        // 2. Nếu không có bài nộp cũ mà giờ có nhập text -> Có thay đổi
+        if (!originalSubmission) {
+            return formData.url.trim() !== '' || formData.description.trim() !== '';
+        }
+
+        // 3. So sánh text hiện tại với bản gốc
+        const isTextChanged = formData.url.trim() !== originalSubmission.text;
+        const isCommentChanged = formData.description.trim() !== originalSubmission.comment;
+
+        return isTextChanged || isCommentChanged;
     };
 
     // ... (CÁC HÀM XỬ LÝ NHÓM - GIỮ NGUYÊN KHÔNG ĐỤNG CHẠM) ...
@@ -401,6 +471,30 @@ const ClassDetail = () => {
         { label: 'Lớp Học Của Tôi', path: '/student/classes' }
     ];
 
+    const handleViewMaterial = (fileUrl: string) => {
+        if (!fileUrl) {
+            showError("Tài liệu này không có đường dẫn hợp lệ");
+            return;
+        }
+
+        // Nếu là link ngoài (Google Drive, v.v.) thì mở luôn
+        if (fileUrl.startsWith('http')) {
+            window.open(fileUrl, '_blank');
+            return;
+        }
+
+        // Xử lý chuỗi để lấy đúng tên file, loại bỏ các tiền tố thừa thường gặp do lỗi code cũ
+        const fileName = fileUrl
+            .replace(/^\/?api\//, '')      // Xóa /api/ hoặc api/ ở đầu
+            .replace(/^\/?uploads\//, '')  // Xóa /uploads/ hoặc uploads/ ở đầu
+            .replace(/^\//, '');           // Xóa dấu / ở đầu nếu còn
+
+        const finalUrl = `${BASE_URL}/uploads/${fileName}`;
+
+        console.log("Đang mở tài liệu tại:", encodeURI(finalUrl));
+        window.open(encodeURI(finalUrl), '_blank');
+    };
+
     return (
         <StudentLayout title={pageTitle} breadcrumbs={breadcrumbs}>
 
@@ -429,8 +523,8 @@ const ClassDetail = () => {
                             indicatorColor="primary"
                             textColor="primary"
                         >
-                            <Tab label="Tài Liệu Học Tập" />
-                            <Tab label="Bài Tập & Deadline" />
+                            <Tab label="Tài Liệu Học Tập" icon={<LibraryBooksIcon />} iconPosition="start" />
+                            <Tab label="Bài Tập & Deadline" icon={<EventNoteIcon />} iconPosition="start" />
                             <Tab label="Hoạt động Nhóm" icon={<GroupsIcon />} iconPosition="start" />
                         </Tabs>
                     </Paper>
@@ -456,16 +550,26 @@ const ClassDetail = () => {
                                                 <ListItemIcon><DescriptionIcon color="primary" /></ListItemIcon>
                                                 <ListItemText
                                                     primary={
-                                                        <a href={mat.fileUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontWeight: 'bold', color: '#1976d2' }}>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{ 
+                                                                cursor: 'pointer', 
+                                                                fontWeight: 'bold', 
+                                                                color: '#1976d2',
+                                                                '&:hover': { textDecoration: 'underline', color: '#115293' } 
+                                                            }}
+                                                            onClick={() => handleViewMaterial(mat.fileUrl)}
+                                                        >
                                                             {mat.title}
-                                                        </a>
+                                                        </Typography>
                                                     }
                                                     secondary={
-                                                        <>
-                                                            <Typography variant="body2" component="span" display="block">{mat.description}</Typography>
-                                                            {/* 🔥 Hiển thị ngày đăng chính xác theo biến Backend */}
-                                                            {mat.uploadDate && <Typography variant="caption" color="text.disabled">Ngày đăng: {new Date(mat.uploadDate).toLocaleDateString()}</Typography>}
-                                                        </>
+                                                        <Box component="span" display="flex" flexDirection="column">
+                                                            <Typography variant="body2" color="textPrimary">{mat.description}</Typography>
+                                                            <Typography variant="caption" color="textSecondary">
+                                                                {mat.uploadDate ? `Ngày đăng: ${new Date(mat.uploadDate).toLocaleDateString()}` : 'Tài liệu hệ thống'}
+                                                            </Typography>
+                                                        </Box>
                                                     }
                                                 />
                                             </ListItem>
@@ -492,78 +596,180 @@ const ClassDetail = () => {
                                     {(!classData?.assignments || classData.assignments.length === 0) && (
                                         <ListItem><ListItemText primary="Chưa có bài tập nào" sx={{ color: 'text.secondary', textAlign: 'center' }} /></ListItem>
                                     )}
-                                    {classData?.assignments?.map((ass: any, index: number) => (
-                                        <Box key={ass.id}>
-                                            <ListItem
-                                                alignItems="flex-start"
-                                                secondaryAction={
-                                                    !isLecturer && (
-                                                        <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
-                                                            {/* 🔥 HIỂN THỊ ĐIỂM SỐ NẾU CÓ (Kết hợp với Backend ClassController) */}
-                                                            {ass.score !== null && ass.score !== undefined ? (
-                                                                <Chip
-                                                                    label={`Điểm: ${ass.score}`}
-                                                                    color="success"
-                                                                    variant="filled"
-                                                                    sx={{ fontWeight: 'bold' }}
-                                                                />
-                                                            ) : (
-                                                                <Button
-                                                                    variant="contained"
-                                                                    size="small"
-                                                                    color="warning"
-                                                                    onClick={() => { setSelectedAssignmentId(ass.id); setOpenSubmit(true); }}
-                                                                >
-                                                                    Nộp Bài
-                                                                </Button>
-                                                            )}
-                                                        </Box>
-                                                    )
-                                                }
-                                            >
-                                                <ListItemIcon sx={{ mt: 1 }}>
-                                                    {/* Đổi màu icon nếu đã có điểm */}
-                                                    <AssignmentIcon color={ass.score != null ? "success" : "error"} />
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={
-                                                        <Box display="flex" alignItems="center" gap={1}>
-                                                            <Typography variant="subtitle1" fontWeight="bold">{ass.title}</Typography>
-                                                            {/* Hiển thị icon nhận xét nếu có */}
-                                                            {ass.feedback && (
-                                                                <Tooltip title={`Nhận xét: ${ass.feedback}`}>
-                                                                    <FactCheckIcon color="info" fontSize="small" />
-                                                                </Tooltip>
-                                                            )}
-                                                        </Box>
-                                                    }
-                                                    secondary={
-                                                        <Box component="span" display="flex" flexDirection="column" gap={0.5} mt={0.5}>
-                                                            <Typography variant="body2" component="span" color="text.primary">{ass.description}</Typography>
+                                    {classData?.assignments?.map((ass: any, index: number) => {
 
-                                                            {/* Hiển thị lời nhận xét của GV */}
-                                                            {ass.feedback && (
-                                                                <Typography variant="caption" color="primary" sx={{fontStyle: 'italic'}}>
-                                                                    ✍️ GV nhận xét: "{ass.feedback}"
+                                        const isOverdue = ass.deadline ? new Date(ass.deadline) < new Date() : false;
+                                        const hasSubmitted = !!ass.submission;
+                                        const hasScore = ass.score !== null && ass.score !== undefined;
+                                        
+                                        return (
+                                            <Box key={ass.id}>
+                                                <ListItem
+                                                    alignItems="flex-start"
+                                                    sx={{
+                                                        '& .MuiListItemSecondaryAction-root': {
+                                                            top: 16,
+                                                            transform: 'none',
+                                                            right: 16
+                                                        }
+                                                    }}
+                                                    secondaryAction={
+                                                        !isLecturer && (
+                                                            <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
+                                                                {hasScore ? (
+                                                                    <Chip
+                                                                        label={`Điểm: ${ass.score}`}
+                                                                        color="success"
+                                                                        variant="filled"
+                                                                        sx={{ fontWeight: 'bold' }}
+                                                                    />
+                                                                ) : (
+                                                                    <Button
+                                                                        variant="contained"
+                                                                        size="small"
+                                                                        color={hasSubmitted ? "success" : "warning"}
+                                                                        onClick={() => handleOpenSubmitDialog(ass)}
+                                                                        disabled={isOverdue}
+                                                                        sx={{ textTransform: 'none', minWidth: '90px' }}
+                                                                    >
+                                                                        {isOverdue 
+                                                                            ? (hasSubmitted ? "Hết hạn sửa" : "Quá hạn nộp") 
+                                                                            : (hasSubmitted ? "Chỉnh sửa" : "Nộp bài")
+                                                                        }
+                                                                    </Button>
+                                                                )}
+                                                            </Box>
+                                                        )
+                                                    }
+                                                >
+                                                    <ListItemIcon sx={{ mt: 1 }}>
+                                                        <AssignmentIcon color={ass.score != null ? "success" : "error"} />
+                                                    </ListItemIcon>
+                                                    <ListItemText
+                                                        primary={
+                                                            <Box display="flex" alignItems="center" gap={1}>
+                                                                <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                                                                    {ass.title}
                                                                 </Typography>
-                                                            )}
+                                                                {ass.submission && <Chip label="Đã nộp" color="success" size="small" variant="outlined" />}
+                                                            </Box>
+                                                        }
+                                                        secondary={
+                                                            <Box component="span" display="flex" flexDirection="column" gap={0.5} mt={0.5}>
+                                                                {/* Hiển thị Title của bài tập */}
+                                                                
+                                                                {/* Hiển thị Description gốc (không bao gồm phần File đính kèm để tránh lặp) */}
+                                                                {ass.description.includes("File đính kèm:") ? (
+                                                                    <Typography variant="body2" component="span" color="text.primary">
+                                                                        <Typography variant="body2" component="span" color="text.primary">
+                                                                            {ass.description.split("File đính kèm")[0].slice(0, -1)}
+                                                                        </Typography>
+                                                                        <Typography 
+                                                                            variant="caption" 
+                                                                            sx={{ 
+                                                                                color: 'green', 
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                gap: 0.5,
+                                                                                cursor: 'pointer',
+                                                                                fontWeight: 'bold',
+                                                                                '&:hover': { textDecoration: 'underline', color: '#2e7d32' }
+                                                                            }}
+                                                                            onClick={() => {
+                                                                                const rawPart = ass.description.split("File đính kèm:")[1];
+                                                                                const fileName = rawPart ? rawPart.trim().slice(0, -1) : "";
+                                                                                handleViewMaterial(fileName);
+                                                                            }}
+                                                                        >
+                                                                            <AttachFileIcon sx={{ fontSize: 14 }} /> 
+                                                                            {ass.description.split("File đính kèm:")[1].trim().slice(0, -1)}
+                                                                        </Typography>
+                                                                    </Typography>
+                                                                ): (
+                                                                    <Typography variant="body2" component="span" color="text.primary">
+                                                                        {ass.description}
+                                                                    </Typography>
+                                                                )}
+                                                                {/*  */}
+                                                                {ass.submission && (
+                                                                    <Paper 
+                                                                        variant="outlined" 
+                                                                        sx={{ 
+                                                                            p: 2, 
+                                                                            bgcolor: '#f1f8e9', 
+                                                                            borderLeft: '4px solid #4caf50',
+                                                                            borderRadius: '4px'
+                                                                        }}
+                                                                    >
+                                                                        <Typography variant="caption" fontWeight="bold" color="success.dark" display="block" gutterBottom>
+                                                                            NỘI DUNG BÀI LÀM:
+                                                                        </Typography>
 
-                                                            {ass.deadline && (
-                                                                <Chip
-                                                                    label={`Deadline: ${new Date(ass.deadline).toLocaleString()}`}
-                                                                    size="small"
-                                                                    color={ass.score != null ? "default" : "error"}
-                                                                    variant="outlined"
-                                                                    sx={{ width: 'fit-content' }}
-                                                                />
-                                                            )}
-                                                        </Box>
-                                                    }
-                                                />
-                                            </ListItem>
-                                            {index < classData.assignments.length - 1 && <Divider variant="inset" component="li" />}
-                                        </Box>
-                                    ))}
+                                                                        {/* Hiển thị Text/Link đã nộp */}
+                                                                        {ass.submission.submissionText && (
+                                                                            <Box sx={{ mb: ass.submission.fileUrl ? 1 : 0 }}>
+                                                                                <Typography 
+                                                                                    variant="body2" 
+                                                                                    sx={{ 
+                                                                                        whiteSpace: 'pre-wrap', 
+                                                                                        wordBreak: 'break-all',
+                                                                                        fontStyle: ass.submission.submissionText.startsWith('http') ? 'italic' : 'normal',
+                                                                                        color: ass.submission.submissionText.startsWith('http') ? '#1976d2' : 'inherit',
+                                                                                        textDecoration: ass.submission.submissionText.startsWith('http') ? 'underline' : 'none',
+                                                                                        cursor: ass.submission.submissionText.startsWith('http') ? 'pointer' : 'default'
+                                                                                    }}
+                                                                                    onClick={() => ass.submission.submissionText.startsWith('http') && window.open(ass.submission.submissionText, '_blank')}
+                                                                                >
+                                                                                    {ass.submission.submissionText}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        )}
+
+                                                                        {/* Hiển thị File đã nộp */}
+                                                                        {ass.submission.fileUrl && (
+                                                                            <Box display="flex" alignItems="center" gap={1}>
+                                                                                <Chip
+                                                                                    icon={<AttachFileIcon />}
+                                                                                    label={ass.submission.fileUrl.split('_').pop()}
+                                                                                    onClick={() => handleViewMaterial(ass.submission.fileUrl)}
+                                                                                    color="primary"
+                                                                                    variant="outlined"
+                                                                                    size="small"
+                                                                                    sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                                                                                />
+                                                                            </Box>
+                                                                        )}
+
+                                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                                                                            Nộp lúc: {new Date(ass.submission.submittedAt).toLocaleString('vi-VN')}
+                                                                        </Typography>
+                                                                    </Paper>
+                                                                )}
+
+                                                                {/* Hiển thị lời nhận xét của GV */}
+                                                                {ass.feedback && (
+                                                                    <Typography variant="caption" color="primary" sx={{fontStyle: 'italic'}}>
+                                                                        ✍️ GV nhận xét: "{ass.feedback}"
+                                                                    </Typography>
+                                                                )}
+
+                                                                {ass.deadline && (
+                                                                    <Chip
+                                                                        label={`Deadline: ${new Date(ass.deadline).toLocaleString()}`}
+                                                                        size="small"
+                                                                        color={ass.score != null ? "default" : "error"}
+                                                                        variant="outlined"
+                                                                        sx={{ width: 'fit-content' }}
+                                                                    />
+                                                                )}
+                                                            </Box>
+                                                        }
+                                                    />
+                                                </ListItem>
+                                                {index < classData.assignments.length - 1 && <Divider variant="inset" component="li" />}
+                                            </Box>
+                                        )
+                                    })}
                                 </List>
                             </Paper>
                         </Box>
@@ -849,7 +1055,7 @@ const ClassDetail = () => {
                 </Box>
             )}
 
-            {/* --- DIALOG UPLOAD TÀI LIỆU (ĐÃ SỬA: CÓ INPUT FILE) --- */}
+            {/* --- DIALOG UPLOAD TÀI LIỆU  --- */}
             <Dialog open={openMaterial} onClose={() => setOpenMaterial(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Upload Tài Liệu Mới</DialogTitle>
                 <DialogContent>
@@ -873,7 +1079,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* --- DIALOG TẠO BÀI TẬP (ĐÃ SỬA: CÓ INPUT FILE + GỬI TYPE) --- */}
+            {/* --- DIALOG TẠO BÀI TẬP  --- */}
             <Dialog open={openAssignment} onClose={() => setOpenAssignment(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Tạo Bài Tập Mới</DialogTitle>
                 <DialogContent>
@@ -898,19 +1104,116 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
+            {/* --- DIALOG NỘP BÀI TẬP --- */}
             <Dialog open={openSubmit} onClose={() => setOpenSubmit(false)} fullWidth maxWidth="sm">
-                <DialogTitle>Nộp Bài Tập</DialogTitle>
-                <DialogContent>
-                    <TextField label="Link bài làm (Github/Drive)" fullWidth margin="normal" onChange={(e) => setFormData({ ...formData, url: e.target.value })} />
-                    <TextField label="Ghi chú cho giảng viên" fullWidth margin="normal" multiline rows={2} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>Nộp Bài Tập</DialogTitle>
+                <DialogContent dividers>
+                    {/* Phần 1: Nộp nội dung Text/Link */}
+                    <Box mb={3}>
+                        <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <StarIcon fontSize="small" color="primary" /> Nội dung bài làm (Text/Link)
+                        </Typography>
+                        <TextField 
+                            placeholder="Nhập link Github, Drive hoặc nội dung trả lời..." 
+                            fullWidth 
+                            multiline 
+                            rows={4}
+                            variant="outlined"
+                            value={formData.url}
+                            onChange={(e) => setFormData({ ...formData, url: e.target.value })} 
+                        />
+                    </Box>
+
+                    <Divider sx={{ my: 2 }}>HOẶC / VÀ</Divider>
+
+                    {/* Phần 2: Upload File */}
+                    <Box sx={{ mt: 2 }}>
+                    {/* Tiêu đề bên ngoài Box nộp bài */}
+                    <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CloudUploadIcon fontSize="small" color="primary" /> Đính kèm file bài làm
+                    </Typography>
+
+                    {/* Box bao quanh khu vực upload */}
+                    <Box 
+                        sx={{ 
+                            border: '2px dashed #ccc', 
+                            borderRadius: 2, 
+                            bgcolor: selectedFile ? '#f0f9ff' : '#fafafa',
+                            transition: 'all 0.3s',
+                            '&:hover': { borderColor: 'primary.main', bgcolor: '#f5faff' },
+                            position: 'relative'
+                        }}
+                    >
+                        {/* Nhãn ẩn bao phủ toàn bộ vùng để click chọn file */}
+                        <label style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            padding: '24px', 
+                            cursor: 'pointer' 
+                        }}>
+                            <input
+                                type="file"
+                                hidden
+                                onChange={(e) => handleFileChange(e)}
+                            />
+                            <CloudUploadIcon sx={{ fontSize: 40, color: selectedFile ? 'primary.main' : 'text.secondary', mb: 1 }} />
+                            <Typography variant="body2" color="textPrimary" textAlign="center" sx={{ fontWeight: selectedFile ? 'bold' : 'normal' }}>
+                                {selectedFile ? (
+                                    `File mới chọn: ${selectedFile.name}`
+                                ) : (originalSubmission && !deleteOldFile && classData.assignments.find((a:any)=>a.id === selectedAssignmentId)?.submission?.fileUrl) ? (
+                                    `File hiện tại: ${classData.assignments.find((a:any)=>a.id === selectedAssignmentId).submission.fileUrl.split('_').pop()}`
+                                ) : (
+                                    "Nhấn để chọn file bài làm (Tối đa 10MB)"
+                                )}
+                            </Typography>
+                        </label>
+
+                        {/* Nút xóa file để riêng biệt bên ngoài thẻ label nhưng vẫn trong Box border */}
+                        {(selectedFile || (originalSubmission && !deleteOldFile && classData.assignments.find((a:any)=>a.id === selectedAssignmentId)?.submission?.fileUrl)) && (
+                            <Box sx={{ pb: 2, textAlign: 'center' }}>
+                                <Button 
+                                    size="small" 
+                                    color="error" 
+                                    variant="outlined"
+                                    onClick={() => {
+                                        if (selectedFile) {
+                                            setSelectedFile(null);
+                                        } else {
+                                            setDeleteOldFile(true);
+                                        }
+                                    }}
+                                >
+                                    {selectedFile ? "Bỏ chọn file này" : "Xóa file cũ"}
+                                </Button>
+                            </Box>
+                        )}
+                    </Box>
+                </Box>
+
+                    <TextField 
+                        label="Ghi chú thêm cho giảng viên" 
+                        fullWidth 
+                        margin="normal" 
+                        variant="standard"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
+                    />
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenSubmit(false)}>Hủy</Button>
-                    <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={handleSubmitAssignment}>Nộp Ngay</Button>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setOpenSubmit(false)} color="inherit">Hủy</Button>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<CloudUploadIcon />} 
+                        onClick={handleSubmitAssignment}
+                        disabled={!hasChanges()}
+                    >
+                        {originalSubmission ? "Cập nhật bài làm" : "Nộp bài ngay"}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* ... Các Dialog còn lại (Leader, CreateTeam...) GIỮ NGUYÊN ... */}
+            {/* --- DIALOG CHUYỂN TRƯỞNG NHÓM VÀ RỜI NHÓM --- */}
             <Dialog open={openLeaderDialog} onClose={() => setOpenLeaderDialog(false)} fullWidth maxWidth="xs">
                 <DialogTitle>Chọn Trưởng Nhóm Mới</DialogTitle>
                 <DialogContent>
@@ -944,7 +1247,8 @@ const ClassDetail = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-
+            
+            {/* --- DIALOG TẠO NHÓM MỚI --- */}
             <Dialog open={openCreateTeam} onClose={() => setOpenCreateTeam(false)} fullWidth maxWidth="sm">
                 <DialogTitle sx={{ pb: 1 }}>Tạo Nhóm Mới</DialogTitle>
                 <DialogContent>
@@ -1015,6 +1319,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
+            {/* --- DIALOG THAM GIA NHÓM BẰNG MÃ --- */}
             <Dialog open={openJoinDialog} onClose={() => setOpenJoinDialog(false)} fullWidth maxWidth="xs">
                 <DialogTitle>Tham Gia Nhóm</DialogTitle>
                 <DialogContent>
@@ -1044,6 +1349,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
+            {/* --- DIALOG XÁC NHẬN CHUNG --- */}
             <Dialog
                 open={confirmDialog.open}
                 onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
@@ -1074,6 +1380,7 @@ const ClassDetail = () => {
                 </DialogActions>
             </Dialog>
 
+            {/* --- DIALOG ĐĂNG KÝ ĐỀ TÀI DỰ ÁN --- */}
             <Dialog open={openRegisterProject} onClose={() => setOpenRegisterProject(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Đăng Ký Đề Tài Dự Án</DialogTitle>
                 <DialogContent>
