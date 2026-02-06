@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
     Box, Paper, Typography, Card, CardContent, Chip,
     Button, Dialog, DialogTitle, DialogContent, TextField,
     MenuItem, DialogActions, Tooltip, CircularProgress, Alert, IconButton,
     Menu
 } from '@mui/material';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -49,155 +50,155 @@ const STATUS_ORDER = [
 
 const TaskBoard = ({ teamId }: { teamId: number }) => {
     const navigate = useNavigate();
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [members, setMembers] = useState<any[]>([]);
-    const [milestones, setMilestones] = useState<any[]>([]);
+    const queryClient = useQueryClient();
+    const { confirm } = useConfirm();
+    const { showSuccess, showError } = useAppSnackbar();
+
     const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const today = new Date().toISOString().split('T')[0];
 
-    const { confirm } = useConfirm();
-    const { showSuccess, showError } = useAppSnackbar();
-
     const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateTaskRequest>();
 
-    const fetchData = async () => {
-        if (!teamId || isNaN(Number(teamId))) {
-            setLoading(false);
-            return;
-        }
+    // Query lấy danh sách Tasks
+    const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
+        queryKey: ['tasks', teamId],
+        queryFn: () => taskService.getTasksByTeam(Number(teamId)),
+        enabled: !!teamId,
+        staleTime: 1000 * 60 * 5, // Dữ liệu cũ trong 5 phút vẫn được coi là dùng được (Cache)
+    });
 
-        const numericTeamId = Number(teamId);
-        try {
-            setLoading(true);
-            // 1. Chạy song song: Lấy danh sách Task và Chi tiết Nhóm (bao gồm members)
-            const [taskList, currentTeam, milestoneRes] = await Promise.all([
-                taskService.getTasksByTeam(numericTeamId),
-                studentService.getTeamDetail(numericTeamId),
-                workspaceService.getMilestones(numericTeamId)
-            ]);
+    // Query lấy chi tiết nhóm (members)
+    const { data: teamDetail, isLoading: isLoadingTeam } = useQuery({
+        queryKey: ['teamDetail', teamId],
+        queryFn: () => studentService.getTeamDetail(Number(teamId)),
+        enabled: !!teamId,
+    });
 
-            // Cập nhật Tasks
-            setTasks(taskList);
-            setMilestones(milestoneRes.data);
+    // Query lấy Milestones
+    const { data: milestonesRes, isLoading: isLoadingMilestones } = useQuery({
+        queryKey: ['milestones', teamId],
+        queryFn: () => workspaceService.getMilestones(Number(teamId)),
+        enabled: !!teamId,
+    });
 
-            if (currentTeam?.members) {
-                setMembers(currentTeam.members);
-            }
+    const members = teamDetail?.members || [];
+    const milestones = milestonesRes?.data || [];
+    const isLoading = isLoadingTasks || isLoadingTeam || isLoadingMilestones;
 
-        } catch (error) {
-            console.error("Lỗi tải dữ liệu Board:", error);
-            showError("Không thể tải dữ liệu bảng công việc");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Gọi fetchData khi teamId thay đổi
-    useEffect(() => {
-        fetchData();
-    }, [teamId]);
-
-    // Xử lý tạo mới
-    const onCreateSubmit = async (data: any) => {
-        if (!teamId) return;
-
-        try {
-            await taskService.createTask({
-                ...data,
-                teamId: Number(teamId),
-                assignedToId: data.assignedToId ? Number(data.assignedToId) : undefined,
-                milestoneId: data.milestoneId ? Number(data.milestoneId) : undefined,
-                dueDate: data.dueDate ? `${data.dueDate}T23:59:59` : undefined
-            });
+    // MUTATIONS: Quản lý các hành động thay đổi dữ liệu
+    // Tạo Task mới
+    const createTaskMutation = useMutation({
+        mutationFn: (data: any) => taskService.createTask(data),
+        onSuccess: () => {
             showSuccess("Tạo nhiệm vụ thành công!");
             setOpen(false);
             reset();
-            fetchData();
-        } catch (error: any) {
-            showError(error.response?.data?.message || "Lỗi khi tạo công việc!");
-        }
+            queryClient.invalidateQueries({ queryKey: ['tasks', teamId] }); // Làm mới cache tasks
+        },
+        onError: (error: any) => showError(error.response?.data?.message || "Lỗi khi tạo công việc!")
+    });
+
+    // Cập nhật trạng thái
+    const updateStatusMutation = useMutation({
+        mutationFn: ({ taskId, newStatus }: { taskId: number, newStatus: TaskStatus }) => 
+            taskService.updateTaskStatus(taskId, newStatus),
+        onSuccess: (data, variables) => {
+            showSuccess(`Đã chuyển sang trạng thái ${variables.newStatus}`);
+            queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+        },
+        onError: (error: any) => showError(error.response?.data?.message || "Không thể chuyển trạng thái!")
+    });
+
+    // Xóa Task
+    const deleteTaskMutation = useMutation({
+        mutationFn: (taskId: number) => taskService.deleteTask(taskId),
+        onSuccess: () => {
+            showSuccess("Đã xóa nhiệm vụ thành công");
+            queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+        },
+        onError: () => showError("Lỗi khi xóa nhiệm vụ")
+    });
+
+    // Cập nhật người thực hiện (Assignee)
+    const assignMemberMutation = useMutation({
+        mutationFn: ({ taskId, studentId }: { taskId: number, studentId: number | null }) => 
+            taskService.updateTask(taskId, { assignedToId: studentId ?? undefined }),
+        onSuccess: () => {
+            showSuccess("Đã cập nhật người thực hiện");
+            queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+        },
+        onError: () => showError("Không thể cập nhật người thực hiện")
+    });
+
+    // Xử lý submit tạo Task mới
+    const onCreateSubmit = (data: any) => {
+        if (!teamId) return;
+        createTaskMutation.mutate({
+            ...data,
+            teamId: Number(teamId),
+            assignedToId: data.assignedToId ? Number(data.assignedToId) : undefined,
+            milestoneId: data.milestoneId ? Number(data.milestoneId) : undefined,
+            dueDate: data.dueDate ? `${data.dueDate}T23:59:59` : undefined
+        });
     };
 
+    // Kiểm tra task có bị khóa không (thuộc milestone đã hoàn thành)
     const isTaskLocked = (task: Task) => {
         if (!task.milestone) return false;
-        const associatedMs = milestones.find(ms => ms.id === task.milestone?.id);
+        const associatedMs = milestones.find((ms: any) => ms.id === task.milestone?.id);
         return !!associatedMs?.completed;
     };
 
     // Xử lý chuyển trạng thái
-    const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
-        const task = tasks.find(t => t.id === taskId);
+    const handleStatusChange = (taskId: number, newStatus: TaskStatus) => {
+        const task = tasks.find((t: Task) => t.id === taskId);
         if (task && isTaskLocked(task)) {
             showError("Giai đoạn này đã kết thúc, không thể thay đổi trạng thái nhiệm vụ!");
             return;
         }
-        try {
-            await taskService.updateTaskStatus(taskId, newStatus);
-            showSuccess(`Đã chuyển sang trạng thái ${newStatus}`);
-            fetchData();
-        } catch (error: any) {
-            showError(error.response?.data?.message || "Không thể chuyển trạng thái!");
-        }
+        updateStatusMutation.mutate({ taskId, newStatus });
     };
 
+    // Xử lý xóa Task
     const handleDeleteTask = (task: Task) => {
         confirm({
             title: "Xóa nhiệm vụ?",
-            message: (
-                <>Bạn có chắc chắn muốn xóa nhiệm vụ <strong>{task.title}</strong>?</>
-            ),
-            onConfirm: async () => {
-                try {
-                    await taskService.deleteTask(task.id);
-                    showSuccess("Đã xóa nhiệm vụ thành công");
-                    fetchData();
-                } catch (error: any) {
-                    showError("Lỗi khi xóa nhiệm vụ");
-                }
-            }
+            message: <>Bạn có chắc chắn muốn xóa nhiệm vụ <strong>{task.title}</strong>?</>,
+            onConfirm: () => deleteTaskMutation.mutate(task.id)
         });
     };
 
-    const handleOpenAssigneeMenu = (event: React.MouseEvent<HTMLElement>, task: Task) => {
-        setAnchorEl(event.currentTarget);
-        setActiveTask(task);
-    };
-
-    const handleCloseAssigneeMenu = () => {
-        setAnchorEl(null);
-        setActiveTask(null);
-    };
-
-    const handleAssignMember = async (studentId: number | null) => {
+    // Xử lý gán người thực hiện
+    const handleAssignMember = (studentId: number | null) => {
         if (!activeTask) return;
-
         if (isTaskLocked(activeTask)) {
             showError("Không thể thay đổi người thực hiện cho nhiệm vụ đã khóa!");
             handleCloseAssigneeMenu();
             return;
         }
+        assignMemberMutation.mutate({ taskId: activeTask.id, studentId });
+        handleCloseAssigneeMenu();
+    };
 
-        try {
-            await taskService.updateTask(activeTask.id, { 
-                assignedToId: studentId ?? undefined
-            });
-            showSuccess("Đã cập nhật người thực hiện");
-            fetchData(); // Load lại dữ liệu
-        } catch (error: any) {
-            showError("Không thể cập nhật người thực hiện");
-        } finally {
-            handleCloseAssigneeMenu();
-        }
+    // Mở menu gán người thực hiện
+    const handleOpenAssigneeMenu = (event: React.MouseEvent<HTMLElement>, task: Task) => {
+        setAnchorEl(event.currentTarget);
+        setActiveTask(task);
+    };
+
+    // Đóng menu gán người thực hiện
+    const handleCloseAssigneeMenu = () => {
+        setAnchorEl(null);
+        setActiveTask(null);
     };
 
     // Render cột
     const renderColumn = (status: TaskStatus, title: string) => {
-        const tasksInCol = tasks.filter(t => {
+        const tasksInCol = tasks.filter((t: Task) => {
 
-            const associatedMs = milestones.find(ms => ms.id === t.milestone?.id);
+            const associatedMs = milestones.find((ms: any) => ms.id === t.milestone?.id);
             const isMilestoneDone = associatedMs?.completed;
 
             if (isMilestoneDone && t.status === TaskStatus.DONE) {
@@ -325,7 +326,12 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
                                         
                                         {task.dueDate && (
                                             <Box display="flex" alignItems="center" gap={1} color="error.main" fontSize="0.8rem">
-                                                <EventIcon fontSize="inherit" /> {new Date(task.dueDate).toLocaleDateString()}
+                                                <EventIcon fontSize="inherit" />
+                                                {new Date(task.dueDate).toLocaleDateString('vi-VN', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric'
+                                                })}
                                             </Box>
                                         )}
                                     </Box>
@@ -380,7 +386,7 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
         );
     }
 
-    if (loading) return (
+    if (isLoading && tasks.length === 0) return (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
             <CircularProgress />
         </Box>
@@ -389,8 +395,13 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
     return (
         <Box>
             <Box display="flex" justifyContent="flex-end" mb={3}>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
-                    Tạo Việc Mới
+                <Button 
+                    onClick={() => setOpen(true)} 
+                    variant="contained" 
+                    startIcon={createTaskMutation.isPending ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
+                    disabled={createTaskMutation.isPending}
+                >
+                    {createTaskMutation.isPending ? "Đang xử lý..." : "Tạo Việc Mới"}
                 </Button>
             </Box>
 
@@ -426,8 +437,8 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
                                 <MenuItem value=""><em>-- Không bắt buộc --</em></MenuItem>
                                 {/* Lọc: Chỉ hiện những milestone chưa hoàn thành */}
                                 {milestones
-                                    ?.filter(ms => !ms.completed) 
-                                    .map(ms => (
+                                    ?.filter((ms: any) => !ms.completed) 
+                                    .map((ms: any) => (
                                         <MenuItem key={ms.id} value={ms.id}>
                                             {ms.title}
                                         </MenuItem>
@@ -437,7 +448,7 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
 
                             <TextField select label="Người thực hiện" fullWidth defaultValue="" inputProps={register("assignedToId")}>
                                 <MenuItem value=""><em>-- Chưa giao --</em></MenuItem>
-                                {members.map(m => (
+                                {members.map((m: any) => (
                                     <MenuItem key={m.student.id} value={m.student.id}>
                                         {m.student.fullName} ({m.role})
                                     </MenuItem>
@@ -465,7 +476,21 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setOpen(false)}>Hủy</Button>
-                        <Button type="submit" variant="contained">Tạo Task</Button>
+                        <Button 
+                            type="submit" 
+                            variant="contained" 
+                            disabled={createTaskMutation.isPending}
+                            sx={{ minWidth: '100px' }}
+                        >
+                            {createTaskMutation.isPending ? (
+                                <Box display="flex" alignItems="center" gap={1}>
+                                    <CircularProgress size={18} color="inherit" />
+                                    <span>Đang lưu...</span>
+                                </Box>
+                            ) : (
+                                "Tạo Task"
+                            )}
+                        </Button>
                     </DialogActions>
                 </form>
             </Dialog>
@@ -505,7 +530,7 @@ const TaskBoard = ({ teamId }: { teamId: number }) => {
                 <hr style={{ border: '0.5px solid #eee', margin: '4px 0' }} />
 
                 {/* Danh sách thành viên */}
-                {members.map((m) => (
+                {members.map((m: any) => (
                     <MenuItem 
                         key={m.student.id} 
                         onClick={() => handleAssignMember(m.student.id)}
