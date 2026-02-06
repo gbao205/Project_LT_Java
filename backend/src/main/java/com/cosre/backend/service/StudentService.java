@@ -1,5 +1,6 @@
 package com.cosre.backend.service;
 
+import com.cosre.backend.dto.TeamMemberDTO;
 import com.cosre.backend.dto.staff.ClassResponseDTO;
 import com.cosre.backend.dto.student.CreateTeamRequest;
 import com.cosre.backend.dto.student.ProjectRegistrationRequest;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -340,5 +342,18 @@ public class StudentService {
         }
 
         return team;
+    }
+
+    public List<TeamMemberDTO> getTeamMembers(Long teamId) {
+        List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+        
+        return members.stream()
+                .map(member -> TeamMemberDTO.builder()
+                        .userId(member.getStudent().getId())
+                        .fullName(member.getStudent().getFullName())
+                        .email(member.getStudent().getEmail())
+                        .role(member.getRole().toString()) 
+                        .build())
+                .collect(Collectors.toList());
     }
 }

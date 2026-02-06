@@ -18,6 +18,7 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
     const [members, setMembers] = useState<any[]>([]);
     const [openAdd, setOpenAdd] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [newCp, setNewCp] = useState({ 
         title: '', 
         content: '', 
@@ -27,6 +28,8 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
 
     const { confirm } = useConfirm();
     const { showSuccess, showError } = useAppSnackbar();
+
+    const today = new Date().toISOString().split('T')[0];
 
     const fetchData = async () => {
         try {
@@ -54,6 +57,7 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
 
     const handleCreate = async () => {
         try {
+            setSubmitting(true);
             // Chuẩn hóa format ngày tháng trước khi gửi
             const payload = {
                 ...newCp,
@@ -67,6 +71,8 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
             fetchData();
         } catch (error: any) {
             showError(error.response?.data?.message || "Không thể tạo việc cần làm.");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -160,7 +166,11 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
                                 <Typography variant="caption" color="textSecondary">{cp.content}</Typography>
                                 {cp.dueDate && (
                                     <Typography variant="caption" color="error" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <EventIcon sx={{ fontSize: 12 }} /> {new Date(cp.dueDate).toLocaleDateString()}
+                                        <EventIcon sx={{ fontSize: 12 }} /> {new Date(cp.dueDate).toLocaleDateString('vi-VN', {
+                                                                                day: '2-digit',
+                                                                                month: '2-digit',
+                                                                                year: 'numeric'
+                                                                            })}
                                     </Typography>
                                 )}
                                 
@@ -194,13 +204,28 @@ const CheckpointTab = ({ teamId }: { teamId: number }) => {
                         ))}
                     </TextField>
 
-                    <TextField type="date" fullWidth label="Hạn chót" margin="dense" InputLabelProps={{ shrink: true }}
+                    <TextField 
+                        type="date" 
+                        fullWidth 
+                        label="Hạn chót" 
+                        margin="dense" 
+                        InputLabelProps={{ shrink: true }}
+                        inputProps={{ min: today }}
+                        disabled={submitting}
                         value={newCp.dueDate}
-                        onChange={(e) => setNewCp({...newCp, dueDate: e.target.value})} />
+                        onChange={(e) => setNewCp({...newCp, dueDate: e.target.value})} 
+                    />
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setOpenAdd(false)}>Hủy</Button>
-                    <Button variant="contained" onClick={handleCreate} disabled={!newCp.title}>Tạo Checkpoint</Button>
+                    <Button onClick={() => setOpenAdd(false)} disabled={submitting}>Hủy</Button>
+                    <Button 
+                        variant="contained" 
+                        onClick={handleCreate} 
+                        disabled={!newCp.title || submitting}
+                        startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
+                    >
+                        {submitting ? "Đang tạo..." : "Tạo Checkpoint"}
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>

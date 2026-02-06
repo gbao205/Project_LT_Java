@@ -171,14 +171,17 @@ const MilestoneTab = ({ teamId }: { teamId: number }) => {
                 const hasReportContent = currentText.length > 0;
 
                 const canConfirm = hasCompletedTasks || hasReportContent;
-
                 return (
                     <Paper key={m.id} variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2, position: 'relative' }}>
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                             <Box>
                                 <Typography variant="subtitle1" fontWeight="bold">{m.title}</Typography>
                                 <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
-                                    Hạn nộp: {new Date(m.dueDate).toLocaleDateString()}
+                                    Hạn nộp: {new Date(m.dueDate).toLocaleDateString('vi-VN', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric'
+                                            })}
                                 </Typography>
                             </Box>
                             <Chip 
@@ -211,7 +214,11 @@ const MilestoneTab = ({ teamId }: { teamId: number }) => {
                                                 </Typography>
                                                 <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                     <EventIcon sx={{ fontSize: 14 }} /> 
-                                                    Hạn: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'}
+                                                    Hạn: {new Date(m.dueDate).toLocaleDateString('vi-VN', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric'
+                                                        })}
                                                 </Typography>
                                             </Box>
                                         </Box>

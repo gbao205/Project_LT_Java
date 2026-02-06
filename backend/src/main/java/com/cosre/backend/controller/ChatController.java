@@ -1,8 +1,10 @@
 package com.cosre.backend.controller;
 
+import com.cosre.backend.dto.GroupMessageDTO;
 import com.cosre.backend.dto.VideoCallSignal;
 import com.cosre.backend.entity.ChatMessage;
 import com.cosre.backend.repository.ChatMessageRepository;
+import com.cosre.backend.service.ChatService;
 import com.cosre.backend.service.UserService; // Import UserService
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,9 @@ public class ChatController {
 
     @Autowired
     private UserService userService; // [MỚI] Inject UserService
+
+    @Autowired
+    private ChatService chatService;
 
     // --- Helper để cập nhật tương tác cho cả 2 người ---
     private void updateInteraction(String sender, String recipient) {
@@ -129,5 +134,20 @@ public class ChatController {
         }
 
         messagingTemplate.convertAndSend("/topic/private/" + action.getRecipient(), action);
+    }
+
+    // --- LẤY LỊCH SỬ CHAT NHÓM ---
+    @GetMapping("/history/{teamId}")
+    public ResponseEntity<List<GroupMessageDTO>> getChatHistory(@PathVariable Long teamId) {
+        return ResponseEntity.ok(chatService.getTeamChatHistory(teamId));
+    }
+
+    // --- XÓA TOÀN BỘ CHAT NHÓM ---
+    @DeleteMapping("/clear/{teamId}")
+    public ResponseEntity<?> clearChat(@PathVariable Long teamId) {
+        chatService.deleteAllTeamMessages(teamId);
+        // Gửi tín hiệu qua socket để các máy khách xóa màn hình ngay lập tức
+        messagingTemplate.convertAndSend("/topic/team_" + teamId + "/clear", "CHAT_CLEARED");
+        return ResponseEntity.ok().build();
     }
 }
