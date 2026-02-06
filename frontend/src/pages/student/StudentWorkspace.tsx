@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Tabs, Tab, Paper, CircularProgress } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import TaskBoard from './tabs/TaskBoard'; 
 import MilestoneTab from './tabs/MilestoneTab';
 import CheckpointTab from './tabs/CheckpointTab';
@@ -12,34 +13,26 @@ import studentService from '../../services/studentService'; // Import service đ
 const StudentWorkspace = () => {
     const { teamId } = useParams<{ teamId: string }>();
     const [tabIndex, setTabIndex] = useState(0);
-    const [teamDetail, setTeamDetail] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchTeamDetail = async () => {
-            try {
-                // Lấy danh sách các nhóm sinh viên đã tham gia
-                const teams = await studentService.getAllJoinedTeams();
-                // Tìm nhóm cụ thể khớp với ID trên URL
-                const currentTeam = teams.find((t: any) => t.id === Number(teamId));
-                setTeamDetail(currentTeam);
-            } catch (error) {
-                console.error("Không thể lấy thông tin nhóm:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (teamId) {
-            fetchTeamDetail();
-        }
-    }, [teamId]);
+    const { data: teamDetail, isLoading } = useQuery({
+        queryKey: ['joinedTeams', teamId],  
+        queryFn: async () => {
+            const teams = await studentService.getAllJoinedTeams();
+            return teams.find((t: any) => t.id === Number(teamId));
+        },
+        enabled: !!teamId, 
+        staleTime: 1000 * 5,
+    });
 
     const dynamicTitle = teamDetail 
         ? `Không gian làm việc: ${teamDetail.teamName} - ${teamDetail.classRoom?.name || 'Lớp học'}` 
         : "Không gian làm việc nhóm";
 
-    if (loading) {
+    const breadcrumbs = [
+        { label: 'Danh sách nhóm', path: '/student/my-teams' }
+    ];
+
+    if (isLoading && !teamDetail) {
         return (
             <StudentLayout title="Đang tải...">
                 <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
@@ -48,10 +41,6 @@ const StudentWorkspace = () => {
             </StudentLayout>
         );
     }
-
-    const breadcrumbs = [
-        { label: 'Danh sách nhóm', path: '/student/my-teams' }
-    ];
 
     return (
         <StudentLayout title={dynamicTitle} breadcrumbs={breadcrumbs}>
