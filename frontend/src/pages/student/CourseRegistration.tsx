@@ -121,12 +121,36 @@ const CourseRegistration = () => {
         setSelectedClass(null);
     };
 
+    // Hàm kiểm tra xung đột lịch học
+    const isTimeConflict = (classA: any, classB: any) => {
+        if (!classA.timeTables || !classB.timeTables) return false;
+        return classA.timeTables.some((slotA: any) => 
+            classB.timeTables.some((slotB: any) => 
+                slotA.dayOfWeek === slotB.dayOfWeek && slotA.slot === slotB.slot
+            )
+        );
+    };
+
     const processingId = enrollMutation.isPending ? enrollMutation.variables : 
                      cancelMutation.isPending ? cancelMutation.variables : null;
 
     // Component con để render từng dòng (tránh lặp code)
     const ClassRow = ({ row, isRegisteredTable, index }: { row: any, isRegisteredTable: boolean, index: number }) => {
         const isCurrentLoading = processingId === row.id;
+
+        // Kiểm tra xung đột lịch học
+        const conflictClass = useMemo(() => {
+            if (isRegisteredTable) return null; // Bảng đã đăng ký thì không cần check trùng để disable
+            
+            // Tìm trong danh sách ĐÃ ĐĂNG KÝ xem có lớp nào trùng lịch với dòng hiện tại không
+            return registeredList.find((regClass: any) => isTimeConflict(row, regClass));
+        }, [row, registeredList, isRegisteredTable]);
+
+        const isFull = row.currentEnrollment >= row.maxCapacity;
+
+        const isDisabled = isRegisteredTable 
+            ? !!processingId 
+            : (!!processingId || isFull || !!conflictClass);
 
         return (
             <TableRow hover onClick={() => handleOpenDetail(row)} sx={{ cursor: 'pointer' }}>
@@ -146,19 +170,39 @@ const CourseRegistration = () => {
                     />
                 </TableCell>
                 <TableCell align="center">
-                    <Button
-                        variant={isRegisteredTable ? "outlined" : "contained"}
-                        color={isRegisteredTable ? "error" : "primary"}
-                        size="small"
-                        disabled={!!processingId || (!isRegisteredTable && row.currentEnrollment >= row.maxCapacity)}
-                        startIcon={isCurrentLoading ? <CircularProgress size={16} color="inherit" /> : (isRegisteredTable ? <CancelIcon /> : <AddCircleOutlineIcon />)}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleAction(row.id, isRegisteredTable);
-                        }}
-                    >
-                        {isCurrentLoading ? "Đang xử lý..." : (isRegisteredTable ? "Hủy Đăng Ký" : ((row.currentEnrollment || 0) >= row.maxCapacity ? "Hết Chỗ" : "Đăng Ký"))}
-                    </Button>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        <Button
+                            variant={isRegisteredTable ? "outlined" : "contained"}
+                            color={isRegisteredTable ? "error" : "primary"}
+                            size="small"
+                            disabled={isDisabled}
+                            startIcon={isCurrentLoading ? <CircularProgress size={16} color="inherit" /> : (isRegisteredTable ? <CancelIcon /> : <AddCircleOutlineIcon />)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleAction(row.id, isRegisteredTable);
+                            }}
+                            sx={{ 
+                                "&.Mui-disabled": {
+                                    cursor: "not-allowed",
+                                    pointerEvents: "auto",
+                                },
+                                cursor: isRegisteredTable && !isCurrentLoading ? 'pointer' : undefined,
+                            }}
+                        >
+                            {isCurrentLoading ? "Đang xử lý..." : 
+                                (isRegisteredTable ? "Hủy Đăng Ký" : 
+                                    (isFull ? "Hết Chỗ" : (conflictClass ? "Trùng Lịch" : "Đăng Ký"))
+                                )
+                            }
+                        </Button>
+                        
+                        {/* Hiển thị thông báo nhỏ nếu trùng lịch */}
+                        {conflictClass && !isRegisteredTable && (
+                            <Typography variant="caption" color="error.main" sx={{ fontWeight: 'bold' }}>
+                                Trùng với: {conflictClass.classCode}
+                            </Typography>
+                        )}
+                    </Box>
                 </TableCell>
             </TableRow>
         )
@@ -401,7 +445,10 @@ const CourseRegistration = () => {
                                 color={selectedClass.isRegistered ? "error" : "primary"}
                                 disabled={
                                     !!processingId || 
-                                    (!selectedClass.isRegistered && (selectedClass.currentEnrollment ?? 0) >= (selectedClass.maxCapacity ?? 0))
+                                    (!selectedClass.isRegistered && (
+                                        (selectedClass.currentEnrollment ?? 0) >= (selectedClass.maxCapacity ?? 0) ||
+                                        registeredList.some((regClass: any) => isTimeConflict(selectedClass, regClass))
+                                    ))
                                 }
                                 onClick={() => handleAction(selectedClass.id, selectedClass.isRegistered || false)}
                                 sx={{ 
@@ -409,13 +456,19 @@ const CourseRegistration = () => {
                                     px: 4, 
                                     fontWeight: 'bold', 
                                     textTransform: 'none',
+                                    "&.Mui-disabled": {
+                                        cursor: "not-allowed",
+                                        pointerEvents: "auto",
+                                    },
+                                    cursor: selectedClass.isRegistered ? 'pointer' : undefined,
                                     boxShadow: selectedClass.isRegistered ? '0 4px 12px rgba(211, 47, 47, 0.3)' : '0 4px 12px rgba(25, 118, 210, 0.3)'
                                 }}
                             >
                                 {processingId === selectedClass.id ? (
                                     <CircularProgress size={20} color="inherit" />
                                 ) : (
-                                    selectedClass.isRegistered ? "Hủy Đăng Ký" : "Đăng Ký Ngay"
+                                    selectedClass.isRegistered ? "Hủy Đăng Ký" : 
+                                    (registeredList.some((regClass: any) => isTimeConflict(selectedClass, regClass)) ? "Trùng Lịch" : "Đăng Ký Ngay")
                                 )}
                             </Button>
                         </DialogActions>
