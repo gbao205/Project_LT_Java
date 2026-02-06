@@ -220,6 +220,8 @@ const AdminDashboard = ({ user, roleConfig, onLogout }: any) => (
 );
 
 // --- STAFF DASHBOARD (MÀU TÍM) ---
+// @ts-ignore
+// @ts-ignore
 const StaffDashboard = ({
                             user,
                             roleConfig,
@@ -266,7 +268,7 @@ const StaffDashboard = ({
                 </Box>
 
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{xs:12, sm:6, md:3}}>
                         <StatCard
                             title="Môn Học"
                             value={stats?.totalSubjects || 0}
@@ -274,7 +276,7 @@ const StaffDashboard = ({
                             color="#f59e0b"
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{xs:12, sm:6, md:3}}>
                         <StatCard
                             title="Lớp Học"
                             value={stats?.totalClasses || 0}
@@ -282,7 +284,7 @@ const StaffDashboard = ({
                             color="#3b82f6"
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{xs:12, sm:6, md:3}}>
                         <StatCard
                             title="Sinh Viên"
                             value={stats?.totalUsers || 0}
@@ -290,7 +292,7 @@ const StaffDashboard = ({
                             color="#10b981"
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{xs:12, sm:6, md:3}}>
                         <StatCard
                             title="Đề Tài"
                             value={stats?.totalProjects || 0}
@@ -305,12 +307,12 @@ const StaffDashboard = ({
         <Container maxWidth="lg">
             <Grid container spacing={4}>
                 {/* Menu chính nghiệp vụ */}
-                <Grid item xs={12} md={8}>
+                <Grid size={{xs:12, sm:8}}>
                     <Typography variant="h6" fontWeight="800" mb={3}>
                         Nghiệp Vụ Chính
                     </Typography>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs:12, sm:6}}>
                             <MenuCard
                                 title="Quản Lý Môn Học"
                                 desc="Import và cấu hình Syllabus hệ thống"
@@ -319,7 +321,7 @@ const StaffDashboard = ({
                                 onClick={() => navigate("/staff/subjects")}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs:12, sm:6}}>
                             <MenuCard
                                 title="Quản Lý Lớp Học"
                                 desc="Mở lớp, chia nhóm & nhập dữ liệu"
@@ -328,7 +330,7 @@ const StaffDashboard = ({
                                 onClick={() => navigate("/staff/classes")}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs:12, sm:6}}>
                             <MenuCard
                                 title="Quản Lý Tài Khoản"
                                 desc="Dữ liệu Giảng viên & Sinh viên"
@@ -337,7 +339,7 @@ const StaffDashboard = ({
                                 onClick={() => navigate("/staff/users")}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs:12, sm:6}}>
                             <MenuCard
                                 title="Quản lý Chương Trình Học"
                                 desc="xem & điều chỉnh chương trình học"
@@ -346,7 +348,7 @@ const StaffDashboard = ({
                                 onClick={() => navigate("/staff/syllabus")}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs:12, sm:6}}>
                             <MenuCard
                                 title="Đổi Mật Khẩu"
                                 desc="Bảo mật tài khoản"
@@ -358,7 +360,7 @@ const StaffDashboard = ({
                     </Grid>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{xs:12, md:4}}>
                     <Typography variant="h6" fontWeight="800" mb={3}>
                         Trung Tâm Dữ Liệu
                     </Typography>
@@ -473,7 +475,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
 
                     <Grid container spacing={3}>
                         {/* THẺ 1: ĐỀ TÀI CẦN DUYỆT */}
-                        <Grid item xs={12} sm={6} md={4}>
+                        <Grid size={{xs:12, sm:6, md:4}}>
                             <StatCard
                                 title="Cần Duyệt Gấp"
                                 value={loading ? <CircularProgress size={24} color="inherit" /> : stats.pendingProposals}
@@ -482,7 +484,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                             />
                         </Grid>
                         {/* THẺ 2: TỔNG SỐ GIẢNG VIÊN */}
-                        <Grid item xs={12} sm={6} md={4}>
+                        <Grid size={{xs:12, sm:6, md:4}}>
                             <StatCard
                                 title="Giảng Viên"
                                 value={loading ? <CircularProgress size={24} color="inherit" /> : stats.totalLecturers}
@@ -498,12 +500,12 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
             <Container maxWidth="lg">
                 <Grid container spacing={4}>
                     {/* Cột Trái: Chuyên Môn */}
-                    <Grid item xs={12} md={8}>
+                    <Grid size={{xs:12, md:8}}>
                         <Typography variant="h6" fontWeight="800" mb={3} color="#c2410c">
                             Quản Lý Chuyên Môn
                         </Typography>
                         <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{xs:12, sm:6}}>
                                 <MenuCard
                                     title="Duyệt Đề Tài"
                                     desc="Phê duyệt đồ án & đề tài"
@@ -512,7 +514,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                                     onClick={() => navigate("/head/proposal-approval")}
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{xs:12, sm:6}}>
                                 <MenuCard
                                     title="Giảng Viên"
                                     desc="Phân công & Thống kê"
@@ -521,8 +523,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                                     onClick={() => navigate("/head/lecturers")}
                                 />
                             </Grid>
-                            {/* ĐÃ BỎ MỤC "DANH SÁCH MÔN HỌC" */}
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{xs:12, sm:6}}>
                                 <MenuCard
                                     title="Danh Sách Lớp Học"
                                     desc="Theo dõi tiến độ lớp"
@@ -535,7 +536,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                     </Grid>
 
                     {/* Cột Phải: Tiện ích */}
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{xs:12, md:4}}>
                         <Typography variant="h6" fontWeight="800" mb={3} color="#c2410c">
                             Tiện Ích Khác
                         </Typography>
