@@ -325,8 +325,8 @@ const StudentDashboard = () => {
                                     height: '100%', 
                                 }}>
                                     <Box sx={{ position: "relative", zIndex: 1 }}>
-                                        <Typography variant="subtitle2" fontWeight="bold">Thông báo mới</Typography>
-                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{initialNotifications.length}</Typography>
+                                        <Typography variant="subtitle1" fontWeight="bold">Thông báo mới</Typography>
+                                        <Typography variant="h5" fontWeight="700" sx={{ my: 1 }}>{initialNotifications.length}</Typography>
                                         <Button onClick={() => navigate('/notedetail')} sx={{ color: "red", p: 0, textTransform: 'none' }}>
                                             Xem chi tiết
                                         </Button>
@@ -353,8 +353,8 @@ const StudentDashboard = () => {
 
                                 }}>
                                     <Box sx={{ position: "relative", zIndex: 1 }}>
-                                        <Typography variant="subtitle2" fontWeight="bold">Lịch học tuần này</Typography>
-                                        <Typography variant="h5" fontWeight="800" sx={{ my: 1 }}>{weeklyClassCount}</Typography>
+                                        <Typography variant="subtitle1" fontWeight="bold">Lịch học tuần này</Typography>
+                                        <Typography variant="h5" fontWeight="700" sx={{ my: 1 }}>{weeklyClassCount}</Typography>
                                         <Button onClick={() => navigate('/calendar')} sx={{ color: "rgba(255,255,255,1)", p: 0, textTransform: 'none' }}>
                                             Xem chi tiết
                                         </Button>

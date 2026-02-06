@@ -325,7 +325,7 @@ const CourseRegistration = () => {
                                             <SchoolIcon color="primary" fontSize="small" />
                                             <Typography variant="caption" fontWeight="700" color="textSecondary" sx={{ textTransform: 'uppercase' }}>Học phần</Typography>
                                         </Box>
-                                        <Typography variant="h6" fontWeight="800" color="#2d3748">
+                                        <Typography variant="h6" fontWeight="700" color="#2d3748">
                                             {selectedClass.subject?.name}
                                         </Typography>
                                         <Typography variant="body2" color="primary" fontWeight="600">
@@ -349,7 +349,7 @@ const CourseRegistration = () => {
                                 <Grid size={{ xs: 4 }}>
                                     <Box sx={{ p: 2, bgcolor: '#fff', borderRadius: 2, border: '1px solid #edf2f7', height: '100%', textAlign: 'center' }}>
                                         <Typography variant="caption" fontWeight="700" color="textSecondary" sx={{ textTransform: 'uppercase' }}>Học kỳ</Typography>
-                                        <Typography variant="h5" fontWeight="800" color="primary" sx={{ mt: 1 }}>{selectedClass.semester}</Typography>
+                                        <Typography variant="h5" fontWeight="700" color="primary" sx={{ mt: 1 }}>{selectedClass.semester}</Typography>
                                     </Box>
                                 </Grid>
 
