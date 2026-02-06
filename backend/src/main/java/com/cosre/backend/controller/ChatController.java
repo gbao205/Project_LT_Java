@@ -1,8 +1,9 @@
 package com.cosre.backend.controller;
 
-import com.cosre.backend.dto.VideoCallSignal; // Import DTO mới
+import com.cosre.backend.dto.VideoCallSignal;
 import com.cosre.backend.entity.ChatMessage;
 import com.cosre.backend.repository.ChatMessageRepository;
+import com.cosre.backend.service.UserService; // Import UserService
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -26,6 +27,20 @@ public class ChatController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    @Autowired
+    private UserService userService; // [MỚI] Inject UserService
+
+    // --- Helper để cập nhật tương tác cho cả 2 người ---
+    private void updateInteraction(String sender, String recipient) {
+        // Chạy async hoặc đơn giản gọi thẳng service (vì logic nhẹ)
+        try {
+            userService.updateLastInteraction(sender);
+            userService.updateLastInteraction(recipient);
+        } catch (Exception e) {
+            System.err.println("Lỗi cập nhật lastInteractionAt: " + e.getMessage());
+        }
+    }
+
     /**
      * Gửi tin nhắn qua WebSocket
      */
@@ -35,6 +50,9 @@ public class ChatController {
         message.setIsRead(false);
 
         chatMessageRepository.save(message);
+
+        // [MỚI] Cập nhật thời gian tương tác để xếp lại danh bạ
+        updateInteraction(message.getSender(), message.getRecipient());
 
         // Gửi cho người nhận
         messagingTemplate.convertAndSend("/topic/private/" + message.getRecipient(), message);
@@ -51,21 +69,18 @@ public class ChatController {
     }
 
     /**
-     * Lấy bản đồ tin nhắn chưa đọc: { "nguoi_gui_A": 5, "nguoi_gui_B": 2 }
+     * Lấy bản đồ tin nhắn chưa đọc
      */
     @GetMapping("/unread-map")
     public ResponseEntity<Map<String, Long>> getUnreadMap(@RequestParam String email) {
         List<ChatMessage> unreadMessages = chatMessageRepository.findByRecipientAndIsReadFalse(email);
-
-        // Nhóm theo người gửi và đếm số lượng tin nhắn chưa đọc
         Map<String, Long> unreadMap = unreadMessages.stream()
                 .collect(Collectors.groupingBy(ChatMessage::getSender, Collectors.counting()));
-
         return ResponseEntity.ok(unreadMap);
     }
 
     /**
-     * Lấy tổng số tin nhắn chưa đọc (cho Badge ở nút Fab)
+     * Lấy tổng số tin nhắn chưa đọc
      */
     @GetMapping("/unread-count")
     public ResponseEntity<Long> getTotalUnread(@RequestParam String email) {
@@ -73,7 +88,7 @@ public class ChatController {
     }
 
     /**
-     * Đánh dấu tin nhắn là đã đọc khi mở khung chat
+     * Đánh dấu tin nhắn là đã đọc
      */
     @PostMapping("/mark-read")
     public ResponseEntity<Void> markRead(@RequestParam String me, @RequestParam String other) {
@@ -86,53 +101,33 @@ public class ChatController {
     }
 
     // --- API XỬ LÝ TÍN HIỆU VIDEO CALL (WEBRTC) ---
-    /**
-     * Nhận tín hiệu (OFFER, ANSWER, ICE) từ client A
-     * và chuyển tiếp ngay lập tức cho client B qua WebSocket.
-     * Không lưu DB.
-     */
     @MessageMapping("/video.signal")
     public void signalVideoCall(@Payload VideoCallSignal signal) {
-        // [DEBUG] In log chi tiết để kiểm tra lỗi
+        // [DEBUG]
         System.out.println("========== [DEBUG] VIDEO SIGNAL RECEIVED ==========");
+        if (signal == null || signal.getRecipient() == null) return;
 
-        if (signal == null) {
-            System.err.println("!!! [ERROR] Signal payload is NULL");
-            return;
-        }
+        // [MỚI] Cập nhật tương tác khi gọi điện
+        updateInteraction(signal.getSender(), signal.getRecipient());
 
-        System.out.println(">>> Type: " + signal.getType());
-        System.out.println(">>> From (Sender):   " + signal.getSender());
-        System.out.println(">>> To   (Recipient): " + signal.getRecipient());
-
-        // Kiểm tra người nhận có hợp lệ không
-        if (signal.getRecipient() == null || signal.getRecipient().trim().isEmpty()) {
-            System.err.println("!!! [ERROR] Recipient email is NULL or EMPTY. Cannot route signal.");
-            return;
-        }
-
-        // Tạo destination topic
         String destination = "/topic/private/" + signal.getRecipient();
-        System.out.println(">>> Routing to topic: " + destination);
-
         try {
-            // Chuyển tiếp tín hiệu
             messagingTemplate.convertAndSend(destination, signal);
-            System.out.println(">>> [SUCCESS] Signal routed successfully.");
         } catch (Exception e) {
-            System.err.println("!!! [EXCEPTION] Failed to send signal: " + e.getMessage());
             e.printStackTrace();
         }
-        System.out.println("==================================================");
     }
 
     // --- API BẢNG TRẮNG (WHITEBOARD) ---
-    /**
-     * Nhận nét vẽ từ A và gửi sang B
-     */
     @MessageMapping("/whiteboard.draw")
     public void drawOnWhiteboard(@Payload com.cosre.backend.dto.DrawAction action) {
-        // Chuyển tiếp nét vẽ đến người nhận
+        // [MỚI] Chỉ cập nhật tương tác khi bắt đầu phiên vẽ hoặc có hành động quan trọng
+        // Để tránh spam Database mỗi khi vẽ 1 nét, ta có thể check loại action
+        // Tuy nhiên để đơn giản và đảm bảo thứ tự, ta cứ cập nhật.
+        if ("REQUEST".equals(action.getType()) || "ACCEPT".equals(action.getType())) {
+            updateInteraction(action.getSender(), action.getRecipient());
+        }
+
         messagingTemplate.convertAndSend("/topic/private/" + action.getRecipient(), action);
     }
 }

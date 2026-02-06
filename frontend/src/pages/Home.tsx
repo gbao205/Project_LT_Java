@@ -22,8 +22,7 @@ import LecturerDashboard from "./lecturer/LecturerDashboard";
 
 // --- Components hỗ trợ ---
 import ReportDialog from "../components/common/ReportDialog";
-import ChatWidget from "../components/common/ChatWidget";
-import AIChat from "./student/AIChatWidget";
+// [ĐÃ XÓA IMPORT CHAT WIDGET Ở ĐÂY VÌ APP.TSX ĐÃ CÓ RỒI]
 
 // --- Pages / Dashboards ---
 import UserManager from "./admin/UserManager";
@@ -50,7 +49,7 @@ import StudentDashboard from "./student/StudentDashboard";
 import { MenuCard } from "../components/common/DashboardCards";
 
 // ==========================================
-// 1. DEFINITIONS & INTERFACES
+// 1. DEFINITIONS & INTERFACES (GIỮ NGUYÊN)
 // ==========================================
 
 interface StaffStatCardProps {
@@ -206,7 +205,7 @@ const Header = ({ user, roleConfig, onLogout }: any) => (
 );
 
 // ==========================================
-// 3. CÁC DASHBOARD RIÊNG BIỆT
+// 3. CÁC DASHBOARD RIÊNG BIỆT (GIỮ NGUYÊN)
 // ==========================================
 
 // --- ADMIN DASHBOARD  ---
@@ -220,7 +219,6 @@ const AdminDashboard = ({ user, roleConfig, onLogout }: any) => (
 );
 
 // --- STAFF DASHBOARD (MÀU TÍM) ---
-// @ts-ignore
 // @ts-ignore
 const StaffDashboard = ({
                             user,
@@ -412,7 +410,7 @@ const StaffDashboard = ({
     </Box>
 );
 
-// --- HEAD DEPARTMENT DASHBOARD (MÀU CAM CHỦ ĐẠO - KHÁC BIỆT) ---
+// --- HEAD DEPARTMENT DASHBOARD (GIỮ NGUYÊN) ---
 const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
     // --- STATE ĐỂ LƯU DỮ LIỆU THẬT ---
     const [stats, setStats] = useState({
@@ -444,11 +442,11 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
         <Box sx={{ minHeight: "100vh", bgcolor: "#fff7ed", pb: 10 }}> {/* Nền kem cam nhạt */}
             <Header user={user} roleConfig={roleConfig} onLogout={onLogout} />
 
-            {/* --- BANNER CAM (Điểm nhấn khác biệt) --- */}
+            {/* --- BANNER CAM --- */}
             <Box
                 sx={{
                     minHeight: 120,
-                    background: "linear-gradient(135deg, #c2410c 0%, #fb923c 100%)", // Gradient Cam đậm -> Cam sáng
+                    background: "linear-gradient(135deg, #c2410c 0%, #fb923c 100%)",
                     pt: 4,
                     pb: 2,
                     mb: 4,
@@ -568,7 +566,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
 };
 
 // ==========================================
-// 4. MAIN COMPONENT (HOME)
+// 4. MAIN COMPONENT (HOME) [ĐÃ SỬA]
 // ==========================================
 
 const Home = () => {
@@ -613,7 +611,7 @@ const Home = () => {
             case "STAFF":
                 return { label: "Phòng Đào Tạo", color: "#9c27b0", bg: "#f3e5f5" };
             case "HEAD_DEPARTMENT":
-                return { label: "Trưởng Bộ Môn", color: "#c2410c", bg: "#fff7ed" }; // Màu Cam đậm
+                return { label: "Trưởng Bộ Môn", color: "#c2410c", bg: "#fff7ed" };
             case "LECTURER":
                 return { label: "Giảng Viên", color: "#0288d1", bg: "#e1f5fe" };
             case "STUDENT":
@@ -632,7 +630,6 @@ const Home = () => {
         stats,
     };
 
-    // --- PHÂN LUỒNG HIỂN THỊ ---
     const renderMainContent = () => {
         switch (user.role) {
             case "ADMIN":
@@ -640,7 +637,6 @@ const Home = () => {
             case "STAFF":
                 return <StaffDashboard {...props} />;
             case "HEAD_DEPARTMENT":
-                // Hiển thị Dashboard nội bộ đã được cập nhật
                 return <HeadDashboard {...props} />;
             case "LECTURER":
                 return <LecturerDashboard />;
@@ -666,12 +662,12 @@ const Home = () => {
         }
     };
 
+    // [ĐÃ SỬA]: Chỉ render nội dung chính và ReportDialog.
+    // Đã xóa <ChatWidget /> và <AIChat /> vì nó đã tồn tại bên App.tsx
     return (
         <Box sx={{ position: "relative", minHeight: "100vh" }}>
             {renderMainContent()}
             <ReportDialog />
-            <ChatWidget />
-            <AIChat />
         </Box>
     );
 };

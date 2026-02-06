@@ -31,6 +31,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 4. Lọc danh sách user theo Role (Cho chức năng CHAT)
     List<User> findByRoleIn(List<Role> roles);
 
+    // 5. Lấy danh sách danh bạ để chat, sắp xếp theo thời gian tương tác gần nhất
+    // Loại trừ chính mình (myEmail) khỏi danh sách
+    // NULLS LAST: Đưa những người chưa tương tác bao giờ xuống cuối danh sách
+    @Query("SELECT u FROM User u WHERE u.email <> :myEmail ORDER BY u.lastInteractionAt DESC NULLS LAST, u.fullName ASC")
+    List<User> findAllContactsOrderByInteraction(@Param("myEmail") String myEmail);
+
     // Tìm tất cả User đang ở trong lớp (classId) NHƯNG chưa tham gia nhóm nào của lớp đó
     @Query("SELECT u FROM User u " +
             "WHERE u.id IN (" +

@@ -53,7 +53,7 @@ const ChatWidget = () => {
     const [isIncoming, setIsIncoming] = useState(false);
     const [incomingCallDialog, setIncomingCallDialog] = useState<{open: boolean, sender: string} | null>(null);
 
-    // State quản lý việc thu nhỏ video (Thủ công)
+    // State quản lý việc thu nhỏ video
     const [isVideoMinimized, setIsVideoMinimized] = useState(false);
 
     // --- STATE WHITEBOARD ---
@@ -66,11 +66,16 @@ const ChatWidget = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const selectedUserRef = useRef<any>(null);
     const isOpenRef = useRef(false);
+    const videoCallOpenRef = useRef(false);
 
     useEffect(() => {
         selectedUserRef.current = selectedUser;
         isOpenRef.current = isOpen;
     }, [selectedUser, isOpen]);
+
+    useEffect(() => {
+        videoCallOpenRef.current = videoCallOpen;
+    }, [videoCallOpen]);
 
     // --- INITIAL LOAD ---
     useEffect(() => {
@@ -128,14 +133,12 @@ const ChatWidget = () => {
         }
     };
 
-    // ==============================================================
-    // LOGIC VIDEO CALL
-    // ==============================================================
+    // --- LOGIC VIDEO CALL ---
     const startVideoCall = () => {
         if (!selectedUser) return;
         setIsIncoming(false);
         setVideoCallOpen(true);
-        setIsVideoMinimized(false); // Reset trạng thái thu nhỏ khi bắt đầu gọi mới
+        setIsVideoMinimized(false);
         sendCallLog("📞 Đã bắt đầu cuộc gọi video", selectedUser.email);
     };
 
@@ -147,12 +150,10 @@ const ChatWidget = () => {
             setSelectedUser(userToSet);
             setView('CHAT');
 
-            // 1. Cập nhật trạng thái Video
             setIsIncoming(true);
             setVideoCallOpen(true);
+            videoCallOpenRef.current = true;
             setIsVideoMinimized(false);
-
-            // 2. [FIX QUAN TRỌNG] Xóa hẳn dialog thông báo để nó không hiện lại khi thu nhỏ
             setIncomingCallDialog(null);
         }
     };
@@ -171,9 +172,7 @@ const ChatWidget = () => {
         }
     };
 
-    // ==============================================================
-    // LOGIC WHITEBOARD (BẢNG TRẮNG)
-    // ==============================================================
+    // --- LOGIC WHITEBOARD ---
     const startWhiteboard = () => {
         if (!selectedUser) return;
         if (clientRef.current?.connected) {
@@ -203,8 +202,6 @@ const ChatWidget = () => {
             setView('CHAT');
 
             setWhiteboardOpen(true);
-
-            // [FIX QUAN TRỌNG] Xóa lời mời ngay khi chấp nhận
             setIncomingWhiteboardRequest(null);
 
             if (clientRef.current?.connected) {
@@ -245,9 +242,28 @@ const ChatWidget = () => {
         }
     };
 
-    // ==============================================================
-    // WEBSOCKET HANDLER
-    // ==============================================================
+    const endWhiteboardSession = () => {
+        if (!selectedUser) return;
+        if (clientRef.current?.connected) {
+            clientRef.current.publish({
+                destination: "/app/whiteboard.draw",
+                body: JSON.stringify({
+                    type: "EXIT",
+                    sender: myEmail,
+                    recipient: selectedUser.email,
+                    points: [],
+                    color: "",
+                    strokeWidth: 0
+                })
+            });
+        }
+        setWhiteboardOpen(false);
+        setIncomingWhiteboardRequest(null);
+        setSnackbarMsg("Đã kết thúc phiên Bảng trắng.");
+        setSnackbarOpen(true);
+    };
+
+    // --- WEBSOCKET HANDLER ---
     useEffect(() => {
         if (!myEmail || !token) return;
 
@@ -255,7 +271,7 @@ const ChatWidget = () => {
             webSocketFactory: () => new SockJS(`${BASE_BACKEND_URL}/ws`),
             onConnect: () => {
                 setConnected(true);
-                console.log(">>> WebSocket Connected: " + myEmail);
+                // console.log(">>> WebSocket Connected: " + myEmail); // Tạm tắt log để đỡ rối
 
                 client.subscribe(`/topic/private/${myEmail}`, (message) => {
                     const body = JSON.parse(message.body);
@@ -263,6 +279,7 @@ const ChatWidget = () => {
                     // --- VIDEO CALL ---
                     if (body.type && ['OFFER', 'ANSWER', 'ICE_CANDIDATE', 'HANGUP'].includes(body.type)) {
                         if (body.type === 'OFFER') {
+                            if (videoCallOpenRef.current) return;
                             setIncomingCallSignal(body.data);
                             setIncomingCallDialog({ open: true, sender: body.sender });
                             new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3').play().catch(()=>{});
@@ -274,7 +291,7 @@ const ChatWidget = () => {
                     }
 
                     // --- WHITEBOARD ---
-                    if (body.type && ['REQUEST', 'ACCEPT', 'REJECT', 'DRAW', 'CLEAR'].includes(body.type)) {
+                    if (body.type && ['REQUEST', 'ACCEPT', 'REJECT', 'DRAW', 'CLEAR', 'EXIT'].includes(body.type)) {
                         if (body.type === 'REQUEST') {
                             if (!isOpenRef.current) setIsOpen(true);
                             setIncomingWhiteboardRequest({ open: true, sender: body.sender });
@@ -288,6 +305,11 @@ const ChatWidget = () => {
                             setSnackbarOpen(true);
                         } else if (body.type === 'DRAW' || body.type === 'CLEAR') {
                             if (whiteboardOpen) setIncomingDrawAction(body);
+                        } else if (body.type === 'EXIT') {
+                            setWhiteboardOpen(false);
+                            setIncomingWhiteboardRequest(null);
+                            setSnackbarMsg(`${body.sender} đã kết thúc phiên vẽ.`);
+                            setSnackbarOpen(true);
                         }
                         return;
                     }
@@ -373,30 +395,26 @@ const ChatWidget = () => {
             {/* CHAT WIDGET */}
             <Zoom in={isOpen}>
                 <Paper elevation={10} sx={{ position: 'fixed', bottom: 8, right: 100, width: 380, height: 550, zIndex: 10000, display: 'flex', flexDirection: 'column', borderRadius: '16px', overflow: 'hidden' }}>
+                    {/* Header */}
                     <Box sx={{ p: 2, bgcolor: '#007bff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Box display="flex" alignItems="center">
                             {view === 'CHAT' && <IconButton size="small" onClick={() => setView('CONTACTS')} sx={{ color: 'white', mr: 1 }}><ArrowBackIcon /></IconButton>}
-
                             {view === 'CHAT' && (
                                 <Box>
                                     <Tooltip title="Mời vẽ Bảng trắng">
-                                        <IconButton size="small" onClick={startWhiteboard} sx={{ color: 'white', mr: 1 }}>
-                                            <BrushIcon />
-                                        </IconButton>
+                                        <IconButton size="small" onClick={startWhiteboard} sx={{ color: 'white', mr: 1 }}><BrushIcon /></IconButton>
                                     </Tooltip>
                                     <Tooltip title="Gọi Video">
-                                        <IconButton size="small" onClick={startVideoCall} sx={{ color: 'white', mr: 1 }}>
-                                            <VideoCallIcon />
-                                        </IconButton>
+                                        <IconButton size="small" onClick={startVideoCall} sx={{ color: 'white', mr: 1 }}><VideoCallIcon /></IconButton>
                                     </Tooltip>
                                 </Box>
                             )}
-
                             <Typography variant="subtitle1" fontWeight="bold">{view === 'CONTACTS' ? 'Trò chuyện' : selectedUser?.fullName}</Typography>
                         </Box>
                         <IconButton size="small" onClick={() => setIsOpen(false)} sx={{ color: 'white' }}><RemoveIcon /></IconButton>
                     </Box>
 
+                    {/* Content */}
                     {view === 'CONTACTS' ? (
                         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
                             <List>
@@ -482,6 +500,7 @@ const ChatWidget = () => {
                 <WhiteboardWindow
                     open={whiteboardOpen}
                     onClose={() => setWhiteboardOpen(false)}
+                    onEndSession={endWhiteboardSession}
                     myEmail={myEmail}
                     targetEmail={selectedUser.email}
                     stompClient={clientRef.current}
@@ -489,24 +508,17 @@ const ChatWidget = () => {
                 />
             )}
 
-            {/* DIALOG 1: NHẬN CUỘC GỌI VIDEO - [ĐÃ FIX 100%] */}
+            {/* DIALOG 1: NHẬN CUỘC GỌI VIDEO */}
             <Dialog
-                // Chỉ hiện khi: Có cuộc gọi đến VÀ (chưa mở cửa sổ video)
                 open={!!incomingCallDialog && !videoCallOpen}
-
-                // [FIX LỖI BẤM RA NGOÀI TẮT CUỘC GỌI]
                 disableEscapeKeyDown
-                onClose={(event, reason) => {
-                    if (reason !== 'backdropClick') {
-                        rejectCall();
-                    }
-                }}
-
+                onClose={(event, reason) => { if (reason !== 'backdropClick') rejectCall(); }}
                 PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}
             >
+                {/* [SỬA LỖI UI] Thêm component='div' cho Typography bên trong DialogTitle */}
                 <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 60, height: 60, bgcolor: '#1976d2' }}><VideoCallIcon fontSize="large" /></Avatar>
-                    <Typography variant="h6" fontWeight="bold">Cuộc gọi đến</Typography>
+                    <Typography variant="h6" component="div" fontWeight="bold">Cuộc gọi đến</Typography>
                 </DialogTitle>
                 <DialogContent>
                     <Typography variant="body1"><strong>{incomingCallDialog?.sender}</strong> đang gọi video cho bạn...</Typography>
@@ -517,23 +529,17 @@ const ChatWidget = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* DIALOG 2: LỜI MỜI BẢNG TRẮNG - [ĐÃ FIX 100%] */}
+            {/* DIALOG 2: LỜI MỜI BẢNG TRẮNG */}
             <Dialog
-                // [FIX LỖI KHI MỞ BẢNG TRẮNG VẪN CÒN LỜI MỜI]
                 open={!!incomingWhiteboardRequest && !whiteboardOpen}
-
-                // [FIX LỖI BẤM RA NGOÀI BỊ TẮT]
                 disableEscapeKeyDown
-                onClose={(event, reason) => {
-                    if (reason !== 'backdropClick') {
-                        rejectWhiteboard();
-                    }
-                }}
+                onClose={(event, reason) => { if (reason !== 'backdropClick') rejectWhiteboard(); }}
                 PaperProps={{ sx: { borderRadius: 3, p: 2, minWidth: 300, textAlign: 'center' } }}
             >
+                {/* [SỬA LỖI UI] Thêm component='div' */}
                 <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 60, height: 60, bgcolor: '#ed6c02' }}><DrawIcon fontSize="large" /></Avatar>
-                    <Typography variant="h6" fontWeight="bold">Lời mời vẽ chung</Typography>
+                    <Typography variant="h6" component="div" fontWeight="bold">Lời mời vẽ chung</Typography>
                 </DialogTitle>
                 <DialogContent>
                     <Typography variant="body1"><strong>{incomingWhiteboardRequest?.sender}</strong> muốn mời bạn tham gia vẽ Bảng trắng.</Typography>

@@ -7,16 +7,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.DeleteMapping;
 
+import java.time.LocalDateTime; // Import thời gian
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // Mã hóa mật khẩu
+    private final PasswordEncoder passwordEncoder;
 
     public List<User> getAllUsers(String keyword) {
         if (keyword != null && !keyword.isEmpty()) {
@@ -36,8 +37,6 @@ public class UserService {
     public void resetPassword(Long id, String newPassword) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND));
-
-        // Mã hóa mật khẩu trước khi lưu
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
@@ -47,30 +46,42 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
 
-        // 1. Cập nhật tên và quyền
         user.setFullName(request.getFullName());
         user.setRole(request.getRole());
 
-        // 2. LOGIC MỚI: Kiểm tra và cập nhật Email
         if (request.getEmail() != null && !request.getEmail().isEmpty()
                 && !request.getEmail().equals(user.getEmail())) {
-
-            // Kiểm tra xem email mới đã có ai dùng chưa
             if (userRepository.existsByEmail(request.getEmail())) {
                 throw new AppException("Email mới đã được sử dụng!", HttpStatus.BAD_REQUEST);
             }
-            // Lưu email mới
             user.setEmail(request.getEmail());
         }
 
         return userRepository.save(user);
     }
 
-    // 3. Thêm hàm Xóa User (Hard Delete)
+    // 3. Hàm Xóa User
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new AppException("Không tìm thấy người dùng", HttpStatus.NOT_FOUND);
         }
         userRepository.deleteById(id);
+    }
+
+    // 4. Cập nhật thời gian tương tác cuối cùng
+    public void updateLastInteraction(String email) {
+        if (email == null) return;
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setLastInteractionAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
+    }
+
+    // 5. Lấy danh bạ đã sắp xếp theo thời gian tương tác
+    // Hàm này sẽ gọi xuống Repository để lấy danh sách User đã được ORDER BY
+    public List<User> getSortedContacts(String myEmail) {
+        return userRepository.findAllContactsOrderByInteraction(myEmail);
     }
 }

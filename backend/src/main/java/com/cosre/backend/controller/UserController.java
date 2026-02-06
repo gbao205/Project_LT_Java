@@ -63,7 +63,7 @@ public class UserController {
     }
 
     // ==========================================
-    // PHẦN 2: API DANH BẠ CHAT
+    // PHẦN 2: API DANH BẠ CHAT (ĐÃ CẬP NHẬT SẮP XẾP)
     // ==========================================
 
     @GetMapping("/contacts")
@@ -78,7 +78,7 @@ public class UserController {
         Role myRole = currentUser.getRole();
         List<Role> allowedRoles = new ArrayList<>();
 
-        // 2. CẬP NHẬT MA TRẬN PHÂN QUYỀN CHAT THEO YÊU CẦU MỚI
+        // 2. CẬP NHẬT MA TRẬN PHÂN QUYỀN CHAT THEO YÊU CẦU
         switch (myRole) {
             case ADMIN:
                 // ADMIN nhắn được cho Head và Staff
@@ -116,10 +116,12 @@ public class UserController {
                 break;
         }
 
-        // 3. Lọc danh sách user theo Role cho phép và loại bỏ chính mình
-        List<User> contacts = userRepository.findByRoleIn(allowedRoles);
-        List<User> finalContacts = contacts.stream()
-                .filter(u -> !u.getEmail().equals(currentEmail))
+        // 3. Lấy danh sách ĐÃ SẮP XẾP từ Service, sau đó mới lọc theo Role
+
+        List<User> sortedUsers = userService.getSortedContacts(currentEmail); // Gọi hàm đã viết ở bước trước
+
+        List<User> finalContacts = sortedUsers.stream()
+                .filter(u -> allowedRoles.contains(u.getRole())) // Chỉ giữ lại Role cho phép
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(finalContacts);

@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
-import { CallEnd, Mic, MicOff, Videocam, VideocamOff, OpenInFull, CloseFullscreen } from '@mui/icons-material';
-
-// Cấu hình STUN Server (Để kết nối peer-to-peer)
-const rtcConfig = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
-    ]
-};
+import {
+    Dialog, Box, IconButton, Typography, Fab, Tooltip
+} from '@mui/material';
+import CallEndIcon from '@mui/icons-material/CallEnd';
+import MicIcon from '@mui/icons-material/Mic';
+import MicOffIcon from '@mui/icons-material/MicOff';
+import VideocamIcon from '@mui/icons-material/Videocam';
+import VideocamOffIcon from '@mui/icons-material/VideocamOff';
+import RemoveIcon from '@mui/icons-material/Remove'; // Icon thu nhỏ
+import OpenInFullIcon from '@mui/icons-material/OpenInFull'; // Icon phóng to
 
 interface VideoCallProps {
     open: boolean;
@@ -17,78 +17,144 @@ interface VideoCallProps {
     targetEmail: string;
     stompClient: any;
     isIncoming: boolean;
-    signalData?: any;
-    minimized?: boolean; // Trạng thái thu nhỏ
-    onToggleMinimize?: () => void; // Hàm bật/tắt thu nhỏ
+    signalData: any;
+    minimized: boolean;
+    onToggleMinimize: () => void;
 }
 
-const VideoCallWindow = ({
-                             open, onClose, myEmail, targetEmail, stompClient,
-                             isIncoming, signalData, minimized = false, onToggleMinimize
-                         }: VideoCallProps) => {
+const configuration = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
 
+const VideoCallWindow: React.FC<VideoCallProps> = ({
+                                                       open, onClose, myEmail, targetEmail, stompClient, isIncoming, signalData, minimized, onToggleMinimize
+                                                   }) => {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
-    const peerRef = useRef<RTCPeerConnection | null>(null);
+    const peerConnection = useRef<RTCPeerConnection | null>(null);
+
+    // [FIX 2] Hàng đợi lưu ICE Candidate khi Remote Description chưa sẵn sàng
+    const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
 
     const [micOn, setMicOn] = useState(true);
-    const [camOn, setCamOn] = useState(true);
+    const [cameraOn, setCameraOn] = useState(true);
     const [status, setStatus] = useState("Đang kết nối...");
 
-    // 1. Khởi tạo Peer Connection
+    // Hàm hỗ trợ xử lý hàng đợi ICE
+    const processIceQueue = async () => {
+        const pc = peerConnection.current;
+        if (!pc || !pc.remoteDescription) return;
+
+        while (iceCandidatesQueue.current.length > 0) {
+            const candidate = iceCandidatesQueue.current.shift();
+            if (candidate) {
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) {
+                    console.error("Lỗi thêm ICE từ hàng đợi:", e);
+                }
+            }
+        }
+    };
+
+    // 1. Khởi tạo PeerConnection & Media
     useEffect(() => {
         if (!open) return;
 
-        const startCall = async () => {
+        // [FIX 1] Biến cờ kiểm tra component còn mount hay không
+        let isMounted = true;
+
+        const init = async () => {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+                // Tạo PeerConnection
+                const pc = new RTCPeerConnection(configuration);
+                peerConnection.current = pc;
 
-                const peer = new RTCPeerConnection(rtcConfig);
-                peerRef.current = peer;
-
-                stream.getTracks().forEach(track => peer.addTrack(track, stream));
-
-                peer.ontrack = (event) => {
-                    if (remoteVideoRef.current && event.streams[0]) {
-                        remoteVideoRef.current.srcObject = event.streams[0];
-                        setStatus(""); // Xóa chữ đang kết nối khi đã thấy video
+                // Lắng nghe ICE Candidate
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        sendSignal('ICE_CANDIDATE', event.candidate);
                     }
                 };
 
-                peer.onicecandidate = (event) => {
-                    if (event.candidate) sendSignal("ICE_CANDIDATE", event.candidate);
+                // Lắng nghe Remote Stream
+                pc.ontrack = (event) => {
+                    if (remoteVideoRef.current) {
+                        remoteVideoRef.current.srcObject = event.streams[0];
+                    }
                 };
 
+                // Lắng nghe trạng thái kết nối
+                pc.onconnectionstatechange = () => {
+                    if (!isMounted) return;
+                    switch(pc.connectionState) {
+                        case 'connected': setStatus("Đã kết nối"); break;
+                        case 'disconnected': setStatus("Mất kết nối"); break;
+                        case 'failed': setStatus("Kết nối thất bại"); break;
+                        case 'closed': setStatus("Đã kết thúc"); break;
+                    }
+                };
+
+                // Lấy Local Stream (Async)
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+                // [FIX 1] Kiểm tra nếu component đã bị unmount hoặc PC đã đóng thì dừng ngay
+                if (!isMounted || pc.signalingState === 'closed') {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                }
+
+                // Add Tracks to PC
+                stream.getTracks().forEach(track => {
+                    // Kiểm tra an toàn lần nữa
+                    if (pc.signalingState !== 'closed') {
+                        pc.addTrack(track, stream);
+                    }
+                });
+
+                // LOGIC GỌI / NHẬN
                 if (isIncoming && signalData) {
-                    await peer.setRemoteDescription(new RTCSessionDescription(signalData));
-                    const answer = await peer.createAnswer();
-                    await peer.setLocalDescription(answer);
-                    sendSignal("ANSWER", answer);
+                    // Người nhận (Callee)
+                    setStatus("Đang xử lý cuộc gọi...");
+                    await pc.setRemoteDescription(new RTCSessionDescription(signalData));
+
+                    // [FIX 2] Xử lý ICE queue ngay sau khi set remote description thành công
+                    await processIceQueue();
+
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    sendSignal('ANSWER', answer);
                 } else {
-                    const offer = await peer.createOffer();
-                    await peer.setLocalDescription(offer);
-                    sendSignal("OFFER", offer);
+                    // Người gọi (Caller)
+                    setStatus("Đang gọi...");
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    sendSignal('OFFER', offer);
                 }
 
             } catch (err) {
-                console.error("Lỗi media:", err);
-                setStatus("Lỗi Camera/Mic");
+                console.error("Lỗi khởi tạo Video Call:", err);
+                if (isMounted) setStatus("Lỗi khởi tạo media");
             }
         };
 
-        startCall();
+        init();
 
+        // Cleanup function
         return () => {
-            const stream = localVideoRef.current?.srcObject as MediaStream;
-            stream?.getTracks().forEach(track => track.stop());
-            peerRef.current?.close();
+            isMounted = false; // Đánh dấu đã unmount
+            endCall(false); // False để không gửi tín hiệu HANGUP lần nữa khi unmount
         };
     }, [open]);
 
-    // Giữ connection khi props thay đổi
-    useEffect(() => {}, [minimized]);
-
+    // 2. Gửi tín hiệu qua WebSocket
     const sendSignal = (type: string, data: any) => {
         if (stompClient && stompClient.connected) {
             stompClient.publish({
@@ -103,66 +169,151 @@ const VideoCallWindow = ({
         }
     };
 
-    // Expose hàm xử lý tín hiệu
-    // @ts-ignore
-    window.handleVideoSignal = async (signal: any) => {
-        const peer = peerRef.current;
-        if (!peer) return;
+    // 3. Xử lý tín hiệu đến (Answer, ICE, Hangup)
+    useEffect(() => {
+        // @ts-ignore
+        window.handleVideoSignal = async (payload: any) => {
+            const pc = peerConnection.current;
+            if (!pc) return;
 
-        if (signal.type === "ANSWER") {
-            await peer.setRemoteDescription(new RTCSessionDescription(signal.data));
-        } else if (signal.type === "ICE_CANDIDATE") {
-            try { await peer.addIceCandidate(new RTCIceCandidate(signal.data)); } catch (e) {}
-        } else if (signal.type === "HANGUP") {
-            onClose(); // Bên kia tắt thì mình cũng tắt
+            try {
+                if (payload.type === 'ANSWER') {
+                    // Kiểm tra trạng thái trước khi set Remote Description
+                    if (pc.signalingState === 'stable') {
+                        console.log("WebRTC đã kết nối, bỏ qua tín hiệu ANSWER trùng lặp.");
+                        return;
+                    }
+                    if (pc.signalingState === 'have-local-offer') {
+                        await pc.setRemoteDescription(new RTCSessionDescription(payload.data));
+                        // [FIX 2] Xử lý hàng đợi ICE sau khi nhận Answer
+                        await processIceQueue();
+                    }
+                }
+                else if (payload.type === 'ICE_CANDIDATE') {
+                    if (payload.data) {
+                        // [FIX 2] Kiểm tra Remote Description
+                        if (pc.remoteDescription && pc.remoteDescription.type) {
+                            // Nếu đã có Remote Description, add luôn
+                            await pc.addIceCandidate(new RTCIceCandidate(payload.data));
+                        } else {
+                            // Nếu chưa có, đưa vào hàng đợi chờ
+                            console.log("Remote chưa sẵn sàng, queue ICE candidate");
+                            iceCandidatesQueue.current.push(payload.data);
+                        }
+                    }
+                }
+                else if (payload.type === 'HANGUP') {
+                    endCall(false);
+                    onClose();
+                    alert("Cuộc gọi đã kết thúc.");
+                }
+            } catch (error) {
+                console.error("Lỗi xử lý tín hiệu Video:", error);
+            }
+        };
+
+        return () => {
+            // @ts-ignore
+            window.handleVideoSignal = null;
+        };
+    }, []);
+
+    const endCall = (notify: boolean = true) => {
+        if (notify) sendSignal('HANGUP', {});
+
+        // Stop tracks
+        if (localVideoRef.current && localVideoRef.current.srcObject) {
+            const stream = localVideoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
         }
+
+        if (peerConnection.current) {
+            // Kiểm tra trạng thái trước khi đóng để tránh lỗi dư thừa
+            if (peerConnection.current.signalingState !== 'closed') {
+                peerConnection.current.close();
+            }
+            peerConnection.current = null;
+        }
+        if (notify) onClose();
     };
 
     const toggleMic = () => {
-        const stream = localVideoRef.current?.srcObject as MediaStream;
-        stream?.getAudioTracks().forEach(t => t.enabled = !micOn);
-        setMicOn(!micOn);
+        if (localVideoRef.current && localVideoRef.current.srcObject) {
+            const stream = localVideoRef.current.srcObject as MediaStream;
+            stream.getAudioTracks().forEach(track => track.enabled = !micOn);
+            setMicOn(!micOn);
+        }
     };
 
     const toggleCam = () => {
-        const stream = localVideoRef.current?.srcObject as MediaStream;
-        stream?.getVideoTracks().forEach(t => t.enabled = !camOn);
-        setCamOn(!camOn);
+        if (localVideoRef.current && localVideoRef.current.srcObject) {
+            const stream = localVideoRef.current.srcObject as MediaStream;
+            stream.getVideoTracks().forEach(track => track.enabled = !cameraOn);
+            setCameraOn(!cameraOn);
+        }
     };
 
-    const handleHangup = () => {
-        sendSignal("HANGUP", {});
-        onClose();
-    };
-
-    if (!open) return null;
+    // --- GIAO DIỆN THU NHỎ ---
+    if (minimized) {
+        return (
+            <Fab
+                color="secondary"
+                variant="extended"
+                size="medium"
+                onClick={onToggleMinimize}
+                sx={{
+                    position: 'fixed',
+                    bottom: 160,
+                    right: 24,
+                    zIndex: 1301,
+                    fontWeight: 'bold',
+                    boxShadow: 3
+                }}
+            >
+                <VideocamIcon sx={{ mr: 1 }} />
+                Đang gọi: {targetEmail.split('@')[0]}
+                <OpenInFullIcon sx={{ ml: 1, fontSize: 16 }} />
+            </Fab>
+        );
+    }
 
     return (
-        <Box sx={{
-            position: 'fixed',
-            // Logic vị trí:
-            top: minimized ? 'auto' : 0,
-            left: minimized ? 'auto' : 0,
-            bottom: minimized ? 20 : 0,
-            right: minimized ? 20 : 0,
-            width: minimized ? 320 : '100vw',
-            height: minimized ? 240 : '100vh',
-            // Z-Index cực cao để đè lên mọi thứ khác
-            zIndex: 14000,
-            bgcolor: 'black',
-            borderRadius: minimized ? 3 : 0,
-            boxShadow: minimized ? '0 8px 32px rgba(0,0,0,0.5)' : 'none',
-            border: minimized ? '2px solid white' : 'none',
-            transition: 'all 0.3s ease',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
+        <Dialog
+            fullScreen
+            open={open}
+            onClose={() => {}} // Không đóng khi bấm ra ngoài
+        >
+            <Box sx={{
+                height: '100vh',
+                bgcolor: '#202124',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column'
+            }}>
+                {/* Header */}
+                <Box sx={{
+                    p: 2,
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 10,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)'
+                }}>
+                    <Typography variant="h6" color="white" sx={{ textShadow: '1px 1px 2px black' }}>
+                        {status} | {targetEmail}
+                    </Typography>
+                    <Tooltip title="Thu nhỏ màn hình">
+                        <IconButton onClick={onToggleMinimize} sx={{ color: 'white' }}>
+                            <RemoveIcon />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
 
-            {/* CONTAINER VIDEO (Chiếm toàn bộ diện tích) */}
-            <Box sx={{ position: 'relative', width: '100%', height: '100%', bgcolor: '#000' }}>
-
-                {/* 1. REMOTE VIDEO (Full màn hình) */}
+                {/* Remote Video (Full Screen) */}
                 <video
                     ref={remoteVideoRef}
                     autoPlay
@@ -170,76 +321,56 @@ const VideoCallWindow = ({
                     style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover' // Đảm bảo video luôn lấp đầy khung
+                        objectFit: 'cover'
                     }}
                 />
 
-                {/* Chữ trạng thái (nếu đang kết nối) */}
-                {status && (
-                    <Typography sx={{
-                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                        color: 'white', bgcolor: 'rgba(0,0,0,0.6)', p: 1, borderRadius: 1, zIndex: 2
-                    }}>
-                        {status}
-                    </Typography>
-                )}
-
-                {/* 2. LOCAL VIDEO (Góc phải trên) */}
+                {/* Local Video (PIP) */}
                 <Box sx={{
                     position: 'absolute',
-                    top: 10, right: 10,
-                    width: minimized ? 80 : 150,
-                    height: minimized ? 60 : 100,
-                    bgcolor: '#333', borderRadius: 2,
-                    overflow: 'hidden', border: '1px solid rgba(255,255,255,0.5)',
+                    bottom: 100,
+                    right: 20,
+                    width: 160,
+                    height: 120,
+                    bgcolor: 'black',
+                    borderRadius: 2,
+                    overflow: 'hidden',
                     boxShadow: 3,
-                    zIndex: 3 // Cao hơn remote video
+                    border: '2px solid white'
                 }}>
-                    <video ref={localVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                 </Box>
 
-                {/* 3. NÚT THU NHỎ (Góc trái trên) */}
-                {onToggleMinimize && (
-                    <IconButton
-                        onClick={onToggleMinimize}
-                        sx={{
-                            position: 'absolute', top: 10, left: 10,
-                            color: 'white', bgcolor: 'rgba(0,0,0,0.3)',
-                            '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' },
-                            zIndex: 4
-                        }}
-                    >
-                        {minimized ? <OpenInFull /> : <CloseFullscreen />}
-                    </IconButton>
-                )}
-
-                {/* 4. THANH ĐIỀU KHIỂN (Luôn nổi ở dưới đáy) */}
+                {/* Controls */}
                 <Box sx={{
                     position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '100%',
-                    height: minimized ? 50 : 80,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: minimized ? 1 : 3,
-                    bgcolor: 'rgba(0,0,0,0.6)', // Nền đen mờ
-                    backdropFilter: 'blur(5px)',
-                    zIndex: 5 // Quan trọng: Luôn cao hơn video
+                    bottom: 30,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: 3,
+                    bgcolor: 'rgba(0,0,0,0.5)',
+                    p: 1.5,
+                    borderRadius: 8
                 }}>
-                    <IconButton onClick={toggleMic} size={minimized ? "small" : "medium"} sx={{ bgcolor: micOn ? 'rgba(255,255,255,0.2)' : '#f44336', color: 'white' }}>
-                        {micOn ? <Mic fontSize={minimized ? "small" : "medium"} /> : <MicOff fontSize={minimized ? "small" : "medium"} />}
-                    </IconButton>
-
-                    <IconButton onClick={handleHangup} size={minimized ? "small" : "medium"} sx={{ bgcolor: '#d32f2f', color: 'white', px: minimized ? 2 : 4 }}>
-                        <CallEnd fontSize={minimized ? "small" : "medium"} />
-                    </IconButton>
-
-                    <IconButton onClick={toggleCam} size={minimized ? "small" : "medium"} sx={{ bgcolor: camOn ? 'rgba(255,255,255,0.2)' : '#f44336', color: 'white' }}>
-                        {camOn ? <Videocam fontSize={minimized ? "small" : "medium"} /> : <VideocamOff fontSize={minimized ? "small" : "medium"} />}
-                    </IconButton>
+                    <Fab color={micOn ? "default" : "error"} onClick={toggleMic}>
+                        {micOn ? <MicIcon /> : <MicOffIcon />}
+                    </Fab>
+                    <Fab color="error" onClick={() => endCall(true)} size="large">
+                        <CallEndIcon />
+                    </Fab>
+                    <Fab color={cameraOn ? "default" : "error"} onClick={toggleCam}>
+                        {cameraOn ? <VideocamIcon /> : <VideocamOffIcon />}
+                    </Fab>
                 </Box>
-
             </Box>
-        </Box>
+        </Dialog>
     );
 };
 
