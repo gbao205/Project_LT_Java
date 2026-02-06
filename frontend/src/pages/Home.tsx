@@ -96,7 +96,7 @@ const StatCard = ({ title, value, icon, color }: StaffStatCardProps) => (
                 alignItems="flex-start"
             >
                 <Box>
-                    <Typography variant="h3" fontWeight="800" sx={{ mb: 0.5 }}>
+                    <Typography variant="h3" fontWeight="700" sx={{ mb: 0.5 }}>
                         {value}
                     </Typography>
                     <Typography
@@ -256,7 +256,7 @@ const StaffDashboard = ({
                 <Box mb={4}>
                     <Typography
                         variant="h4"
-                        fontWeight="900"
+                        fontWeight="700"
                         color="white"
                         sx={{ letterSpacing: -1 }}
                     >
@@ -308,7 +308,7 @@ const StaffDashboard = ({
             <Grid container spacing={4}>
                 {/* Menu chính nghiệp vụ */}
                 <Grid size={{xs:12, sm:8}}>
-                    <Typography variant="h6" fontWeight="800" mb={3}>
+                    <Typography variant="h6" fontWeight="700" mb={3}>
                         Nghiệp Vụ Chính
                     </Typography>
                     <Grid container spacing={2}>
@@ -361,7 +361,7 @@ const StaffDashboard = ({
                 </Grid>
 
                 <Grid size={{xs:12, md:4}}>
-                    <Typography variant="h6" fontWeight="800" mb={3}>
+                    <Typography variant="h6" fontWeight="700" mb={3}>
                         Trung Tâm Dữ Liệu
                     </Typography>
                     <Paper
@@ -398,7 +398,7 @@ const StaffDashboard = ({
                                 borderRadius: 3,
                                 py: 1.5,
                                 bgcolor: "#ed6c02",
-                                fontWeight: 800,
+                                fontWeight: 700,
                                 "&:hover": { bgcolor: "#e65100" },
                             }}
                             onClick={() => navigate("/staff/import")}
@@ -461,11 +461,11 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                         <Box>
                             <Typography
                                 variant="h4"
-                                fontWeight="900"
+                                fontWeight="700"
                                 color="white"
                                 sx={{ letterSpacing: -1 }}
                             >
-                                Quản Trị Bộ Môn
+                                Trưởng Bộ Môn
                             </Typography>
                             <Typography color="white" sx={{ opacity: 0.9 }}>
                                 Xin chào, {user.fullName} | {roleConfig.label}
@@ -501,13 +501,13 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
                 <Grid container spacing={4}>
                     {/* Cột Trái: Chuyên Môn */}
                     <Grid size={{xs:12, md:8}}>
-                        <Typography variant="h6" fontWeight="800" mb={3} color="#c2410c">
+                        <Typography variant="h6" fontWeight="700" mb={3} color="#c2410c">
                             Quản Lý Chuyên Môn
                         </Typography>
                         <Grid container spacing={2}>
                             <Grid size={{xs:12, sm:6}}>
                                 <MenuCard
-                                    title="Duyệt Đề Tài"
+                                    title="Duyệt Đề Tài Và Phản Biện"
                                     desc="Phê duyệt đồ án & đề tài"
                                     icon={<FactCheckIcon />}
                                     color="#ea580c" // Cam
@@ -537,7 +537,7 @@ const HeadDashboard = ({ user, roleConfig, navigate, onLogout }: any) => {
 
                     {/* Cột Phải: Tiện ích */}
                     <Grid size={{xs:12, md:4}}>
-                        <Typography variant="h6" fontWeight="800" mb={3} color="#c2410c">
+                        <Typography variant="h6" fontWeight="700" mb={3} color="#c2410c">
                             Tiện Ích Khác
                         </Typography>
                         <Grid container spacing={2} direction="column">

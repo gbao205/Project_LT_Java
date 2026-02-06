@@ -162,14 +162,14 @@ const HeadProposalApproval = () => {
             <Paper elevation={0} sx={{ borderBottom: '1px solid #fed7aa', px: 3, py: 2, mb: 4, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'white' }}>
                 <IconButton onClick={() => navigate(-1)} sx={{ color: '#ea580c' }}> <ArrowBackIcon /> </IconButton>
                 <Box>
-                    <Typography variant="h6" fontWeight="900" color="#ea580c">DUYỆT ĐỀ TÀI</Typography>
+                    <Typography variant="h6" fontWeight="700" color="#ea580c">DUYỆT ĐỀ TÀI VÀ PHẢN BIỆN</Typography>
                     <Typography variant="body2" color="text.secondary">Quản lý và phê duyệt đề tài đồ án</Typography>
                 </Box>
             </Paper>
 
             <Container maxWidth="lg">
                 <Grid container spacing={3} mb={4}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{xs:12, md:6}}>
                         <Card sx={{ bgcolor: '#ea580c', color: 'white', borderRadius: 3, boxShadow: '0 4px 12px rgba(234, 88, 12, 0.3)' }}>
                             <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Box>
@@ -180,7 +180,7 @@ const HeadProposalApproval = () => {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{xs:12, md:6}}>
                         <Card sx={{ bgcolor: 'white', color: '#ea580c', borderRadius: 3, border: '1px solid #fed7aa' }}>
                             <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Box>
@@ -195,7 +195,7 @@ const HeadProposalApproval = () => {
 
                 <Paper sx={{ p: 2, mb: 3, borderRadius: 3, border: '1px solid #fed7aa', boxShadow: 'none' }}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} md={8}>
+                        <Grid size={{xs:12, md:8}}>
                             <TextField
                                 fullWidth placeholder="Tìm kiếm giảng viên, đề tài..."
                                 value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -204,7 +204,7 @@ const HeadProposalApproval = () => {
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                         </Grid>
-                        <Grid item xs={6} md={4}>
+                        <Grid size={{xs:6, md:4}}>
                             <TextField select fullWidth label="Trạng thái" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} size="small">
                                 <MenuItem value="ALL">Tất cả</MenuItem>
                                 <MenuItem value="PENDING">Chờ duyệt</MenuItem>
@@ -312,9 +312,36 @@ const HeadProposalApproval = () => {
                         <Box mt={2}>
                             <Typography variant="h6" gutterBottom>{selectedProposal.title}</Typography>
                             <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', mb: 2 }}><Typography variant="body2">{selectedProposal.description}</Typography></Paper>
-                            <Grid container spacing={2}>
-                                <Grid item xs={6}><Typography variant="caption" fontWeight="bold">CÔNG NGHỆ</Typography><Typography variant="body2">{selectedProposal.technology}</Typography></Grid>
-                                <Grid item xs={6}><Typography variant="caption" fontWeight="bold">SỐ LƯỢNG</Typography><Typography variant="body2">{selectedProposal.maxStudents} SV</Typography></Grid>
+                            <Grid xs={6}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 700,
+                                        letterSpacing: "0.08em",
+                                        color: "text.secondary",
+                                    }}
+                                >
+                                    CÔNG NGHỆ
+                                </Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                    {selectedProposal.technology}
+                                </Typography>
+                            </Grid>
+
+                            <Grid xs={6}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 700,
+                                        letterSpacing: "0.08em",
+                                        color: "text.secondary",
+                                    }}
+                                >
+                                    SỐ LƯỢNG
+                                </Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                    {selectedProposal.maxStudents} SV
+                                </Typography>
                             </Grid>
                         </Box>
                     )}
