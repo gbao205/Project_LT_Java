@@ -22,26 +22,18 @@ import {
   Avatar,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import SearchIcon from "@mui/icons-material/Search"; // Nhớ import icon này
 import Pagination from "@mui/material/Pagination";
 import { useNavigate } from "react-router-dom";
-import {
-  getStaffSubjects,
-  createSubject,
-  updateSubject,
-  deleteSubject,
-} from "../../services/subjectService";
+import { getStaffSubjects, updateSubject } from "../../services/subjectService";
 import type { Subject } from "../../types/Subject";
 
 const SubjectManager = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [openImport, setOpenImport] = useState(false);
-  const [openAdd, setOpenAdd] = useState(false);
+
   const [openEdit, setOpenEdit] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [page, setPage] = useState(0);
@@ -60,13 +52,6 @@ const SubjectManager = () => {
     subjectCode: "",
     name: "",
     specialization: "",
-  });
-
-  const [newSubject, setNewSubject] = useState<Omit<Subject, "id">>({
-    subjectCode: "",
-    name: "",
-    specialization: "",
-    description: "",
   });
 
   // Load dữ liệu dựa trên appliedFilters
@@ -92,39 +77,20 @@ const SubjectManager = () => {
     }
   };
 
-  // Chỉ gọi lại API khi số trang hoặc filter đã nhấn "Tìm" thay đổi
   useEffect(() => {
     loadData();
   }, [page, appliedFilters]);
 
-  // Xử lý nhấn nút tìm kiếm
   const handleSearch = () => {
     setAppliedFilters(searchInputs);
-    setPage(0); // Về trang 1 khi tìm kiếm mới
+    setPage(0);
   };
 
-  // Reset tìm kiếm
   const handleReset = () => {
     const empty = { subjectCode: "", name: "", specialization: "" };
     setSearchInputs(empty);
     setAppliedFilters(empty);
     setPage(0);
-  };
-
-  const handleAddSubject = async () => {
-    if (!newSubject.subjectCode || !newSubject.name)
-      return alert("Vui lòng nhập đủ thông tin!");
-    const result = await createSubject(newSubject);
-    if (result) {
-      setOpenAdd(false);
-      setNewSubject({
-        subjectCode: "",
-        name: "",
-        specialization: "",
-        description: "",
-      });
-      loadData();
-    }
   };
 
   const handleEditClick = (subject: Subject) => {
@@ -134,25 +100,31 @@ const SubjectManager = () => {
 
   const handleUpdateSubject = async () => {
     if (editingSubject) {
-      const result = await updateSubject(editingSubject.id, editingSubject);
-      if (result) {
-        setOpenEdit(false);
-        loadData();
-      }
-    }
-  };
-
-  const handleDeleteSubject = async (id: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa môn học này không?")) {
       try {
-        await deleteSubject(id);
-        loadData();
+        const result = await updateSubject(editingSubject.subjectCode, {
+          name: editingSubject.name,
+          specialization: editingSubject.specialization,
+          description: editingSubject.description,
+        });
+
+        if (result) {
+          setSubjects((prevSubjects) =>
+            prevSubjects.map((s) =>
+              s.subjectCode === editingSubject.subjectCode
+                ? { ...s, ...editingSubject }
+                : s,
+            ),
+          );
+
+          setOpenEdit(false);
+          alert("Cập nhật thành công!");
+        }
       } catch (error) {
-        alert("Lỗi khi xóa!");
+        console.error("Lỗi khi cập nhật:", error);
+        alert("Cập nhật thất bại!");
       }
     }
   };
-
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", py: 6 }}>
       <Container maxWidth="xl">
@@ -208,20 +180,6 @@ const SubjectManager = () => {
               }}
             >
               Đến Trung Tâm Import
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpenAdd(true)}
-              sx={{
-                borderRadius: 3,
-                px: 3,
-                textTransform: "none",
-                fontWeight: 700,
-                bgcolor: "#9c27b0",
-              }}
-            >
-              Thêm Môn Học
             </Button>
           </Stack>
         </Box>
@@ -382,15 +340,6 @@ const SubjectManager = () => {
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            handleDeleteSubject(Number(subject.id))
-                          }
-                          sx={{ color: "#ef4444", bgcolor: "#fef2f2" }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -418,6 +367,91 @@ const SubjectManager = () => {
         </Box>
 
         {/* --- Dialogs (Add, Edit, Import) giữ nguyên code cũ của bạn bên dưới này --- */}
+        {/* --- Dialog Chỉnh Sửa Môn Học --- */}
+        <Dialog
+          open={openEdit}
+          onClose={() => setOpenEdit(false)}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: { borderRadius: 4, p: 1 },
+          }}
+        >
+          {/* SỬA LỖI: Thẻ đóng phải trùng với thẻ mở DialogTitle */}
+          <DialogTitle sx={{ fontWeight: 800, color: "#1e293b", pb: 1 }}>
+            Chỉnh Sửa Môn Học
+          </DialogTitle>
+
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <TextField
+                label="Mã môn học"
+                fullWidth
+                disabled
+                value={editingSubject?.subjectCode || ""}
+                variant="filled"
+              />
+              <TextField
+                label="Tên môn học"
+                fullWidth
+                value={editingSubject?.name || ""}
+                onChange={(e) =>
+                  setEditingSubject((prev) =>
+                    prev ? { ...prev, name: e.target.value } : null,
+                  )
+                }
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3 } }}
+              />
+              <TextField
+                label="Chuyên ngành"
+                fullWidth
+                value={editingSubject?.specialization || ""}
+                onChange={(e) =>
+                  setEditingSubject((prev) =>
+                    prev ? { ...prev, specialization: e.target.value } : null,
+                  )
+                }
+                placeholder="Ví dụ: Kỹ thuật phần mềm"
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3 } }}
+              />
+              <TextField
+                label="Mô tả môn học"
+                fullWidth
+                multiline
+                rows={4}
+                value={editingSubject?.description || ""}
+                onChange={(e) =>
+                  setEditingSubject((prev) =>
+                    prev ? { ...prev, description: e.target.value } : null,
+                  )
+                }
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3 } }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 1 }}>
+            <Button
+              onClick={() => setOpenEdit(false)}
+              sx={{ color: "#64748b", fontWeight: 700, textTransform: "none" }}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleUpdateSubject}
+              sx={{
+                bgcolor: "#9c27b0",
+                px: 4,
+                borderRadius: 3,
+                fontWeight: 700,
+                textTransform: "none",
+                "&:hover": { bgcolor: "#7b1fa2" },
+              }}
+            >
+              Lưu thay đổi
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

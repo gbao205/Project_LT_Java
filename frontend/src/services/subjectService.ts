@@ -24,12 +24,12 @@ export const createSubject = async (subject: Omit<Subject, 'id'>): Promise<Subje
     }
 };
 // Sửa môn học - Gọi đến endpoint của Staff
-export const updateSubject = async (id: number, data: Subject) => {
+export const updateSubject = async (subjectCode: string, data: Partial<Subject>) => {
     try {
-        const response = await api.put(`/staff/subjects/${id}`, data);
+        const response = await api.patch(`/staff/subjects/${subjectCode}`, data);
         return response.data;
     } catch (error) {
-        console.error("Lỗi khi cập nhật môn học:", error);
+        console.error("Lỗi khi cập nhật môn học tại Service:", error);
         throw error;
     }
 };
