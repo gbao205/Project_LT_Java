@@ -69,6 +69,16 @@ const StudentCalendar = () => {
         setSelectedDate(newDate);
     };
 
+    // Kiểm tra ngày có phải hôm nay không
+    const isToday = (date: Date) => {
+    const now = new Date();
+        return (
+            date.getDate() === now.getDate() &&
+            date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear()
+        );
+    };
+
     const handleToday = () => setSelectedDate(new Date());
 
     // 4. Hàm hiển thị dữ liệu thật vào từng ô của bảng
@@ -316,11 +326,12 @@ const StudentCalendar = () => {
                                             key={index} 
                                             align="center" 
                                             sx={{ 
+                                                bgcolor: isToday(date) ? '#f49600' : '#2e7d32',
                                                 color: 'white', 
                                                 fontWeight: 'bold', 
                                                 minWidth: 130,
                                                 p: '10px 4px'
-                                            }}
+                                            }}  
                                         >
                                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                                 <Typography sx={{ fontSize: '14px', fontWeight: 'bold' }}>

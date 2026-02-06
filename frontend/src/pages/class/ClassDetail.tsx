@@ -741,7 +741,14 @@ const ClassDetail = () => {
                                                                         )}
 
                                                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                                                                            Nộp lúc: {new Date(ass.submission.submittedAt).toLocaleString('vi-VN')}
+                                                                            Nộp lúc: {
+                                                                                        new Date(ass.submission.submittedAt).toLocaleTimeString('vi-VN', { 
+                                                                                            hour: '2-digit', 
+                                                                                            minute: '2-digit' 
+                                                                                        })
+                                                                                    } - {
+                                                                                        new Date(ass.submission.submittedAt).toLocaleDateString('vi-VN')
+                                                                                    }
                                                                         </Typography>
                                                                     </Paper>
                                                                 )}

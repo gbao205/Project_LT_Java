@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Container, Typography, Box, TextField, Button,
     Divider, Alert, CircularProgress, Paper, FormControl,
@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import StudentLayout from '../../components/layout/StudentLayout';
 import studentService from '../../services/studentService';
@@ -14,97 +15,89 @@ import { useAppSnackbar } from '../../hooks/useAppSnackbar';
 
 const ProjectRegistration = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { showSuccess, showError } = useAppSnackbar();
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [classes, setClasses] = useState<any[]>([]);
+    
     const [selectedClassId, setSelectedClassId] = useState<string>('');
-    const [teamInfo, setTeamInfo] = useState<any>(null);
     const [formData, setFormData] = useState({ projectName: '', description: '' });
+    
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const currentUserId = Number(currentUser.id || currentUser.user?.id);
 
-    useEffect(() => {
-        const fetchAndFilterClasses = async () => {
-            try {
-                setLoading(true);
-                const joinedClasses = await getMyClasses();
-                
-                const classStatuses = await Promise.all(
-                    joinedClasses.map(async (cls: any) => {
-                        try {
-                            const team = await studentService.getMyTeam(cls.id);
-                            
-                            const currentId = Number(currentUser.id || currentUser.user?.id);
-                            
-                            const isLeader = team?.members?.some(
-                                (m: any) => 
-                                    m.role === 'LEADER' && 
-                                    Number(m.student?.id) === currentId
-                            );
+    // 1. Sử dụng useQuery để lấy và lọc danh sách lớp học khả dụng
+    const { data: classes = [], isLoading } = useQuery({
+        queryKey: ['eligible-classes-for-project', currentUserId],
+        queryFn: async () => {
+            const joinedClasses = await getMyClasses();
+            
+            // Xử lý song song các request lấy thông tin team của từng lớp
+            const classStatuses = await Promise.all(
+                joinedClasses.map(async (cls: any) => {
+                    try {
+                        const team = await studentService.getMyTeam(cls.id);
+                        
+                        // Kiểm tra quyền Trưởng nhóm và chưa có đề tài
+                        const isLeader = team?.members?.some(
+                            (m: any) => 
+                                m.role === 'LEADER' && 
+                                Number(m.student?.id) === currentUserId
+                        );
 
-                            if (team && !team.project && isLeader) {
-                                return { ...cls, team };
-                            }
-                            return null;
-                        } catch (err) {
-                            return null; 
+                        if (team && !team.project && isLeader) {
+                            return { ...cls, team };
                         }
-                    })
-                );
+                        return null;
+                    } catch (err) {
+                        return null;
+                    }
+                })
+            );
 
-                const eligibleClasses = classStatuses.filter(item => item !== null);
-                setClasses(eligibleClasses);
-            } catch (error) {
-                console.error("Lỗi tổng quát:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+            return classStatuses.filter(item => item !== null);
+        },
+        staleTime: 1000, // Dữ liệu "tươi" trong 5 phút
+        enabled: !!currentUserId,  // Chỉ chạy khi có user ID
+    });
 
-        if (currentUser && (currentUser.id || currentUser.user?.id)) {
-            fetchAndFilterClasses();
+    // 2. Sử dụng useMutation cho hành động đăng ký
+    const registrationMutation = useMutation({
+        mutationFn: (payload: any) => studentService.registerProject(payload),
+        onSuccess: () => {
+            showSuccess('Đăng ký đề tài thành công!');
+            // Làm mới lại cache danh sách lớp để xóa lớp vừa đăng ký thành công
+            queryClient.invalidateQueries({ queryKey: ['eligible-classes-for-project'] });
+            
+            // Reset form
+            setSelectedClassId('');
+            setFormData({ projectName: '', description: '' });
+        },
+        onError: (error: any) => {
+            showError(error.response?.data?.message || 'Lỗi đăng ký đề tài');
         }
-    }, [JSON.stringify(currentUser)]);
+    });
 
     const handleClassChange = (classId: string) => {
         setSelectedClassId(classId);
-        const selected = classes.find(c => c.id === Number(classId));
-        setTeamInfo(selected?.team || null);
     };
 
-    const handleRegister = async () => {
+    // Tìm thông tin team từ danh sách đã load trong cache
+    const teamInfo = classes.find(c => c.id === Number(selectedClassId))?.team || null;
 
+    const handleRegister = () => {
         if (!selectedClassId) {
             showError('Vui lòng chọn lớp học trước khi đăng ký');
             return;
         }
-
         if (!formData.projectName.trim()) {
             showError('Vui lòng nhập tên đề tài');
             return;
         }
-        try {
-            setSubmitting(true);
-            const registeredId = Number(selectedClassId);
-            const payload = {
-                classId: Number(selectedClassId),
-                projectName: formData.projectName,
-                description: formData.description
-            };
 
-            await studentService.registerProject(payload);
-            showSuccess('Đăng ký đề tài thành công!');
-
-            setClasses((prevClasses) => prevClasses.filter(cls => cls.id !== registeredId));
-
-            setSelectedClassId(''); 
-            setTeamInfo(null);     
-            setFormData({ projectName: '', description: '' }); 
-        } catch (error: any) {
-            showError(error.response?.data?.message || 'Lỗi đăng ký đề tài');
-        } finally {
-            setSubmitting(false);
-        }
+        registrationMutation.mutate({
+            classId: Number(selectedClassId),
+            projectName: formData.projectName,
+            description: formData.description
+        });
     };
 
     return (
@@ -125,19 +118,13 @@ const ProjectRegistration = () => {
                                 Đăng ký đề tài dự án
                             </Typography>
                         </Box>
-                        <Typography 
-                            variant="caption" 
-                            color="error" 
-                            sx={{ 
-                                fontStyle: 'italic'
-                            }}
-                        >
-                            * Lưu ý: Chức năng chỉ dành cho nhóm trưởng
+                        <Typography variant="caption" color="error" sx={{ fontStyle: 'italic' }}>
+                            * Lưu lưu ý: Chức năng chỉ dành cho nhóm trưởng
                         </Typography>
                     </Box>
 
                     <Box sx={{ p: 4 }}>
-                        {loading ? (
+                        {isLoading ? (
                             <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
                         ) : classes.length === 0 ? (
                             <Box textAlign="center" py={4}>
@@ -155,7 +142,6 @@ const ProjectRegistration = () => {
                             </Box>
                         ) : (
                             <Stack spacing={4}>
-
                                 <Box>
                                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                                         Bước 1: Chọn lớp học
@@ -167,7 +153,7 @@ const ProjectRegistration = () => {
                                             label="Danh sách lớp"
                                             onChange={(e) => handleClassChange(e.target.value)}
                                         >
-                                            {classes.map((cls) => (
+                                            {classes.map((cls: any) => (
                                                 <MenuItem key={cls.id} value={cls.id}>
                                                     {cls.name} ({cls.classCode}) - {cls.team?.teamName}
                                                 </MenuItem>
@@ -179,7 +165,7 @@ const ProjectRegistration = () => {
                                 {selectedClassId && (
                                     <Box>
                                         <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                            Bước 2: Nhập thông tin đề tài cho nhóm: <b>{teamInfo?.teamName}</b>
+                                            Bước 2: Nhập thông tin đề tài cho nhóm: {teamInfo?.teamName}
                                         </Typography>
                                         <Divider sx={{ mb: 3 }} />
                                         
@@ -203,10 +189,10 @@ const ProjectRegistration = () => {
                                                 <Button 
                                                     variant="contained" 
                                                     onClick={handleRegister}
-                                                    disabled={submitting}
+                                                    disabled={registrationMutation.isPending}
                                                     sx={{ bgcolor: '#ef6c00', '&:hover': { bgcolor: '#e65100' } }}
                                                 >
-                                                    {submitting ? <CircularProgress size={24} /> : 'Gửi yêu cầu đăng ký'}
+                                                    {registrationMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Gửi yêu cầu đăng ký'}
                                                 </Button>
                                             </Box>
                                         </Stack>
