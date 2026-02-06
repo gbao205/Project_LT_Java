@@ -306,7 +306,7 @@ public class StudentService {
     // Lấy tất cả nhóm mà sinh viên đã tham gia
     public List<Team> getAllJoinedTeams() {
         User student = getCurrentUser();
-        return teamMemberRepository.findByStudent_Id(student.getId())
+        return teamMemberRepository.findByStudentIdWithEagerTeam(student.getId())
                 .stream()
                 .map(TeamMember::getTeam) // Lấy đối tượng Team từ TeamMember
                 .toList();

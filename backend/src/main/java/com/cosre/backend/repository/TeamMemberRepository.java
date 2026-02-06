@@ -55,4 +55,12 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     // Tìm tất cả các nhóm mà studentId tham gia
     List<TeamMember> findByStudent_Id(Long studentId);
+
+    // Lấy thông tin TeamMember kèm theo thông tin Team (và các thông tin liên quan) dựa trên Student ID
+    @Query("SELECT tm FROM TeamMember tm " +
+           "JOIN FETCH tm.team t " + 
+           "LEFT JOIN FETCH t.classRoom " + // Lấy luôn thông tin lớp học
+           "LEFT JOIN FETCH t.project " +   // Lấy luôn thông tin đề tài
+           "WHERE tm.student.id = :studentId")
+    List<TeamMember> findByStudentIdWithEagerTeam(@Param("studentId") Long studentId);
 }
