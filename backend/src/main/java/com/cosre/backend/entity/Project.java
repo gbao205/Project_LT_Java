@@ -24,43 +24,44 @@ public class Project {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // --- CÁC TRƯỜNG MỚI BỔ SUNG CHO HEAD DEPARTMENT ---
-
-    private String technology; // Công nghệ sử dụng
+    // --- CÁC TRƯỜNG BỔ SUNG ---
+    private String technology; // Công nghệ
 
     @Builder.Default
-    private Integer maxStudents = 0; // Số lượng sinh viên tối đa
+    private Integer maxStudents = 0; // Số SV tối đa
 
     @Column(name = "submitted_date")
-    private LocalDate submittedDate; // Ngày giảng viên gửi đề tài
+    private LocalDate submittedDate;
 
     @Column(columnDefinition = "TEXT")
-    private String rejectionReason; // Lý do từ chối (nếu có)
+    private String rejectionReason;
 
-    // Quan hệ với Giảng viên (Người tạo đề tài)
     @ManyToOne
     @JoinColumn(name = "owner_id")
-    private User owner;
+    private User owner; // GVHD
 
-    // --------------------------------------------------
-
-    // Trạng thái duyệt: PENDING, APPROVED, REJECTED
     @Enumerated(EnumType.STRING)
     private ProjectStatus status;
 
-    // Mối quan hệ: Một đề tài có thể được chọn bởi nhiều nhóm
     @OneToMany(mappedBy = "project")
     @JsonIgnore
     private List<Team> teams;
 
-    // --- [MỚI] Người phản biện (Reviewer) - Do Head chỉ định ---
+    // --- NGƯỜI PHẢN BIỆN ---
     @ManyToOne
     @JoinColumn(name = "reviewer_id")
     private User reviewer;
-    // --- BỔ SUNG CÁC TRƯỜNG LƯU KẾT QUẢ PHẢN BIỆN ---
+
+    // --- [FIX LỖI] THÊM CÁC CỘT ĐIỂM SỐ ---
     @Column(name = "review_score")
-    private Double reviewScore; // Điểm phản biện (thang 10)
+    private Double reviewScore;     // Điểm GVPB
+
+    @Column(name = "instructor_score")
+    private Double instructorScore; // Điểm GVHD
+
+    @Column(name = "council_score")
+    private Double councilScore;    // Điểm Hội đồng
 
     @Column(name = "review_comment", columnDefinition = "TEXT")
-    private String reviewComment; // Nhận xét của phản biện
+    private String reviewComment;
 }

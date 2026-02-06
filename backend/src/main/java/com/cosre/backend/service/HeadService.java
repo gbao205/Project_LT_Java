@@ -74,7 +74,14 @@ public class HeadService {
                 int maxStu = (p.getMaxStudents() != null) ? p.getMaxStudents() : 0;
                 LocalDate subDate = p.getSubmittedDate();
 
-                String reviewerName = (p.getReviewer() != null) ? p.getReviewer().getFullName() : "Chưa phân công";
+                // Lấy tên người phản biện (Reviewer)
+                String reviewerName = (p.getReviewer() != null) ? p.getReviewer().getFullName() : null;
+                Long reviewerId = (p.getReviewer() != null) ? p.getReviewer().getId() : null;
+
+                // Giả định entity Project đã có các trường này (theo yêu cầu trước đó)
+                Double instructorScore = p.getInstructorScore();
+                Double reviewScore = p.getReviewScore();
+                Double councilScore = p.getCouncilScore();
 
                 return HeadProjectDTO.builder()
                         .id(p.getId())
@@ -84,8 +91,11 @@ public class HeadService {
                         .maxStudents(maxStu)
                         .submittedDate(subDate)
                         .status(statusStr)
-                        .reviewerName(reviewerName)
-                        .reviewScore(p.getReviewScore())
+                        .reviewerId(reviewerId)     // ID để check logic frontend
+                        .reviewerName(reviewerName) // Tên để hiển thị
+                        .reviewScore(reviewScore)   // Điểm phản biện
+                        .instructorScore(instructorScore) // Điểm GVHD
+                        .councilScore(councilScore)       // Điểm hội đồng
                         .reviewComment(p.getReviewComment())
                         .build();
             }).collect(Collectors.toList());
