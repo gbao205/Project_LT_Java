@@ -113,7 +113,6 @@ public class ImportUser extends BaseImportParser<UserImportDTO> {
         } else {
             if (isBlank(dto.getCccd()))        throw new RuntimeException("Dòng " + rowNum + ": Thiếu số CCCD");
             if (isBlank(dto.getDegree()))      throw new RuntimeException("Dòng " + rowNum + ": Thiếu Học vị");
-            if (isBlank(dto.getFaculty()))     throw new RuntimeException("Dòng " + rowNum + ": Thiếu Khoa");
             if (isBlank(dto.getDepartment()))  throw new RuntimeException("Dòng " + rowNum + ": Thiếu Bộ môn công tác");
         }
     }

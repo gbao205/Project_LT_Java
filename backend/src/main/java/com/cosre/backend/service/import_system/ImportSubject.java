@@ -47,6 +47,12 @@ public class ImportSubject extends BaseImportParser<SubjectImportDTO> {
                         HttpStatus.BAD_REQUEST
                 );
             }
+            if (subjectRepository.existsBySubjectCode(s.getSubjectCode())) {
+                throw new AppException(
+                        "Dòng " + rowNum + ": Mã môn học '" + s.getSubjectCode() + "' đã tồn tại trên hệ thống!",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
         }
     }
     @Override
