@@ -265,7 +265,7 @@ const ClassManager = () => {
           <Box>
             <Typography
               variant="h4"
-              fontWeight="900"
+              fontWeight="700"
               color="#1e293b"
               sx={{ letterSpacing: -1 }}
             >
@@ -377,43 +377,43 @@ const ClassManager = () => {
               <TableRow>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   MÃ LỚP
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: theme.headerText }}>
+                <TableCell sx={{ fontWeight: 700, color: theme.headerText }}>
                   TÊN LỚP
                 </TableCell>
 
                 {/* [SỬA] Bỏ align="center" để căn trái cột Giảng viên */}
-                <TableCell sx={{ fontWeight: 800, color: theme.headerText }}>
+                <TableCell sx={{ fontWeight: 700, color: theme.headerText }}>
                   GIẢNG VIÊN
                 </TableCell>
 
-                <TableCell sx={{ fontWeight: 800, color: theme.headerText }}>
+                <TableCell sx={{ fontWeight: 700, color: theme.headerText }}>
                   MÔN HỌC
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   HỌC KỲ
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   SĨ SỐ
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   TRẠNG THÁI
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   THAO TÁC
                 </TableCell>
@@ -431,7 +431,7 @@ const ClassManager = () => {
                   <TableRow key={cls.id} hover>
                     <TableCell
                       align="center"
-                      sx={{ fontWeight: 800, color: theme.primary }} // Màu mã lớp động
+                      sx={{ fontWeight: 700, color: theme.primary }} // Màu mã lớp động
                     >
                       {cls.classCode}
                     </TableCell>
@@ -700,7 +700,7 @@ const ClassManager = () => {
         >
           <DialogTitle
             sx={{
-              fontWeight: 800,
+              fontWeight: 700,
               color: theme.headerText,
               bgcolor: theme.lightBg,
             }}
@@ -777,7 +777,7 @@ const ClassManager = () => {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle sx={{ fontWeight: 800 }}>
+          <DialogTitle sx={{ fontWeight: 700 }}>
             Thời khóa biểu: {selectedClassCode}
           </DialogTitle>
           <DialogContent>
@@ -810,7 +810,7 @@ const ClassManager = () => {
           </DialogContent>
         </Dialog>
         <Dialog open={openDateModal} onClose={() => setOpenDateModal(false)}>
-          <DialogTitle sx={{ fontWeight: 800 }}>Cập nhật ngày học</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700 }}>Cập nhật ngày học</DialogTitle>
           <DialogContent sx={{ minWidth: 300, pt: 2 }}>
             <Typography variant="body2" mb={2} color="text.secondary">
               Chọn ngày bắt đầu mới, hệ thống sẽ tự động tính toán lại ngày kết

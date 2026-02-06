@@ -207,7 +207,7 @@ const SyllabusManager = () => {
               <Box>
                 <Typography
                   variant="h4"
-                  fontWeight={900}
+                  fontWeight={700}
                   sx={{ letterSpacing: -1 }}
                 >
                   Quản Lý Chương Trình Học
@@ -341,25 +341,25 @@ const SyllabusManager = () => {
               <TableRow>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   ID
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   TÊN MÔN HỌC
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   NĂM
                 </TableCell>
                 <TableCell
                   align="center"
-                  sx={{ fontWeight: 800, color: theme.headerText }}
+                  sx={{ fontWeight: 700, color: theme.headerText }}
                 >
                   THAO TÁC
                 </TableCell>
@@ -460,7 +460,7 @@ const SyllabusManager = () => {
         >
           <DialogTitle
             sx={{
-              fontWeight: 800,
+              fontWeight: 700,
               bgcolor: theme.headerBg,
               color: theme.headerText,
             }}
@@ -534,7 +534,7 @@ const SyllabusManager = () => {
           maxWidth="sm"
           PaperProps={{ sx: { borderRadius: 4 } }}
         >
-          <DialogTitle sx={{ fontWeight: 800, color: theme.primary }}>
+          <DialogTitle sx={{ fontWeight: 700, color: theme.primary }}>
             Import Syllabus
           </DialogTitle>
           <DialogContent>
